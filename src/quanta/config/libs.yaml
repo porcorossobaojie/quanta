@@ -1,0 +1,61 @@
+---
+db:
+    recommand: None
+    DuckDB:
+        recommand_settings:
+            path: None
+            database: Locals
+            schema: jq_data
+        data_type:
+            TINYINT: 'TINYINT'
+            SMALLINT: 'SMALLINT'
+            INTEGER: 'INT'
+            INT: 'INT'
+            BIGINT: 'BIGINT'
+            FLOAT: 'FLOAT'
+            DOUBLE: 'DOUBLE'
+            REAL: 'DOUBLE'
+            DECIMAL: 'DECIMAL'
+            NUMERIC: 'DECIMAL'
+            BOOLEAN: 'BOOLEAN'
+            BOOL: 'BOOLEAN'
+            VARCHAR: 'VARCHAR'
+            TEXT: 'TEXT'
+            DATE: 'DATE'
+            DATETIME: 'DATETIME'
+            TIMESTAMP: 'DATETIME'
+            INTERVAL: 'INTERVAL'
+            UNDIFINED: 'VARCHAR'
+            MPS: [DECIMAL]        
+    MySQL:
+        recommand_settings:
+            user: user
+            password: password
+            mysql_connect: 'mysql+pymysql://'
+            charset: utf8mb4
+            collate: utf8mb4_general_ci
+            chunksize: 64000000
+            host: '127.0.0.1'
+            port: 3306
+            schema: jq_data
+        data_type:
+            TINYINT: 'TINYINT'
+            SMALLINT: 'SMALLINT'
+            INTEGER: 'INT'
+            INT: 'INT'
+            BIGINT: 'BIGINT'
+            FLOAT: 'FLOAT'
+            DOUBLE: 'DOUBLE'
+            REAL: 'DOUBLE'
+            DECIMAL: 'DECIMAL'
+            NUMERIC: 'DECIMAL'
+            BOOLEAN: 'BOOLEAN'
+            BOOL: 'BOOLEAN'
+            VARCHAR: 'VARCHAR'
+            TEXT: 'TEXT'
+            DATE: 'DATE'
+            DATETIME: 'DATETIME'
+            TIMESTAMP: 'DATETIME'
+            UNDIFINED: 'VARCHAR(255)'
+            MPS: [INTEGER, FLOAT, REAL, DOUBLE, DECIMAL, VARCHAR]
+---
