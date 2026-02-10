@@ -1,2 +1,2 @@
-from quanta import libs
-from quanta import config
+from src.quanta import libs
+from src.quanta import config

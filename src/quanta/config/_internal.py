@@ -14,10 +14,10 @@ MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 __all__ = ['settings']
 
 def settings(yaml_file, env_file=None):
-    env_file = '.env.yaml' if env_file is None else env_file
     if yaml_file[-5:].lower() != '.yaml':
         yaml_file = f"{yaml_file}.yaml"
     base = _yaml_config(
-        [Path(MODULE_DIR) / yaml_file, Path(MODULE_DIR).parents[2] / env_file]
+        [Path(MODULE_DIR) / yaml_file,
+         Path(MODULE_DIR).parents[2] / '.env' / (yaml_file if env_file is None else env_file)]
     )
     return base

@@ -9,7 +9,7 @@ from typing import Dict, List, Any, Type
 from box import Box
 import yaml
 
-__all__ = ['filter_class_attrs', 'filter_all_parents_class_attrs', 'merge_dicts', 'flatten_list', 'yaml_config']
+__all__ = ['filter_class_attrs', 'filter_parents_class_attrs', 'merge_dicts', 'flatten_list', 'yaml_config']
 
 def filter_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
     """
@@ -45,14 +45,14 @@ def filter_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
     """
     def check_double_underscore(s: str) -> bool:
         return s.startswith('__') and s.endswith('__') and len(s) > 4
-    
+
     dic = {
-        i:j for i, j in class_object.__dict__.items() 
+        i:j for i, j in class_object.__dict__.items()
         if not check_double_underscore(i)
     }
     return dic
 
-def filter_all_parents_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
+def filter_parents_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
     def check_double_underscore(s: str) -> bool:
         return s.startswith('__') and s.endswith('__') and len(s) > 4
     all_attrs = {}
@@ -77,7 +77,7 @@ def merge_dicts(*dicts: Dict[str, Any],) -> Dict[str, Any]:
     """
     ===========================================================================
 
-    Merges multiple dictionaries into one, with later dictionaries overriding 
+    Merges multiple dictionaries into one, with later dictionaries overriding
     earlier ones for common keys.
 
     Parameters
@@ -107,15 +107,15 @@ def merge_dicts(*dicts: Dict[str, Any],) -> Dict[str, Any]:
     ---------------------------------------------------------------------------
     """
     all_keys = set().union(*dicts)
-    
+
     def get_non_none_value(
         key: str
     ) -> Any:
         return next(
-            (d[key] for d in reversed(dicts) if key in d and d[key] is not None), 
+            (d[key] for d in reversed(dicts) if key in d and d[key] is not None),
             None
         )
-    
+
     return {
         key: get_non_none_value(key) for key in all_keys
     }
@@ -166,11 +166,11 @@ def yaml_config(files):
                 if j:
                     config.merge_update(j)
     return config
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
