@@ -6,7 +6,7 @@ Created on Tue Feb 10 20:00:09 2026
 """
 
 from typing import Any, Callable, Dict, List, Optional, Type
-from src.quanta.libs.utils import filter_class_attrs, merge_dicts, timing_decorator
+from quanta.libs.utils import filter_class_attrs, merge_dicts, timing_decorator
 
 class main():
     @classmethod
@@ -39,8 +39,3 @@ class main():
             return self.__class__(**parameters)
         else:
             [setattr(self, i, j) for i, j in parameters.items()]
-
-
-
-
-

@@ -7,7 +7,7 @@ Created on Tue Feb 10 17:22:33 2026
 
 import os
 from pathlib import Path
-from src.quanta.libs.utils import yaml_config as _yaml_config
+from quanta.libs.utils import yaml_config as _yaml_config
 
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 

@@ -9,8 +9,8 @@ import jqdatasdk as jq
 from typing import Any, Literal
 import pandas as pd
 
-from src.quanta.data.joinquant.meta.main import main as meta
-from src.quanta.config import settings
+from quanta.data.joinquant.meta.main import main as meta
+from quanta.config import settings
 config = settings('data')
 
 class main(meta):

@@ -10,7 +10,7 @@ from pylab import mpl
 mpl.rcParams['font.sans-serif'] = ['Microsoft YaHei']
 
 MODULE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
-path = '.'.join(MODULE_DIR.parts[MODULE_DIR.parts.index('src'):])
+path = 'quanta.libs._pandas'
 folders = [x.name for x in MODULE_DIR.iterdir() if x.is_dir() and not x.name.startswith('__')]
 for folder_name in folders:
     try:

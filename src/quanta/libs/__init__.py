@@ -1,3 +1,3 @@
-from src.quanta.libs import utils
-from src.quanta.libs.db.main import main as db
-from src.quanta.libs import _pandas
+from quanta.libs import utils
+from quanta.libs.db.main import main as db
+from quanta.libs import _pandas
