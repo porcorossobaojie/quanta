@@ -1,0 +1,303 @@
+---
+portfolio_types: [astock, afund, aindex]
+---
+public_keys:
+    trade_dt: trade_dt
+    ann_dt: ann_dt
+    report_period: report_period
+    astock_code: astock_code
+    afund_code: afund_code
+    aindex_code: aindex_code
+    date_start: "2010-01-01"
+    time_bias: "15 hours"
+---
+tables:
+    recommand_settings:
+        date_start: "2010-01-01"
+        time_bias: "15 hours"
+        key:
+            trade_dt: trade_dt
+            ann_dt: ann_dt
+            report_period: report_period
+            astock_code: astock_code
+            afund_code: afund_code
+            aindex_code: aindex_code
+            id_key: id_key
+            primary_key: unique_key
+            partition: "pd.date_range('2005-01-01', '2030-12-31', freq='YE')"
+            
+    transform:
+        id: id_key
+        pub_date: ann_dt
+        implementation_pub_date: ann_dt
+        date: report_period
+        report_date: report_period
+        time: trade_dt
+        day: trade_dt
+        
+    id_table:
+        astockbalancesheet:
+            table: astockbalancesheet
+            columns_information: jq.finance.STK_BALANCE_SHEET
+            commands:  >
+                jq.finance.run_offset_query(jq.query(jq.finance.STK_BALANCE_SHEET)
+                .order_by(jq.finance.STK_BALANCE_SHEET.id)
+                .filter((jq.finance.STK_BALANCE_SHEET.source_id == 321003)
+                & (jq.finance.STK_BALANCE_SHEET.report_type == 0)
+                & (jq.finance.STK_BALANCE_SHEET.id > {id_key})))
+    
+        astockcashflow:
+            table: astockcashflow
+            columns_information: jq.finance.STK_CASHFLOW_STATEMENT,
+            commands: >
+                jq.finance.run_offset_query(jq.query(jq.finance.STK_CASHFLOW_STATEMENT)
+                .order_by(jq.finance.STK_CASHFLOW_STATEMENT.id)
+                .filter((jq.finance.STK_CASHFLOW_STATEMENT.source_id == 321003)
+                & (jq.finance.STK_CASHFLOW_STATEMENT.report_type == 0)
+                & (jq.finance.STK_CASHFLOW_STATEMENT.id > {id_key})))
+    
+        astockincome:
+            table: astockincome
+            columns_information: jq.finance.STK_INCOME_STATEMENT,
+            commands: >
+                jq.finance.run_offset_query(jq.query(jq.finance.STK_INCOME_STATEMENT)
+                .order_by(jq.finance.STK_INCOME_STATEMENT.id)
+                .filter((jq.finance.STK_INCOME_STATEMENT.source_id == 321003)
+                & (jq.finance.STK_INCOME_STATEMENT.report_type == 0)
+                & (jq.finance.STK_INCOME_STATEMENT.id > {id_key})))
+    
+        astockperformanceletter:
+            table: astockperformance_lt
+            columns_information: jq.finance.STK_PERFORMANCE_LETTERS
+            commands: >
+                jq.finance.run_offset_query(jq.query(jq.finance.STK_PERFORMANCE_LETTERS)
+                .order_by(jq.finance.STK_PERFORMANCE_LETTERS.id)
+                .filter((jq.finance.STK_PERFORMANCE_LETTERS.report_type == 0)
+                & (jq.finance.STK_PERFORMANCE_LETTERS.id > {id_key})))
+    
+        astockforcast:
+            table: astockforcast
+            columns_information: jq.finance.STK_FIN_FORCAST
+            commands: >
+                jq.finance.run_offset_query(jq.query(jq.finance.STK_FIN_FORCAST)
+                .order_by(jq.finance.STK_FIN_FORCAST.id)
+                .filter(jq.finance.STK_FIN_FORCAST.id > {id_key}))
+    
+        astockdividend:
+            table: astockdividend
+            columns_information: jq.finance.STK_XR_XD
+            commands: >
+                jq.finance.run_offset_query(jq.query(jq.finance.STK_XR_XD)
+                .order_by(jq.finance.STK_XR_XD.id)
+                .filter((jq.finance.STK_XR_XD.id > {id_key})
+                & (jq.finance.STK_XR_XD.report_date >= "2004-01-01")))
+    
+        astockstatus:
+            table: astockstatus
+            columns_information: jq.finance.STK_STATUS_CHANGE,
+            commands: >
+                jq.finance.run_offset_query(jq.query(jq.finance.STK_STATUS_CHANGE)
+                .order_by(jq.finance.STK_STATUS_CHANGE.id)
+                .filter((jq.finance.STK_STATUS_CHANGE.id > {id_key})))
+    
+        afundtarget:
+            table: afundtarget
+            columns_information: jq.finance.FUND_INVEST_TARGET
+            commands:  >
+                jq.finance.run_offset_query(jq.query(jq.finance.FUND_INVEST_TARGET)
+                .order_by(jq.finance.FUND_INVEST_TARGET.id)
+                .filter((jq.finance.FUND_INVEST_TARGET.id > {id_key})))
+    
+        afundshare:
+            table: afundshare
+            columns_information: jq.finance.FUND_SHARE_DAILY
+            commands: >
+                jq.finance.run_offset_query(jq.query(jq.finance.FUND_SHARE_DAILY)
+                .order_by(jq.finance.FUND_SHARE_DAILY.id)
+                .filter((jq.finance.FUND_SHARE_DAILY.id > {id_key})))
+    
+    dt_table:
+        afundeodprices:
+            table: afundeodprices
+            periods: 21
+            columns_information:
+                time: {'trade_dt': ['datetime', '交易日']}
+                code: {'afund_code': ['VARCHAR(16)', '股票代码']}
+                open: {'open': ['double(12, 2)', '开盘价(元)']}
+                close: {'close': ['double(12, 2)', '收盘价(元)']}
+                low: {'low': ['double(12, 2)', '最低价(元)']}
+                high: {'high': ['double(12, 2)', '最高价(元)']}
+                volume: {'volume': ['bigint', '成交量(股)']}
+                money: {'amount': ['bigint', '成交量(元)']}
+                high_limit: {'high_limit': ['double(12, 2)', '涨停价(元)']}
+                low_limit: {'low_limit': ['double(12, 2)', '跌停价(元)']}
+                avg: {'avgprice': ['double(12, 2)', 'VWAP(元)']}
+                pre_close: {'preclose': ['double(12, 2)', '昨收盘价(元)']}
+                paused: {'tradestatus': ['int(1)', '交易状态']}
+                factor: {'post_factor': ['double(16, 6)', '后复权因子']}
+                open_adj: {'open_adj': ['double(18, 8)', '后复权开盘价(元)']}
+                avg_adj: {'avgprice_adj': ['double(18, 8)', '后复权VWAP(元)']}
+                close_adj: {'close_adj': ['double(18, 8)', '后复权收盘价(元)']}
+                pre_close_adj: {'preclose_adj': ['double(18, 8)', '后复权昨收盘价(元)']}
+                returns: {'ret': ['double(10, 8)', '涨跌幅']}
+            commands: >
+                pd.merge(
+                    jq.get_price(
+                        self._fund,
+                        fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close','paused'],
+                        start_date = '{start_date}',
+                        end_date = '{end_date}',
+                        fq = None,
+                        skip_paused = False),
+                    jq.get_price(
+                        self._fund,
+                        fields = ['factor', 'open', 'close', 'avg', 'pre_close'],
+                        start_date = '{start_date}',
+                        end_date = '{end_date}',
+                        fq = 'post',
+                        skip_paused = False),
+                    suffixes=('', '_adj'),
+                    on =['code', 'time'])
+    
+        astockeodprices:
+            table: astockeodprices
+            periods: 21
+            columns_information:
+                time: {'trade_dt': ['datetime', '交易日']}
+                code: {'astock_code': ['VARCHAR(16)', '股票代码']}
+                open: {'open': ['double(12, 2)', '开盘价(元)']}
+                close: {'close': ['double(12, 2)', '收盘价(元)']}
+                low: {'low': ['double(12, 2)', '最低价(元)']}
+                high: {'high': ['double(12, 2)', '最高价(元)']}
+                volume: {'volume': ['bigint', '成交量(股)']}
+                money: {'amount': ['bigint', '成交量(元)']}
+                high_limit: {'high_limit': ['double(12, 2)', '涨停价(元)']}
+                low_limit: {'low_limit': ['double(12, 2)', '跌停价(元)']}
+                avg: {'avgprice': ['double(12, 2)', 'VWAP(元)']}
+                pre_close: {'preclose': ['double(12, 2)', '昨收盘价(元)']}
+                paused: {'tradestatus': ['int(1)', '交易状态']}
+                factor: {'post_factor': ['double(16, 6)', '后复权因子']}
+                open_adj: {'open_adj': ['double(18, 8)', '后复权开盘价(元)']}
+                avg_adj: {'avgprice_adj': ['double(18, 8)', '后复权VWAP(元)']}
+                close_adj: {'close_adj': ['double(18, 8)', '后复权收盘价(元)']}
+                pre_close_adj: {'preclose_adj': ['double(18, 8)', '后复权昨收盘价(元)']}
+                returns: {'ret': ['double(10, 8)', '涨跌幅']}
+            commands: >
+                pd.merge(
+                    jq.get_price(
+                        self._stock,
+                        fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close','paused'],
+                        start_date = '{start_date}',
+                        end_date = '{end_date}',
+                        fq = None,
+                        skip_paused = False),
+                    jq.get_price(
+                        self._stock,
+                        fields = ['factor', 'open', 'close', 'avg', 'pre_close'],
+                        start_date = '{start_date}',
+                        end_date = '{end_date}',
+                        fq = 'post',
+                        skip_paused = False),
+                    suffixes=('', '_adj'),
+                    on =['code', 'time'])
+    
+        astockeodderivativeindicator:
+            table: astockeodderivativeindicator
+            periods: 1
+            columns_information:
+                day: {'trade_dt': ['datetime', '交易日']}
+                code: {'astock_code': ['VARCHAR(16)', '股票代码']}
+                capitalization: {'val_shares': ['double(20, 4)', '总股本']}
+                circulating_cap: {'cur_shares': ['double(20, 4)', '流通股本']}
+                market_cap: {'val_mv': ['double(20, 4)', '总市值']}
+                a_market_cap: {'val_amv': ['double(20, 4)', '总市值(A股)']}
+                circulating_market_cap: {'cur_mv': ['double(20, 4)', '流通市值']}
+                turnover_ratio: {'free_turnover': ['double(20, 4)', '换手率\n[指定交易日成交量(手)100/截至该日股票的自由流通股本(股)]*100%']}
+                pe_ratio: {'pe_ttm': ['double(20, 4)', '市盈率(PE, TTM)\n市盈率（PE，TTM）=（股票在指定交易日期的收盘价 * 当日人民币外汇挂牌价* 截止当日公司总股本）/归属于母公司股东的净利润TTM']}
+                pe_ratio_lyr: {'pe_lyr': ['double(20, 4)', '市盈率(PE, LYR)\n市盈率（PE）=（股票在指定交易日期的收盘价 * 当日人民币外汇牌价 * 截至当日公司总股本）/归属母公司股东的净利润']}
+                pb_ratio: {'pb': ['double(20,4)', '市净率(PB)\n市净率=（股票在指定交易日期的收盘价 * 当日人民币外汇牌价 * 截至当日公司总股本）/归属母公司股东的权益']}
+                ps_ratio: {'ps': ['double(20, 4)', '市销率(PS, TTM)\n市销率TTM=（股票在指定交易日期的收盘价 * 当日人民币外汇牌价 * 截至当日公司总股本）/营业总收入TTM']}
+                pcf_ratio: {'pcf': ['double(20, 4)', '市现率(PCF, 现金净流量TTM)\n市现率=（股票在指定交易日期的收盘价 * 当日人民币外汇牌价 * 截至当日公司总股本）/现金及现金等价物净增加额TTM']}
+                pcf_ratio2: {'pocf': ['double(20, 4)', '市现率(PCF, 经营现金净流量TTM)\n市现率=（股票在指定交易日期的收盘价 * 截至当日公司总股本）/经营活动现金及经营活动现金等价物净增加额TTM']}
+                dividend_ratio: {'dividend_ratio_ttm': ['double(20, 4)', '(近12个月派现合计/总市值)/100']}
+                free_market_cap: {'S_FREE_MV': ['double(20, 4)', '自由流通市值(亿元), A股收盘价*自由流通股本, 自由流通股本 = 流通股本-其他扣除数(如高管限售25%)']}
+            commands: jq.get_valuation(self._stock, start_date='{start_date}', end_date='{start_date}') # 这张表每次只能返回1000条数据,所以只能一天天取
+    
+        astockindicator:
+            table: astockindicator
+            periods: 1
+            columns_information: jq.indicator
+            commands: jq.get_fundamentals_continuously(jq.query(jq.indicator),  end_date="{start_date}") # 同上
+    
+        aindexeodprices:
+            table: aindexeodprices
+            periods: 21
+            fields: ['avg', 'close', 'high', 'low', 'money', 'open', 'pre_close','volume']
+            columns_information:
+                time: {'trade_dt': ['datetime', '交易日']}
+                code: {'aindex_code': ['VARCHAR(16)', '股票代码: 000016(上证50), 000852(中证1000指数), 000905(中证500), 399300(沪深300), 399303(国证2000), 399317(中证全指)']}
+                avg: {'avgprice': ['double(20,4)', '均价(VWAP)']}
+                high: {'high': ['double(20,4)', '最高价']}
+                low: {'low': ['double(20,4)', '最低价']}
+                money: {'amount': ['double(20,6)', '成交金额(千元)']}
+                open: {'open': ['double(20,4)', '开盘价']}
+                volume: {'volume': ['double(20,6)', '成交量(手)']}
+                close: {'close': ['double(20,4)', '收盘价']}
+                pre_close: {'preclose': ['double(20,4)', '昨收盘价']}
+                returns: {'ret': ['double(12,8)', '涨跌幅(%%)']}
+            commands: jq.get_price(self._index, fields=self.fields,  start_date='{start_date}', end_date='{end_date}', fq=None, skip_paused=False)
+    
+        aindexweights:
+            table: aindexweights
+            periods: 1
+            security: ['000016.XSHG', '000852.XSHG', '000905.XSHG', '399300.XSHE', '399303.XSHE', '399317.XSHE']
+            fields: ['date', 'weight']
+            columns_information:
+                level_1: {'astock_code': ['VARCHAR(16)','股票代码: 000016(上证50), 000852(中证1000指数), 000905(中证500), 399300(沪深300), 399303(国证2000), 399317(中证全指)']}
+                date: {'trade_dt': ['datetime', '报告期']}
+                weight: {'weight': ['double(6, 4)', '权重']}
+                level_0: {'aindex_code': ['VARCHAR(16)', '指数代码']}
+            commands: pd.concat({{sec:jq.get_index_weights(sec ,date="{start_date}")[self.fields] for sec in self.security}}).reset_index()
+    
+        astockindustrys:
+            table: astockindustrys
+            periods: 1
+            columns_information:
+                day: {'trade_dt': ['datetime', '交易日']}
+                index_: {'astock_code': ['VARCHAR(16)', '股票代码']}
+                swl1_code: {'swl1_code': ['int', '申万一级分类']}
+                swl1_name: {'swl1_name': ['varchar(16)', '申万一级分类']}
+                swl2_code: {'swl2_code': ['int', '申万二级分类']}
+                swl2_name: {'swl2_name': ['varchar(16)', '申万二级分类']}
+                swl3_code: {'swl3_code': ['int', '申万三级分类']}
+                swl3_name: {'swl3_name': ['varchar(16)', '申万三级分类']}
+                zjw_code: {'zjw_code': ['varchar(16)', '证监会分类']}
+                zjw_name: {'zjw_name': ['varchar(32)', '证监会分类']}
+                jql1_code: {'jql1_code': ['varchar(16)', '聚宽一级分类']}
+                jql1_name: {'jql1_name': ['varchar(16)', '聚宽一级分类']}
+                jql2_code: {'jql2_code': ['varchar(16)', '聚宽二级分类']}
+                jql2_name: {'jql2_name': ['varchar(16)', '聚宽二级分类']}
+            commands: pd.concat({{i:pd.DataFrame(j) for i,j in jq.get_industry(self._stock, date="{start_date}").items()}}).unstack().reset_index()
+    
+        astocklisting:
+            table: astocklisting
+            periods: 1
+            columns_information:
+                index: {'astock_code': ['VARCHAR(16)', '股票代码']}
+                display_name: {'company_cn': ['VARCHAR(16)', '股票名称']}
+                name: {'company_en': ['VARCHAR(16)', '股票名称_英文']}
+                start_date: {'list_date': ['datetime', '上市日期']}
+                end_date: {'delist_date': ['datetime', '退市日期']}
+            commands: jq.get_all_securities(['stock'], None).reset_index()
+    
+        astockconcept:
+            table: astockconcept
+            periods: 1
+            date_start: "2016-12-31"
+            columns_information:
+                level_1: {'trade_dt': ['datetime', '交易日']}
+                level_0: {'astock_code': ['VARCHAR(16)', '股票代码']}
+                concept_code: {'concept_code': ['VARCHAR(8)', '概念代码']}
+                concept_name: {'concept_name': ['VARCHAR(16)', '概念名称']}
+            commands: >
+                pd.concat({{i:pd.DataFrame(list(j.values())[0])for i,j in jq.get_concept(self._stock, '{start_date}').items()}}).reset_index()

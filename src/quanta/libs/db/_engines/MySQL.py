@@ -5,72 +5,52 @@ Created on Tue Feb 10 17:59:58 2026
 @author: Porco Rosso
 """
 import inspect
+from datetime import datetime
 from  typing import Literal
 import pandas as pd
-import duckdb
+from sqlalchemy import Engine, create_engine
+import pymysql
+from numpy import isreal
 
 from src.quanta.config import settings
 from src.quanta.libs.db._engines.meta import main as meta
-config = settings('libs').db.DuckDB
+config = settings('libs').db.MySQL
 from src.quanta.libs.db._data_type_standard import data_trans
 
 
 
 class main(meta, type('', (), config.recommand_settings)):
-
     @classmethod
-    def __engine__(cls, **kwargs) -> duckdb.DuckDBPyConnection:
-        """
-        ===========================================================================
-
-        Establishes a connection to the DuckDB database.
-
-        Parameters
-        ----------
-        self : object
-            The instance of the class.
-        **kwargs : Any
-            Keyword arguments for database connection parameters.
-
-        Returns
-        -------
-        duckdb.DuckDBPyConnection
-            A DuckDB database connection object.
-
-        ---------------------------------------------------------------------------
-
-        建立与 DuckDB 数据库的连接。
-
-        参数
-        ----------
-        self : object
-            类的实例。
-        **kwargs : Any
-            数据库连接参数的关键字参数。
-
-        返回
-        -------
-        duckdb.DuckDBPyConnection
-            一个 DuckDB 数据库连接对象。
-
-        ---------------------------------------------------------------------------
-        """
-
-        database = f"{cls.path}/{cls.database}.duckdb"
-        x = duckdb.connect(database=database, read_only = kwargs.get('read_only', False))
-        x.execute("SET wal_autocheckpoint='2GB';")
-        return x
+    def __URL__(cls):
+        return (
+            f"{cls.mysql_connect}{cls.user}:{cls.password}@{cls.host}:{cls.port}/{cls.schema}?charset={cls.charset}"
+        )
+    
+    @classmethod
+    def __engine__(cls, **kwargs):
+        connection_string = cls.__URL__()
+        engine = create_engine(connection_string)
+        return engine
     
     @classmethod
     def __env_init__(cls):
-        cls.__command__(f'CREATE SCHEMA IF NOT EXISTS {cls.schema}', read_only=False)
+        cls.__command__(f'CREATE SCHEMA IF NOT EXISTS {cls.schema}')
 
     @classmethod
     def __command__(cls, command: str, **kwargs) -> pd.DataFrame:
-         with cls.__engine__(**kwargs) as engine:
-             x = engine.execute(command).fetchdf()
-             return x
-
+        parameters = {i:config.recommand_settings[i] for i in ['host', 'port', 'user', 'password', 'charset', 'schema']}
+        parameters.update(kwargs)
+        parameters['db'] = parameters.pop('schema') 
+            
+        con = pymysql.connect(**parameters)
+        cur = con.cursor()
+        cur.execute(command)
+        x = cur.fetchall()
+        con.commit()
+        cur.close()
+        con.close()
+        return x 
+    
     @classmethod
     def __schema_info__(cls):
         info_params = {
@@ -79,7 +59,7 @@ class main(meta, type('', (), config.recommand_settings)):
             'columns': '*'
         }
         command = "SELECT {columns} FROM {schema}.{table}".format(**info_params)
-        df = cls.__command__(command=command, read_only=True).iloc[:, [0,1,2,3,-1]]
+        df = pd.read_sql(command, con=cls.__engine__())[['TABLE_SCHEMA', 'TABLE_NAME', 'COLUMN_NAME', 'COLUMN_COMMENT']]
         return df
 
     @classmethod
@@ -91,7 +71,7 @@ class main(meta, type('', (), config.recommand_settings)):
 
     @classmethod
     def __data_trans__(cls, str_obj):
-        return data_trans(str_obj, recommand_settings='DuckDB')
+        return data_trans(str_obj, recommand_settings='MySQL')
 
 
     def __columns_connect__(
@@ -162,7 +142,7 @@ class main(meta, type('', (), config.recommand_settings)):
         ---------------------------------------------------------------------------
         """
         if columns_obj is None:
-            x = '*'
+            x = '*'    
         elif isinstance(columns_obj, str):
             x = columns_obj
         elif isinstance(columns_obj, list):
@@ -170,21 +150,20 @@ class main(meta, type('', (), config.recommand_settings)):
         elif isinstance(columns_obj, dict):
             type_position = 0 if type_position is None else type_position
             comment_position = 1 if comment_position is None else comment_position
-
             x = {}
             for i, j in columns_obj.items():
                 x[i] = [
                     cls.__data_trans__(j[type_position].upper()),
                     '' if len(j) == 1 else j[comment_position]
                 ]
-            x = (
-                ', \n'.join([f'{i} {j[0]} DEFAULT NULL' for i, j in x.items()]),
-                {i: j[1] for i, j in x.items()}
+            x = ', \n'.join(
+                [f'`{i}` {j[0]} DEFAULT NULL COMMENT "{j[1]}"' for i, j in x.items()]
             )
         return x
 
     def __read__(
         self,
+        chunksize = None,
         log: bool = False,
         show_time: bool = False,
         **kwargs
@@ -192,12 +171,14 @@ class main(meta, type('', (), config.recommand_settings)):
         """
         ===========================================================================
 
-        Reads data from the DuckDB database.
+        Reads data from the MySQL database.
 
         Parameters
         ----------
         self : object
             The instance of the class.
+        chunksize : Optional[int], optional
+            Number of rows to read at a time, by default None.
         log : bool, optional
             Whether to log the SQL command, by default False.
         show_time : bool, optional
@@ -212,12 +193,14 @@ class main(meta, type('', (), config.recommand_settings)):
 
         ---------------------------------------------------------------------------
 
-        从 DuckDB 数据库读取数据。
+        从 MySQL 数据库读取数据。
 
         参数
         ----------
         self : object
             类的实例。
+        chunksize : Optional[int], optional
+            每次读取的行数，默认为 None。
         log : bool, optional
             是否记录 SQL 命令，默认为 False。
         show_time : bool, optional
@@ -248,17 +231,34 @@ class main(meta, type('', (), config.recommand_settings)):
 
             parameters['columns'] = columns
 
-            command = 'SELECT {columns} FROM {schema}.{table}'.format(
-                **parameters
-            )
+            sql_command = 'SELECT {columns} FROM {schema}.{table}'.format(**parameters)
             if parameters.get('where', None) is not None:
-                where_clause = parameters['where'].replace('"', "'")
-                command = f"{command} WHERE {where_clause}"
+                sql_command = '{} WHERE {where}'.format(sql_command, **parameters)
 
             if log:
-                print(command)
-            x = self.__command__(command, read_only=True, **parameters)
-            return x
+                print(sql_command)
+
+            engine = self.__engine__(**parameters)
+
+            if parameters.get('chunksize', None) is not None:
+                offset = 0
+                chunks = []
+                while True:
+                    order_params = {
+                        **parameters,
+                        'offset': offset,
+                        'sql_command': sql_command
+                    }
+                    order = ('{sql_command} LIMIT {chunksize} OFFSET {offset}').format_map(order_params)
+                    obj = pd.read_sql(order, con=engine)
+                    chunks.append(obj)
+                    if len(obj) < parameters.get('chunksize', 1):
+                        break
+                    else:
+                        offset += parameters.get('chunksize', 1)
+                return pd.concat(chunks)
+            else:
+                return pd.read_sql(sql_command, con=engine)
         return wraps_function()
 
     def __table_exist__(
@@ -268,47 +268,77 @@ class main(meta, type('', (), config.recommand_settings)):
         detail = False, 
         **kwargs
     ) -> bool:
-
         df = self.__schema_info__()
         if schema is not None:
-            df = df[df['table_schema'] == schema.lower()]
+            df = df[df['TABLE_SCHEMA'].lower() == schema.lower()]
         table = self.table if table is None else table
-        df = df[df['table_name'] == table]
+        df = df[df['TABLE_NAME'].lower() == table.lower()]
         if detail:
             return df
         else:
             return (True if len(df) else False)
         
-    def __create_table__(self, log = False, **kwargs):
+
+    def __create_table__(
+        self,
+        primary_key = None,
+        keys = None,
+        partition = None,
+        log: bool = False,
+        **kwargs
+    ) -> None:
         args = inspect.getargvalues(inspect.currentframe())
         args = {i: args.locals[i] for i in args.args if i != 'self'}
         parameters = self.__parameters__(args, kwargs)
 
-        command = 'CREATE TABLE IF NOT EXISTS {schema}.{table} (\n'.format(**parameters)
-        columns = self.__columns_connect__(parameters.get('columns', {}))
-        if isinstance(columns, tuple):
-            columns_str, comments_dict = columns
-            command = command + columns_str + '\n);'
-            comment_commands = [
-                "COMMENT ON COLUMN {schema}.{table}.{i} IS '{j}';".format(
-                    i=i, j=j, **parameters
-                ) for i, j in comments_dict.items()
-            ]
-            command_list = [
-                'BEGIN TRANSACTION;',
-                command,
-                *comment_commands,
-                'COMMIT;'
-            ]
-            full_command = '\n'.join(command_list)
-            self.__command__(full_command)
-            if log:
-                print(full_command)
-        else:
-            command = command + columns + '\n);'
-            self.__command__(command)
-            if log:
-                print(command)
+        sql_command = 'CREATE TABLE IF NOT EXISTS `{schema}`.`{table}` (\n'.format(**parameters)
+        if primary_key:
+            if partition is None:
+                primary_command = (
+                    f'`{primary_key}` INT NOT NULL AUTO_INCREMENT PRIMARY KEY, '
+                )
+            else:
+                partition_key = list(partition.keys())[0]
+                primary_command = (
+                    f'`{primary_key}` INT NOT NULL AUTO_INCREMENT, UNIQUE KEY (`{primary_key}`, `{partition_key}`), '
+                )
+            sql_command += primary_command
+
+        columns_text = self.__columns_connect__(parameters.get('columns', {}))
+        sql_command += columns_text
+
+        if keys:
+            keys_command = ',\n' + ',\n'.join([f'key ({i})' if isinstance(i, str) else f'key({",".join(i)})' for i in ([keys] if isinstance(keys, str) else keys)])
+            sql_command += keys_command
+
+        char_col_command = (
+            ')\n ENGINE = InnoDB DEFAULT CHARSET = {charset} COLLATE = {collate}'
+        ).format(**parameters)
+        sql_command += char_col_command
+
+        if partition:
+            part_key = list(partition.keys())[0]
+            key_part = f'\n PARTITION BY RANGE COLUMNS(`{part_key}`)(\n'
+
+            part_values = list(partition.values())[0]
+            partition_values_str = []
+            for val in part_values:
+                if not isreal(val) or isinstance(val, datetime):
+                    partition_values_str.append(f'"{val}"')
+                else:
+                    partition_values_str.append(str(val))
+            partition_values_str.append('MAXVALUE')
+
+            partition_parts = [
+                f'PARTITION p{i} VALUES LESS THAN ({j})' for i, j in enumerate(partition_values_str)
+                ]
+
+            partition_command = key_part + ',\n'.join(partition_parts) + ')'
+            sql_command += partition_command
+
+        if log:
+            print(sql_command)
+        self.__command__(sql_command, **kwargs)
                 
     def __drop_table__(self, log: bool = False, **kwargs) -> None:
         parameters = self.__parameters__(kwargs)
@@ -327,48 +357,18 @@ class main(meta, type('', (), config.recommand_settings)):
         log: bool = False,
         **kwargs
     ):
-        if index:
-            df_obj = df_obj.reset_index()
-
         parameters = self.__parameters__(kwargs)
-        table_exist = self.__table_exist__(**parameters)
-        
-        with self.__engine__(**parameters) as con:
-            con.register('df_obj', df_obj)
-    
-            insert_statement = (
-                "INSERT INTO {database}.{schema}.{table} BY NAME SELECT * FROM df_obj"
-            ).format(**parameters)
-            create_statement = (
-                "CREATE OR REPLACE TABLE {database}.{schema}.{table} AS SELECT * FROM df_obj"
-            ).format(**parameters)
-    
-            if table_exist:
-                if if_exists == 'replace':
-                    self.__drop_table__(**parameters)
-                    try:
-                        self.__create_table__(**parameters)
-                        con.execute(insert_statement)
-                    except Exception:
-                        print('Function: __create_table__ Failed. \nCreate table automatic.')
-                        con.execute(create_statement)
-    
-                elif if_exists == 'append':
-                    con.execute(insert_statement)
-                elif if_exists == 'fail':
-                    raise ValueError('Table already existed.')
-                else:
-                    raise ValueError("if_exists must be in ['fail', 'replace', 'append']")
-            else:
-                try:
-                    self.__create_table__(**parameters)
-                    con.execute(insert_statement)
-                except Exception:
-                    print('Function: __create_table__ Failed. \nCreate table automatic.')
-                    con.execute(create_statement)
-    
-            con.close()
+        engine = self.__engine__(**parameters)
+        df_obj.to_sql(
+            parameters['table'],
+            con=engine,
+            if_exists=if_exists,
+            index=index,
+            chunksize=320000
+        )
+        engine.dispose()
         if log:
-            print("Written DataFrame to <{schema}.{table}>: {count} records.".format(count=len(df_obj), **parameters))        
-        
+            print(
+                "Written DataFrame to <{schema}.{table}>: {count} records.".format(count=len(df_obj), **parameters)
+            )
             

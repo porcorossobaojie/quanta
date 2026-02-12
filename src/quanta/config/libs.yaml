@@ -1,6 +1,6 @@
 ---
 db:
-    recommand: None
+    recommand_settings: None
     DuckDB:
         recommand_settings:
             path: None
