@@ -31,7 +31,16 @@ class main():
             filter_class_attrs(self),
             *args
         ]
-        return merge_dicts(*all_sources)
+        res = merge_dicts(*all_sources)
+        
+        final_params = {}
+        for k, v in res.items():
+            if isinstance(v, property):
+                final_params[k] = getattr(self, k)
+            else:
+                final_params[k] = v
+                
+        return final_params
 
     def __call__(self, replace: bool = False, **kwargs: Any) -> Optional['main']:
         parameters = self.__parameters__(kwargs)

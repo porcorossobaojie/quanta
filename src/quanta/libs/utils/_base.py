@@ -166,11 +166,3 @@ def yaml_config(files):
                 if j:
                     config.merge_update(j)
     return config
-
-
-
-
-
-
-
-

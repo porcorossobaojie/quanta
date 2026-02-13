@@ -165,8 +165,7 @@ class main(meta, type('', (), config.recommand_settings)):
             x = '*'
         elif isinstance(columns_obj, str):
             x = columns_obj
-        elif isinstance(columns_obj, list):
-            x = ', '.join([str(i) for i in columns_obj])
+
         elif isinstance(columns_obj, dict):
             type_position = 0 if type_position is None else type_position
             comment_position = 1 if comment_position is None else comment_position
@@ -181,6 +180,8 @@ class main(meta, type('', (), config.recommand_settings)):
                 ', \n'.join([f'{i} {j[0]} DEFAULT NULL' for i, j in x.items()]),
                 {i: j[1] for i, j in x.items()}
             )
+        else:
+            x = ', '.join([str(i) for i in columns_obj])
         return x
 
     def __read__(
