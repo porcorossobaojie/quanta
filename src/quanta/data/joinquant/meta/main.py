@@ -14,25 +14,25 @@ from quanta.libs.utils import merge_dicts
 from quanta.config import settings, login_info
 from quanta.libs.db.main import main as db
 
-jq.auth(**login_info('account').joinquant)
+#jq.auth(**login_info('account').joinquant)
 config = settings('data')
 
 
 class main(db, type('recommand_settings', (), config.tables.recommand_settings.key)):
-    _stock = jq.get_all_securities('stock', date=None).index.tolist()
-    _fund = jq.get_all_securities('fund', date=None)
-    _fund = _fund[_fund.iloc[:, -1] == 'etf'].index.tolist()
-    _index = jq.get_all_securities('index', date=None).index.tolist()
-    _trade_days = pd.to_datetime(jq.get_trade_days('2005-01-01')) + pd.Timedelta(config.tables.recommand_settings.time_bias)
-    _trade_days = _trade_days[_trade_days <= pd.Timestamp.today() - pd.Timedelta(4, 'h')]
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.__env_init__()
-        
+        self._stock = jq.get_all_securities('stock', date=None).index.tolist()
+        _fund = jq.get_all_securities('fund', date=None)
+        self._fund = _fund[_fund.iloc[:, -1] == 'etf'].index.tolist()
+        self._index = jq.get_all_securities('index', date=None).index.tolist()
+        _trade_days = pd.to_datetime(jq.get_trade_days('2005-01-01')) + pd.Timedelta(config.tables.recommand_settings.time_bias)
+        self._trade_days = _trade_days[_trade_days <= pd.Timestamp.today() - pd.Timedelta(4, 'h')]
+    
     @property
     def portfolio_type(self):
-        for i in config.portfolio_types:
+        for i in config.public_keys.recommand_settings.portfolio_types:
             if i in self.table:
                 return i
     @property

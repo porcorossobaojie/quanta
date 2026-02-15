@@ -1,7 +1,6 @@
-portfolio_types: [astock, afund, aindex]
-
 public_keys: 
     recommand_settings: &recommand_settings
+        portfolio_types: [astock, afund, aindex]
         date_start:  "2010-01-01"
         time_bias: "15 hours"
         key: &base_key
@@ -116,7 +115,7 @@ tables:
     dt_table:
         afundeodprices:
             table: afundeodprices
-            periods: 21
+            periods: 252
             columns_information:
                 time: {'trade_dt': ['datetime', '交易日']}
                 code: {'afund_code': ['VARCHAR(16)', '股票代码']}
@@ -158,7 +157,7 @@ tables:
     
         astockeodprices:
             table: astockeodprices
-            periods: 21
+            periods: 252
             columns_information:
                 time: {'trade_dt': ['datetime', '交易日']}
                 code: {'astock_code': ['VARCHAR(16)', '股票代码']}
@@ -228,7 +227,7 @@ tables:
     
         aindexeodprices:
             table: aindexeodprices
-            periods: 21
+            periods: 252
             fields: ['avg', 'close', 'high', 'low', 'money', 'open', 'pre_close','volume']
             columns_information:
                 time: {'trade_dt': ['datetime', '交易日']}
