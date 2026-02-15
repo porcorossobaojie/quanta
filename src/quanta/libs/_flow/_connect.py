@@ -10,37 +10,36 @@ from typing import Literal
 import pandas as pd
 
 from quanta.libs.db.main import main as db
-from quanta.config import settings
+from quanta.config import settings, login_info
 config = settings('data').public_keys
 columns_info = config.recommand_settings.key
-
 
 class main(db, type('public_keys', (), config.recommand_settings.key)):
     time_bias =  pd.Timedelta(config.recommand_settings.time_bias)
     start_date = pd.to_datetime(settings('flow').start_date) + pd.Timedelta(config.recommand_settings.time_bias)
-    
+
     @classmethod
     @lru_cache(maxsize=1)
     def table_info(cls):
         return cls.__schema_info__()
-    
+
     @property
     def columns(self):
         x = self.table_info()
         x = x[x['table_name'] == self.table]
         return x['column_name'].to_list()
-    
+
     @property
     def portfolio_type(self):
         for i in config.recommand_settings.portfolio_types:
             if i in self.table:
                 return i
-    
+
     @property
     def code(self):
         attr = f"{self.portfolio_type}_code"
-        return getattr(self, attr)        
-    
+        return getattr(self, attr)
+
     @property
     def index_keys(self):
         keys = (([self.ann_dt, self.report_period]
@@ -51,7 +50,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
     @property
     def filter_key(self) -> str:
         return self.index_keys[0]
-    
+
     def __columns_standard__(self, columns):
         columns = [columns.lower()] if isinstance(columns, str) else [str(i).lower() for i in columns]
         not_have_columns = [i for i in columns if i not in self.columns]
@@ -76,25 +75,23 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
                 except:
                     print(f"WARNING: UNSTANDARD LOADING ON DATA SOURCE <{self.table}>")
             self._internal_data = df
-        
+
     def __read_from_internal__(self, columns):
+        adj = True if isinstance(columns, str) else False
         self.__read_from_db__()
         columns = self.__columns_standard__(columns)
         if self.filter_key == self.trade_dt:
-            if (len(columns) - 1):
-                try:
-                    df = pd.concat({i:getattr(self, '_internal_data')[i] for i in columns}, axis=1)
-                    df.columns.names = ['value_key'] + list(df.columns.names)[1:]
-                except:
-                    df = getattr(self, '_internal_data')[columns]           
+            if not adj:
+                df = pd.concat({i:getattr(self, '_internal_data')[i] for i in columns}, axis=1)
+                df.columns.names = ['value_key'] + list(df.columns.names)[1:]
             else:
-                df = getattr(self, '_internal_data')[columns[0]]   
+                df = getattr(self, '_internal_data')[columns[0]]
         else:
             df = getattr(self, '_internal_data')[columns]
-            if not (len(columns) - 1):
+            if adj:
                 df = df.iloc[:, 0]
         return df
-        
+
     def __call__(
         self,
         columns,
@@ -106,9 +103,10 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
     ):
         df = self.__read_from_internal__(columns, **kwargs)
         if end is not None:
-            df = df[df.index.get_level_values(self.filter_key) <= end]      
+            df = df[df.index.get_level_values(self.filter_key) <= end]
+
         if self.ann_dt in df.index.names:
-            df.index = df.index.droplevel(self.ann_dt)     
+            df.index = df.index.droplevel(self.ann_dt)
             try:
                 df = df.unstack()
                 filter_end = pd.Timestamp.today() if end is None else end
@@ -120,6 +118,8 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
                     df = self.__finance_shift__(df, shift)
             except:
                 pass
+        else:
+            df = df.loc[self.start_date:]
         return df
 
     def __finance_shift__(self, df: pd.DataFrame, n: int):
@@ -128,8 +128,8 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
             n -= 1
             df.loc[:, bools] = df.loc[:, bools].shift()
             bools = df.iloc[-1].isnull()
-        return df        
-        
+        return df
+
     def __finance_quarter_adjust__(
         self,
         df: pd.DataFrame,
@@ -142,14 +142,14 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
             tmp = df[(index.month == month) & (index.day == day)]
             df = df.diff(quarter_diff)
             df.loc[tmp.index] = tmp
-        return df        
-        
+        return df
+
     def __finance_periods_merge__(
-        self, 
-        df, 
-        periods, 
-        quarter_adj=False, 
-        diff=1, 
+        self,
+        df,
+        periods,
+        quarter_adj=False,
+        diff=1,
         drop_zero=False
     ):
         if isinstance(df, pd.Series):
@@ -176,26 +176,28 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
         else:
             x = df
         x = x.drop_duplicates(subset=[self.ann_dt, self.code], keep='last')
-        return x        
-        
+        return x
+
+    @lru_cache(maxsize=8)
     def __finance__(
         self,
-        df: pd.Series,
+        column,
         quarter_adj: bool = False,
         quarter_diff: int = 1,
         shift: int = 0,
         periods: int = 1,
         min_periods = None,
         drop_zero = True,
-        trade_days = None
+        day_index = None
     ) -> pd.DataFrame:
+        day_index = calendar_days if day_index is None else day_index
+        df = self.__read_from_internal__(column)
         if drop_zero:
             df = df[df != 0]
-
         x = self.__finance_periods_merge__(df, periods, quarter_adj, quarter_diff)
         x = x.set_index(self.ann_dt).sort_index()
         x.index = x.index.astype('datetime64[ns]')
-        fill_index = pd.MultiIndex.from_product([trade_days, x[self.code].unique()], names=[self.trade_dt, self.code])
+        fill_index = pd.MultiIndex.from_product([day_index, x[self.code].unique()], names=[self.trade_dt, self.code])
         obj = pd.DataFrame(index=fill_index).reset_index(self.code)
         obj = pd.merge_asof(obj, x, by=self.code, left_index=True, right_index=True)
 
@@ -227,9 +229,28 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
         obj = obj.sort_index().sort_index(axis=1)
         if min_periods is not None:
             obj = obj[obj.groupby(self.trade_dt).transform('count') >= min_periods]
-        return obj        
-        
-        
-                
-            
-            
+        obj = obj[obj.index.get_level_values(0).isin(trade_days)].loc[self.start_date:]
+        return obj
+
+calendar_days = pd.date_range(
+    start=pd.to_datetime(main.date_start) + main.time_bias,
+    freq='d',
+    end=pd.Timestamp.today() - pd.Timedelta(4, 'h'))
+
+try:
+    import jqdatasdk as jq
+    jq.auth(**login_info('account').joinquant)
+    trade_days = pd.to_datetime(
+        jq.get_trade_days(
+            main.date_start,
+            pd.Timestamp.today() + pd.offsets.YearEnd(0) - pd.Timedelta(4, 'h') - main.time_bias
+            )
+        ) + main.time_bias
+except:
+    trade_days = pd.to_datetime(
+        sorted(
+            main(table='astockeodprices').__read__(columns=main.trade_dt).iloc[:, 0].unique()
+            )
+        )
+
+
