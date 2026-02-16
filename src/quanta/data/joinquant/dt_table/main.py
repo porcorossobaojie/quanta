@@ -102,6 +102,6 @@ class main(meta):
                     i = end_idx + 1
 
 '''
-self = main(**config.tables.dt_table.astockconcept)
+self = main(**config.tables.dt_table.aindexweights)
 self.daily()
  '''

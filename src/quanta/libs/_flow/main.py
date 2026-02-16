@@ -6,12 +6,14 @@ Created on Sat Feb 14 14:51:56 2026
 """
 import pandas as pd
 from functools import reduce
+from functools import lru_cache
 
-from quanta.libs._flow._connect import main as meta_table
+from quanta.libs._flow._connect import main as meta_table, trade_days, calendar_days
 from quanta.config import settings
-config = settings('data').public_keys.recommand_settings
+table_info = settings('data').public_keys.recommand_settings
+config = settings('flow')
 
-TABLE_DIC = {i:{} for i in config.portfolio_types}
+TABLE_DIC = {i:{} for i in table_info.portfolio_types}
 TABLES = meta_table.table_info()['table_name'].unique()
 for table in TABLES:
     x = meta_table(table=table)
@@ -71,13 +73,41 @@ class main():
         drop_zero = True,
     ):
         dic = self.__columns_to_tables__(column)
-
         df = getattr(self, list(dic.keys())[0]).__finance__(list(dic.values())[0][0], quarter_adj, quarter_diff, shift, periods, min_periods, drop_zero)
         return df
+    
+    @lru_cache(maxsize=8)
+    def subsets(self, sub_column, value_column=None):
+        sub_column = sub_column.lower() 
+        value_column = value_column.lower() if value_column is not None else value_column
+        index = self.__columns_to_tables__([sub_column])
+        table = list(index.keys())[0]
+        table = getattr(self, table)
+        table = table.__read_from_internal__(
+            sub_column.lower() if value_column is None else [sub_column, value_column]
+        )
+        if table.shape == 1:
+            return table.reset_index()
+        else:
+            return table.set_index(sub_column, append=True)[value_column].unstack(table.index.names[0]).T
 
-
-
-
-
-
-
+    @lru_cache(maxsize=8)
+    def listing(self, limit=126):
+        if not hasattr(self, '_internal_listing'):
+            df = (self([config.listing, config.delisting]).clip(
+                upper = pd.to_datetime(pd.Timestamp.today().date()))
+                .set_index(config.delisting, append=True)[config.listing]).unstack(0)
+            df = df.reindex(pd.date_range(df.index.min(), df.index.max(), freq='d')).bfill().dropna(how='all', axis=1)
+            df.index = df.index + pd.Timedelta(meta_table.time_bias)
+            df = df.reindex(trade_days)
+            x = df[df.sub(df.index, axis=0).astype('int64') <= 0].notnull().cumsum()
+            setattr(self, '_internal_listing', x)
+        x =  getattr(self, '_internal_listing')
+        x = x >= limit
+        return x
+        
+        
+    
+        
+        
+        

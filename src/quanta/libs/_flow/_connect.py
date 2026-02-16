@@ -42,9 +42,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
 
     @property
     def index_keys(self):
-        keys = (([self.ann_dt, self.report_period]
-                if self.trade_dt not in self.columns else [self.trade_dt])
-                + [self.code])
+        keys = [i for i in [self.trade_dt, self.ann_dt, self.report_period] if i in self.columns] + [self.code]
         return keys
 
     @property
@@ -61,12 +59,16 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
 
     def __read_from_db__(self):
         if not hasattr(self, '_internal_data'):
-            filter_value = self.start_date if self.filter_key == self.trade_dt else self.start_date + pd.offsets.YearEnd(-4)
-            where = f"{self.filter_key} >='{filter_value}'"
+            if self.trade_dt in self.filter_key or self.ann_dt in self.filter_key:
+                filter_value = self.start_date if self.filter_key == self.trade_dt else self.start_date + pd.offsets.YearEnd(-4)
+                where = f"{self.filter_key} >='{filter_value}'"
+            else:
+                where = None
             df = self.__read__(where = where)
             df.columns = pd.CategoricalIndex(df.columns.str.lower())
             df[self.code] = pd.CategoricalIndex(df[self.code])
             df = df.set_index(self.index_keys)
+            
             if self.filter_key == self.trade_dt:
                 try:
                     columns = [i for i in self.columns if i not in [self.trade_dt, self.ann_dt, self.report_period, self.code]]
@@ -102,7 +104,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
         ** kwargs
     ):
         df = self.__read_from_internal__(columns, **kwargs)
-        if end is not None:
+        if end is not None and len(set([self.trade_dt, self.ann_dt]) & self.columns):
             df = df[df.index.get_level_values(self.filter_key) <= end]
 
         if self.ann_dt in df.index.names:
@@ -118,7 +120,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
                     df = self.__finance_shift__(df, shift)
             except:
                 pass
-        else:
+        elif self.trade_dt in df.index.names:
             df = df.loc[self.start_date:]
         return df
 
@@ -252,5 +254,3 @@ except:
             main(table='astockeodprices').__read__(columns=main.trade_dt).iloc[:, 0].unique()
             )
         )
-
-

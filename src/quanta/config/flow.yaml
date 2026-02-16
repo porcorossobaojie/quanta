@@ -1,3 +1,5 @@
 ---
 start_date: '2014-01-01'
+listing: list_date
+delisting: delist_date
 ---
