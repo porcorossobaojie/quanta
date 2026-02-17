@@ -56,7 +56,7 @@ class main():
         else:
             df = [getattr(self, i)(j[0] if len(j) == 1 else j) for i,j in dic.items()][0]
 
-        if df.columns.nlevels > 1:
+        if isinstance(df, pd.DataFrame) & df.columns.nlevels > 1:
             for i in range(0, df.columns.nlevels, -1):
                 if df.columns.get_level_values(i).unique() == 1:
                     df.columns = df.colums.droplevel(i)
@@ -106,6 +106,8 @@ class main():
         x = x >= limit
         return x
         
+    def is_st(self, value=1):
+        pass
         
     
         

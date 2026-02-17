@@ -11,7 +11,7 @@ from typing import Literal, Any
 MODULE_DIR = __name__.split('.')[-2]
 
 from quanta.libs.db.main import main as db
-setattr(pd, MODULE_DIR, db)
+setattr(pd, MODULE_DIR, db())
 
 @pd.api.extensions.register_dataframe_accessor(MODULE_DIR)
 class main:
