@@ -196,6 +196,6 @@ class main(db, type('recommand_settings', (), config.tables.recommand_settings.k
 
 
 '''
-self = main(**config.tables.id_table.astockbalancesheet)
+self = main(**config.tables.id_table.astockstatus)
 
 '''

@@ -90,7 +90,7 @@ class main(meta):
 
 '''
 
-self = main(**config.tables.id_table.afundshare)
+self = main(**config.tables.id_table.astockstatus)
 self.daily()
 
  '''

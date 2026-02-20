@@ -48,19 +48,21 @@ class main():
         index = index.groupby(index.columns[-3])[index.columns[-2]].apply(list).to_dict()
         return index
 
-    def __call__(self, columns):
+    def __call__(self, *columns):
         dic = self.__columns_to_tables__(columns)
         if len(dic) - 1:
             df = {i:getattr(self, i)(j) for i,j in dic.items()}
             df = pd.concat(df, axis=1)
         else:
             df = [getattr(self, i)(j[0] if len(j) == 1 else j) for i,j in dic.items()][0]
-
-        if isinstance(df, pd.DataFrame) & df.columns.nlevels > 1:
+            
+        if isinstance(df, pd.Series) or (isinstance(df, pd.DataFrame) & (df.columns.nlevels > 1)):
+            return df
+        else:
             for i in range(0, df.columns.nlevels, -1):
                 if df.columns.get_level_values(i).unique() == 1:
                     df.columns = df.colums.droplevel(i)
-        return df
+            return df
 
     def finance(
         self,
@@ -105,11 +107,28 @@ class main():
         x =  getattr(self, '_internal_listing')
         x = x >= limit
         return x
-        
-    def is_st(self, value=1):
-        pass
-        
     
-        
-        
-        
+    @lru_cache(maxsize=1)
+    def not_st(self, value=1):
+        key = 'PUBLIC_STATUS_ID'.lower()
+        dic = self.__columns_to_tables__(key)
+        table_obj = [getattr(self, i) for i,j in dic.items()][0]
+        df = table_obj.__read__().set_index(table_obj.index_keys)[key]
+        status = {301001:0, 301002:1, 301003:2, 301005:3, 301006:4}
+        df = df.replace(status)
+        df = df[df.isin(status.values())]
+        df = df.loc[~df.index.duplicated(keep = 'last')].unstack(table_obj.code).sort_index(axis=1)
+        df = df.ffill().reindex(calendar_days).ffill().reindex(trade_days).loc[meta_table.start_date:]
+        df = df < value
+        return df
+    
+    @lru_cache(maxsize=1)
+    def traced_index(self, column='traced_index_name'):
+        column = column.lower()
+        df = self('end_date', column)
+        df['end_date'] = (pd.to_datetime(df['end_date']) + meta_table.time_bias).fillna(trade_days[-1]).dropna()
+        x = df.reset_index().drop_duplicates(keep='first', subset=df.index.name).dropna()
+        x = x.pivot(index='end_date', columns=df.index.name, values=column).reindex(trade_days)
+        x = x.loc[meta_table.start_date:].bfill()
+        return x
+    

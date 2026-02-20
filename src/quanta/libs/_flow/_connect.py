@@ -57,13 +57,13 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
         else:
             raise ValueError(f"Invalid value '{not_have_columns}' for parameter 'columns'. Valid values are: {self.columns}")
 
-    def __read_from_db__(self):
+    def __read_from_db__(self, returns = False, **kwargs):
         if not hasattr(self, '_internal_data'):
             if self.trade_dt in self.filter_key or self.ann_dt in self.filter_key:
                 filter_value = self.start_date if self.filter_key == self.trade_dt else self.start_date + pd.offsets.YearEnd(-4)
                 where = f"{self.filter_key} >='{filter_value}'"
             else:
-                where = None
+                where = kwargs.get('where', None)
             df = self.__read__(where = where)
             df.columns = pd.CategoricalIndex(df.columns.str.lower())
             df[self.code] = pd.CategoricalIndex(df[self.code])
@@ -77,6 +77,8 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
                 except:
                     print(f"WARNING: UNSTANDARD LOADING ON DATA SOURCE <{self.table}>")
             self._internal_data = df
+        if returns:
+            return self._internal_data
 
     def __read_from_internal__(self, columns):
         adj = True if isinstance(columns, str) else False
@@ -245,7 +247,7 @@ try:
     trade_days = pd.to_datetime(
         jq.get_trade_days(
             main.date_start,
-            pd.Timestamp.today() + pd.offsets.YearEnd(0) - pd.Timedelta(4, 'h') - main.time_bias
+            pd.Timestamp.today() - pd.Timedelta(4, 'h') - main.time_bias
             )
         ) + main.time_bias
 except:
