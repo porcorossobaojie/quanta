@@ -4,4 +4,24 @@ listing: list_date
 delisting: delist_date
 stats_type: public_status_id
 returns: ret
+star_code: ['002', '300', '688', '301']
+index_mapping:
+    '50': '000016.XSHG'
+    '000016': '000016.XSHG'
+    '000016.XSHG': '000016.XSHG'
+    '300': '399300.XSHE'
+    '399300': '399300.XSHE'
+    '399300.XSHE': '399300.XSHE'
+    '500': '000905.XSHG'
+    '000905': '000905.XSHG'
+    '000905.XSHG': '000905.XSHG'
+    '1000': '000852.XSHG'
+    '000852': '000852.XSHG'
+    '000852.XSHG': '000852.XSHG'
+    '2000': '399303.XSHE'
+    '399303': '399303.XSHE'
+    '399303.XSHE': '399303.XSHE'
+    'full': '399317.XSHE'
+    '399317': '399317.XSHE'
+    '399317.XSHE': '399317.XSHE'
 ---

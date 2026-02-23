@@ -8,7 +8,7 @@ import pandas as pd
 from functools import reduce
 from functools import lru_cache
 
-from quanta.libs._flow._connect import main as meta_table, trade_days, calendar_days
+from quanta.libs._flow.main._connect import main as meta_table, trade_days, calendar_days
 from quanta.config import settings
 table_info = settings('data').public_keys.recommand_settings
 config = settings('flow')
@@ -55,7 +55,7 @@ class main():
             df = pd.concat(df, axis=1)
         else:
             df = [getattr(self, i)(j[0] if len(j) == 1 else j) for i,j in dic.items()][0]
-            
+
         if isinstance(df, pd.Series) or (isinstance(df, pd.DataFrame) & (df.columns.nlevels > 1)):
             return df
         else:
@@ -77,10 +77,10 @@ class main():
         dic = self.__columns_to_tables__(column)
         df = getattr(self, list(dic.keys())[0]).__finance__(list(dic.values())[0][0], quarter_adj, quarter_diff, shift, periods, min_periods, drop_zero)
         return df
-    
+
     @lru_cache(maxsize=8)
     def subsets(self, sub_column, value_column=None):
-        sub_column = sub_column.lower() 
+        sub_column = sub_column.lower()
         value_column = value_column.lower() if value_column is not None else value_column
         index = self.__columns_to_tables__([sub_column])
         table = list(index.keys())[0]
@@ -96,7 +96,7 @@ class main():
     @lru_cache(maxsize=8)
     def listing(self, limit=126):
         if not hasattr(self, '_internal_listing'):
-            df = (self([config.listing, config.delisting]).clip(
+            df = (self(config.listing, config.delisting).clip(
                 upper = pd.to_datetime(pd.Timestamp.today().date()))
                 .set_index(config.delisting, append=True)[config.listing]).unstack(0)
             df = df.reindex(pd.date_range(df.index.min(), df.index.max(), freq='d')).bfill().dropna(how='all', axis=1)
@@ -107,7 +107,7 @@ class main():
         x =  getattr(self, '_internal_listing')
         x = x >= limit
         return x
-    
+
     @lru_cache(maxsize=1)
     def not_st(self, value=1):
         key = 'PUBLIC_STATUS_ID'.lower()
@@ -117,11 +117,11 @@ class main():
         status = {301001:0, 301002:1, 301003:2, 301005:3, 301006:4}
         df = df.replace(status)
         df = df[df.isin(status.values())]
-        df = df.loc[~df.index.duplicated(keep = 'last')].unstack(table_obj.code).sort_index(axis=1)
+        df = df.loc[~df.index.duplicated(keep = 'last')].unstack(table_obj.code).sort_index(axis=1).sort_index()
         df = df.ffill().reindex(calendar_days).ffill().reindex(trade_days).loc[meta_table.start_date:]
         df = df < value
         return df
-    
+
     @lru_cache(maxsize=1)
     def traced_index(self, column='traced_index_name'):
         column = column.lower()
@@ -131,4 +131,4 @@ class main():
         x = x.pivot(index='end_date', columns=df.index.name, values=column).reindex(trade_days)
         x = x.loc[meta_table.start_date:].bfill()
         return x
-    
+
