@@ -25,51 +25,55 @@ def not_st(value=1, portfolio_type='astock'):
     return ins
 
 @lru_cache(maxsize=8)
-def index_members(index_code=None, invert=False):
+def tradeable(portfolio_type='astock'):
+    ins = __instance__.get(portfolio_type)(config.status.tradestatus)
+    ins = ~ins.astype(bool)
+    return ins
+
+@lru_cache(maxsize=8)
+def refilter(listing_limit=126, drop_st=1, is_tradeable=True, portfolio_type='astock'):
+    dic = {'listing': __instance__[portfolio_type].listing(listing_limit)}
+    if portfolio_type == 'astock':
+        if not_st is not None:
+            dic['not_st'] = not_st(drop_st)
+        if  is_tradeable:
+            dic['tradeable'] = tradeable()
+    count = len(dic)
+    dic = pd.concat(dic, axis=1)
+    dic = dic.groupby(dic.columns.names[1:], axis=1).sum().astype(int)
+    dic = dic >= count
+    return dic
+
+@lru_cache(maxsize=8)
+def index_members(index_code=None):
     if index_code == 'star':
-        cols = getattr(__instance__.get('astock'), config.asotck_table)('name').index
-        if invert:
-            col = [col for col in cols if str(col)[:3] not in config.star_code]
-        else:
-            col = [col for col in cols if str(col)[:3] in config.star_code]
+        cols = getattr(__instance__.get('astock'), config.listing.astock_list.table)(config.listing.astock_list.column).index
+        col = [col for col in cols if str(col)[:3] in config.star_code]
         x = pd.DataFrame(True, columns=col, index=__instance__.get('trade_days')).loc[config.start_date:]
     else:
         code = config.index_mapping.get(index_code, None)
         if code is None:
             raise ValueError('Undefined index_code: {index_code}')
-        x = __instance__.get('aindex').one_to_multi(col_info.astock_code)[code]
+        x = __instance__.get('aindex').multilize(col_info.astock_code)[code]
     return x
 
-@lru_cache(maxsize=8)
-def label(df_obj, code=None, label_df=None, portfolio_type=None):
-    if label_df is None:
-        portfolio_type = df_obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
-        label_df = __instance__.get(portfolio_type)(code)
+def label(code=None, df=None, portfolio_type=None):
+    if df is None:
+        x = __instance__.get(portfolio_type).multilize(code)
     else:
-        code = label_df.columns.name if code is None else code
-    df = pd.concat({code.lower():label_df, 'df':df_obj}, axis=1)
-    df = df.stack().set_index(code.lower(), append=True)['df'].unstack(col_info.trade_dt).T
-    df.columns = df.columns.swaplevel(-1, 0)
-    return df
+        x = df.stack().to_frame(code if code is not None else 'other_code')
+        x['temp_value'] = 1
+        x = x.set_index(x.columns[0], append=True)['temp_value'].unstack(x.index.names[0]).T
+        if x.columns.names[0] in [col_info.astock_code, col_info.afund_code]:
+            x.columns = x.columns.swaplevel(-1,0)
+        x = x.notnull()
+    return x
 
-@lru_cache(maxsize=8)
-def expand(df_obj, code=None):
-    code = (df_obj.columns.name if code is None else code).lower()
-    df_obj = df_obj.stack().to_frame('values')
-    for i,j in __instance__.items():
-        try:
-            df = j(code).stack().to_frame(code).reset_index()
-            print(f'get {code} successed in {i}...')
-        except:
-            pass
-    df = pd.merge(df, df_obj.reset_index(), right_on=df_obj.index.names, left_on=[df.columns[0], df.columns[-1]], how='left')
-    df = df.set_index(df.columns[:2].to_list()).iloc[:, -1]
-    try:
-        df = df.unstack()
-    except:
-        df = df.groupby(df.index.names).sum()
-        df = df.unstack()
-    return df
+def expand(df, target_df, level=None):
+    level = list(set(df.columns.names) & set(target_df.columns.names))[0] if level is None else level
+    x = df.reindex(target_df.columns.get_level_values(level), axis=1)
+    x.columns = target_df.columns
+    return x
 
 def info(df_obj, column, portfolio_type=None):
     portfolio_type = df_obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type

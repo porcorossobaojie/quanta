@@ -1,10 +1,18 @@
 ---
 start_date: '2014-01-01'
+
 listing:
     astock_listing_date: list_date
     astock_delisting_date: delist_date
     afund_listing_date: shares
-stats_type: public_status_id
+    astock_list:
+        table: astockstatus
+        column: name
+
+status:
+    not_st: public_status_id
+    tradestatus: tradestatus
+
 returns: ret
 asotck_table: 'astockstatus'
 index_mapping:

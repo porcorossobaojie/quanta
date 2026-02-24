@@ -80,7 +80,7 @@ class main():
         return df
 
     @lru_cache(maxsize=8)
-    def one_to_multi(self, column, value_column=None):
+    def multilize(self, column, value_column=None):
         column = column.lower()
         if value_column is None:
             df = self(column)
@@ -92,7 +92,7 @@ class main():
             df = self(column, value_column)
         df = df.set_index(column, append=True)
         df = df.iloc[:, 0].unstack(0).T
-        if df.columns.names[0] == table_info.key.astock_code:
+        if df.columns.names[0] in [table_info.key.astock_code, table_info.key.afund_code]:
             df.columns = df.columns.swaplevel(-1,0)
         if value_column is None:
             df = df.notnull()
@@ -113,7 +113,7 @@ class main():
         x =  getattr(self, '_internal_listing')
         x = x >= limit
         return x
-    
+
     @lru_cache(maxsize=8)
     def _afund_listing(self, limit=126):
         if not hasattr(self, '_internal_listing'):
@@ -122,15 +122,15 @@ class main():
         x =  getattr(self, '_internal_listing')
         x = x >= limit
         return x
-    
+
     def listing(self, limit=126):
         func = getattr(self, f"_{self.portfolio_type}_listing")
         df = func(limit)
         return df
-        
+
     @lru_cache(maxsize=1)
     def not_st(self, value=1):
-        key = 'PUBLIC_STATUS_ID'.lower()
+        key = config.status.not_st
         dic = self.__columns_to_tables__(key)
         table_obj = [getattr(self, i) for i,j in dic.items()][0]
         df = table_obj.__read__().set_index(table_obj.index_keys)[key]
