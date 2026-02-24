@@ -43,7 +43,8 @@ class main():
         else:
             columns = [columns.lower()] if isinstance(columns, str) else [i.lower() for i in columns]
             index = [tables[tables.iloc[:, -2] == i].index for i in columns]
-            index = reduce(lambda a, b: a.union(b), index)
+            index = index[0].append(index[1:])
+            #index = reduce(lambda a, b: a.append(b), index)
             index = tables.loc[index]
         index = index.groupby(index.columns[-3])[index.columns[-2]].apply(list).to_dict()
         return index
@@ -79,26 +80,31 @@ class main():
         return df
 
     @lru_cache(maxsize=8)
-    def subsets(self, sub_column, value_column=None):
-        sub_column = sub_column.lower()
-        value_column = value_column.lower() if value_column is not None else value_column
-        index = self.__columns_to_tables__([sub_column])
-        table = list(index.keys())[0]
-        table = getattr(self, table)
-        table = table.__read_from_internal__(
-            sub_column.lower() if value_column is None else [sub_column, value_column]
-        )
-        if table.shape == 1:
-            return table.reset_index()
+    def one_to_multi(self, column, value_column=None):
+        column = column.lower()
+        if value_column is None:
+            df = self(column)
+            if isinstance(df, pd.DataFrame):
+                df = df.stack()
+            df = df.to_frame(column)
+            df['temp_value'] = 1
         else:
-            return table.set_index(sub_column, append=True)[value_column].unstack(table.index.names[0]).T
+            df = self(column, value_column)
+        df = df.set_index(column, append=True)
+        df = df.iloc[:, 0].unstack(0).T
+        if df.columns.names[0] == table_info.key.astock_code:
+            df.columns = df.columns.swaplevel(-1,0)
+        if value_column is None:
+            df = df.notnull()
+        df = df.sort_index(axis=1).sort_index()
+        return df
 
     @lru_cache(maxsize=8)
-    def listing(self, limit=126):
+    def _astock_listing(self, limit=126):
         if not hasattr(self, '_internal_listing'):
-            df = (self(config.listing, config.delisting).clip(
+            df = (self(config.listing.astock_listing_date, config.listing.astock_delisting_date).clip(
                 upper = pd.to_datetime(pd.Timestamp.today().date()))
-                .set_index(config.delisting, append=True)[config.listing]).unstack(0)
+                .set_index(config.listing.astock_delisting_date, append=True)[config.listing.astock_listing_date]).unstack(0)
             df = df.reindex(pd.date_range(df.index.min(), df.index.max(), freq='d')).bfill().dropna(how='all', axis=1)
             df.index = df.index + pd.Timedelta(meta_table.time_bias)
             df = df.reindex(trade_days)
@@ -107,7 +113,21 @@ class main():
         x =  getattr(self, '_internal_listing')
         x = x >= limit
         return x
-
+    
+    @lru_cache(maxsize=8)
+    def _afund_listing(self, limit=126):
+        if not hasattr(self, '_internal_listing'):
+            x = self(config.listing.afund_listing_date).notnull().cumsum()
+            setattr(self, '_internal_listing', x)
+        x =  getattr(self, '_internal_listing')
+        x = x >= limit
+        return x
+    
+    def listing(self, limit=126):
+        func = getattr(self, f"_{self.portfolio_type}_listing")
+        df = func(limit)
+        return df
+        
     @lru_cache(maxsize=1)
     def not_st(self, value=1):
         key = 'PUBLIC_STATUS_ID'.lower()
@@ -131,4 +151,3 @@ class main():
         x = x.pivot(index='end_date', columns=df.index.name, values=column).reindex(trade_days)
         x = x.loc[meta_table.start_date:].bfill()
         return x
-

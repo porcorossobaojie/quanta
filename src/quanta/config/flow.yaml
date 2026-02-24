@@ -1,11 +1,14 @@
 ---
 start_date: '2014-01-01'
-listing: list_date
-delisting: delist_date
+listing:
+    astock_listing_date: list_date
+    astock_delisting_date: delist_date
+    afund_listing_date: shares
 stats_type: public_status_id
 returns: ret
-star_code: ['002', '300', '688', '301']
+asotck_table: 'astockstatus'
 index_mapping:
+    'star': ['002', '300', '688', '301']
     '50': '000016.XSHG'
     '000016': '000016.XSHG'
     '000016.XSHG': '000016.XSHG'
