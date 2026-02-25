@@ -18,8 +18,12 @@ trade_keys:
     avgprice: avgprice
     high_limit: high_limit
     low_limit: low_limit
-    
-    
+    close: close
+    preclose: preclose
+    close_adj: close_adj
+    avgprice_adj: avgprice_adj
+    preclose_adj: preclose_adj
+
 index_mapping:
     'star': ['002', '300', '688', '301']
     '50': '000016.XSHG'

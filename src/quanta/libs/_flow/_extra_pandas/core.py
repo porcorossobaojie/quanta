@@ -133,12 +133,12 @@ def port(df_obj, listing_limit=126, drop_st=1, is_tradeable=True, portfolio_type
     ret = __instance__[portfolio_type](config.trade_keys.returns)
     x = df_obj.build.group().build.portfolio(ret).loc['2017:']
     return x
-    
+
 def trend(df_obj, periods=21):
     x = pd.DataFrame(np.tile(range(df_obj.shape[0]), (df_obj.shape[1], 1)).T, index=df_obj.index, columns=df_obj.columns)
     x = df_obj.rolling(periods, min_periods=periods//4).corr(x)
-    return x   
-    
+    return x
+
 def ic(df_obj, listing_limit=126, drop_st=1, is_tradeable=True, portfolio_type=None):
     portfolio_type = df_obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
     filter_df = refilter(listing_limit, drop_st, is_tradeable, portfolio_type).reindex_like(df_obj).fillna(False)
@@ -154,22 +154,22 @@ def ir(df_obj, periods=126, listing_limit=126, drop_st=1, is_tradeable=True, por
     ir = x.mean() / x.std()
     return ir
 
-def trade_limit(df_obj, high=None, low=None, price=None, limit=0.005, portfolio_type=None):
+def trade_limit(df_obj, high=None, low=None, trade_price=None, settle_price=None, limit=0.005, portfolio_type=None):
     portfolio_type = df_obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
     high_key = config.trade_keys.high_limit if high is None else high
     low_key = config.trade_keys.low_limit if low is None else low
-    avg_key = config.trade_keys.avgprice if price is None else price
+    trade_key = config.trade_keys.avgprice if trade_price is None else trade_price
     ins = __instance__[portfolio_type]
     high_limit = (1 -  ins(avg_key) / ins(high_key)) > limit
     low_limit = (1 - ins(low_key) / ins(avg_key)) > limit
-    
+
     diff = df_obj.diff()
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
