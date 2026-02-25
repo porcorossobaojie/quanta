@@ -154,11 +154,13 @@ def ir(df_obj, periods=126, listing_limit=126, drop_st=1, is_tradeable=True, por
     ir = x.mean() / x.std()
     return ir
 
-def trade_limit(df_obj, high=None, low=None, trade_price=None, settle_price=None, limit=0.005, portfolio_type=None):
+def trade_limit(df_obj, high=None, low=None, avgprice=None, trade_price=None, settle_price=None, limit=0.005, portfolio_type=None):
     portfolio_type = df_obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
     high_key = config.trade_keys.high_limit if high is None else high
     low_key = config.trade_keys.low_limit if low is None else low
-    trade_key = config.trade_keys.avgprice if trade_price is None else trade_price
+    avg_key = config.trade_days.avgprice if avgprice is None else avgprice
+    trade_key = config.trade_keys.avgprice_adj if trade_price is None else trade_price
+    settle_key = config.trade_days.close_adj if settle_price is None else settle_price
     ins = __instance__[portfolio_type]
     high_limit = (1 -  ins(avg_key) / ins(high_key)) > limit
     low_limit = (1 - ins(low_key) / ins(avg_key)) > limit
