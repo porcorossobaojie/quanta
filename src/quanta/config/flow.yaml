@@ -13,8 +13,13 @@ status:
     not_st: public_status_id
     tradestatus: tradestatus
 
-returns: ret
-asotck_table: 'astockstatus'
+trade_keys:
+    returns: ret
+    avgprice: avgprice
+    high_limit: high_limit
+    low_limit: low_limit
+    
+    
 index_mapping:
     'star': ['002', '300', '688', '301']
     '50': '000016.XSHG'

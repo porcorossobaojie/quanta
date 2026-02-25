@@ -272,7 +272,7 @@ class main(meta, type('', (), config.recommand_settings)):
 
         df = self.__schema_info__()
         if schema is not None:
-            df = df[df['table_schema'] == schema.lower()]
+            df = df[df['table_schema'] == schema]
         table = self.table if table is None else table
         df = df[df['table_name'] == table]
         if detail:

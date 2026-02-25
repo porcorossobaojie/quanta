@@ -50,7 +50,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
         return self.index_keys[0]
 
     def __columns_standard__(self, columns):
-        columns = [columns.lower()] if isinstance(columns, str) else [str(i).lower() for i in columns]
+        columns = [columns] if isinstance(columns, str) else [str(i) for i in columns]
         not_have_columns = [i for i in columns if i not in self.columns]
         if not len(not_have_columns):
             return columns
@@ -65,7 +65,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
             else:
                 where = kwargs.get('where', None)
             df = self.__read__(where = where)
-            df.columns = pd.CategoricalIndex(df.columns.str.lower())
+            df.columns = pd.CategoricalIndex(df.columns)
             df[self.code] = pd.CategoricalIndex(df[self.code])
             df = df.set_index(self.index_keys)
             

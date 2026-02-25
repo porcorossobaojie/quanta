@@ -41,7 +41,7 @@ class main():
             index = columns.split('.')
             index = tables[tables.iloc[:, -3].str.contains(index[0]) & (tables.iloc[:, -2] == index[1])]
         else:
-            columns = [columns.lower()] if isinstance(columns, str) else [i.lower() for i in columns]
+            columns = [columns] if isinstance(columns, str) else [i for i in columns]
             index = [tables[tables.iloc[:, -2] == i].index for i in columns]
             index = index[0].append(index[1:])
             #index = reduce(lambda a, b: a.append(b), index)
@@ -81,10 +81,9 @@ class main():
 
     @lru_cache(maxsize=8)
     def multilize(self, column, value_column=None):
-        column = column.lower()
         if value_column is None:
             df = self(column)
-            if isinstance(df, pd.DataFrame):
+            if not df.index.duplicated().any():
                 df = df.stack()
             df = df.to_frame(column)
             df['temp_value'] = 1
@@ -144,7 +143,6 @@ class main():
 
     @lru_cache(maxsize=1)
     def traced_index(self, column='traced_index_name'):
-        column = column.lower()
         df = self('end_date', column)
         df['end_date'] = (pd.to_datetime(df['end_date']) + meta_table.time_bias).fillna(trade_days[-1]).dropna()
         x = df.reset_index().drop_duplicates(keep='first', subset=df.index.name).dropna()
