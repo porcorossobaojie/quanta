@@ -1,4 +1,4 @@
-public_keys: 
+public_keys:
     recommand_settings: &recommand_settings
         portfolio_types: [astock, afund, aindex]
         date_start:  "2010-01-01"
@@ -14,14 +14,14 @@ public_keys:
             time_bias: "15 hours"
 
 tables:
-    recommand_settings: 
+    recommand_settings:
         <<: *recommand_settings
         key:
             <<: *base_key
             id_key: id_key
             primary_key: unique_key
             partition: "pd.date_range('2005-01-01', '2030-12-31', freq='YE')"
-            
+
     transform:
         id: id_key
         pub_date: ann_dt
@@ -30,7 +30,7 @@ tables:
         report_date: report_period
         time: trade_dt
         day: trade_dt
-        
+
     id_table:
         astockbalancesheet:
             table: astockbalancesheet
@@ -41,7 +41,7 @@ tables:
                 .filter((jq.finance.STK_BALANCE_SHEET.source_id == 321003)
                 & (jq.finance.STK_BALANCE_SHEET.report_type == 0)
                 & (jq.finance.STK_BALANCE_SHEET.id > {id_key})))
-    
+
         astockcashflow:
             table: astockcashflow
             columns_information: jq.finance.STK_CASHFLOW_STATEMENT,
@@ -51,7 +51,7 @@ tables:
                 .filter((jq.finance.STK_CASHFLOW_STATEMENT.source_id == 321003)
                 & (jq.finance.STK_CASHFLOW_STATEMENT.report_type == 0)
                 & (jq.finance.STK_CASHFLOW_STATEMENT.id > {id_key})))
-    
+
         astockincome:
             table: astockincome
             columns_information: jq.finance.STK_INCOME_STATEMENT,
@@ -61,7 +61,7 @@ tables:
                 .filter((jq.finance.STK_INCOME_STATEMENT.source_id == 321003)
                 & (jq.finance.STK_INCOME_STATEMENT.report_type == 0)
                 & (jq.finance.STK_INCOME_STATEMENT.id > {id_key})))
-    
+
         astockperformanceletter:
             table: astockperformance_lt
             columns_information: jq.finance.STK_PERFORMANCE_LETTERS
@@ -70,7 +70,7 @@ tables:
                 .order_by(jq.finance.STK_PERFORMANCE_LETTERS.id)
                 .filter((jq.finance.STK_PERFORMANCE_LETTERS.report_type == 0)
                 & (jq.finance.STK_PERFORMANCE_LETTERS.id > {id_key})))
-    
+
         astockforcast:
             table: astockforcast
             columns_information: jq.finance.STK_FIN_FORCAST
@@ -78,7 +78,7 @@ tables:
                 jq.finance.run_offset_query(jq.query(jq.finance.STK_FIN_FORCAST)
                 .order_by(jq.finance.STK_FIN_FORCAST.id)
                 .filter(jq.finance.STK_FIN_FORCAST.id > {id_key}))
-    
+
         astockdividend:
             table: astockdividend
             columns_information: jq.finance.STK_XR_XD
@@ -87,7 +87,7 @@ tables:
                 .order_by(jq.finance.STK_XR_XD.id)
                 .filter((jq.finance.STK_XR_XD.id > {id_key})
                 & (jq.finance.STK_XR_XD.report_date >= "2004-01-01")))
-    
+
         astockstatus:
             table: astockstatus
             columns_information: jq.finance.STK_STATUS_CHANGE,
@@ -95,7 +95,7 @@ tables:
                 jq.finance.run_offset_query(jq.query(jq.finance.STK_STATUS_CHANGE)
                 .order_by(jq.finance.STK_STATUS_CHANGE.id)
                 .filter((jq.finance.STK_STATUS_CHANGE.id > {id_key})))
-    
+
         afundtarget:
             table: afundtarget
             columns_information: jq.finance.FUND_INVEST_TARGET
@@ -103,7 +103,7 @@ tables:
                 jq.finance.run_offset_query(jq.query(jq.finance.FUND_INVEST_TARGET)
                 .order_by(jq.finance.FUND_INVEST_TARGET.id)
                 .filter((jq.finance.FUND_INVEST_TARGET.id > {id_key})))
-    
+
         afundshare:
             table: afundshare
             columns_information: jq.finance.FUND_SHARE_DAILY
@@ -111,7 +111,7 @@ tables:
                 jq.finance.run_offset_query(jq.query(jq.finance.FUND_SHARE_DAILY)
                 .order_by(jq.finance.FUND_SHARE_DAILY.id)
                 .filter((jq.finance.FUND_SHARE_DAILY.id > {id_key})))
-    
+
     dt_table:
         afundeodprices:
             table: afundeodprices
@@ -154,7 +154,7 @@ tables:
                         skip_paused = False),
                     suffixes=('', '_adj'),
                     on =['code', 'time'])
-    
+
         astockeodprices:
             table: astockeodprices
             periods: 252
@@ -196,7 +196,7 @@ tables:
                         skip_paused = False),
                     suffixes=('', '_adj'),
                     on =['code', 'time'])
-    
+
         astockeodderivativeindicator:
             table: astockeodderivativeindicator
             periods: 1
@@ -216,15 +216,15 @@ tables:
                 pcf_ratio: {'pcf': ['double(20, 4)', '市现率(PCF, 现金净流量TTM)\n市现率=（股票在指定交易日期的收盘价 * 当日人民币外汇牌价 * 截至当日公司总股本）/现金及现金等价物净增加额TTM']}
                 pcf_ratio2: {'pocf': ['double(20, 4)', '市现率(PCF, 经营现金净流量TTM)\n市现率=（股票在指定交易日期的收盘价 * 截至当日公司总股本）/经营活动现金及经营活动现金等价物净增加额TTM']}
                 dividend_ratio: {'dividend_ratio_ttm': ['double(20, 4)', '(近12个月派现合计/总市值)/100']}
-                free_market_cap: {'S_FREE_MV': ['double(20, 4)', '自由流通市值(亿元), A股收盘价*自由流通股本, 自由流通股本 = 流通股本-其他扣除数(如高管限售25%)']}
+                free_market_cap: {'s_free_mv': ['double(20, 4)', '自由流通市值(亿元), A股收盘价*自由流通股本, 自由流通股本 = 流通股本-其他扣除数(如高管限售25%)']}
             commands: jq.get_valuation(self._stock, start_date='{start_date}', end_date='{start_date}') # 这张表每次只能返回1000条数据,所以只能一天天取
-    
+
         astockindicator:
             table: astockindicator
             periods: 1
             columns_information: jq.indicator
             commands: jq.get_fundamentals_continuously(jq.query(jq.indicator),  end_date="{start_date}") # 同上
-    
+
         aindexeodprices:
             table: aindexeodprices
             periods: 252
@@ -242,7 +242,7 @@ tables:
                 pre_close: {'preclose': ['double(20,4)', '昨收盘价']}
                 returns: {'ret': ['double(12,8)', '涨跌幅(%%)']}
             commands: jq.get_price(self._index, fields=self.fields,  start_date='{start_date}', end_date='{end_date}', fq=None, skip_paused=False)
-    
+
         aindexweights:
             table: aindexweights
             periods: 1
@@ -254,7 +254,7 @@ tables:
                 weight: {'weight': ['double(6, 4)', '权重']}
                 level_0: {'aindex_code': ['VARCHAR(16)', '指数代码']}
             commands: pd.concat({{sec:jq.get_index_weights(sec ,date="{start_date}")[self.fields] for sec in self.security}}).reset_index()
-    
+
         astockindustrys:
             table: astockindustrys
             periods: 1
@@ -274,7 +274,7 @@ tables:
                 jql2_code: {'jql2_code': ['varchar(16)', '聚宽二级分类']}
                 jql2_name: {'jql2_name': ['varchar(16)', '聚宽二级分类']}
             commands: pd.concat({{i:pd.DataFrame(j) for i,j in jq.get_industry(self._stock, date="{start_date}").items()}}).unstack().reset_index()
-    
+
         astocklisting:
             table: astocklisting
             periods: 1
@@ -285,7 +285,7 @@ tables:
                 start_date: {'list_date': ['datetime', '上市日期']}
                 end_date: {'delist_date': ['datetime', '退市日期']}
             commands: jq.get_all_securities(['stock'], None).reset_index()
-    
+
         astockconcept:
             table: astockconcept
             periods: 1
