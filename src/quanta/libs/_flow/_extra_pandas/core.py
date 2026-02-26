@@ -154,24 +154,90 @@ def ir(df_obj, periods=126, listing_limit=126, drop_st=1, is_tradeable=True, por
     ir = x.mean() / x.std()
     return ir
 
-def trade_limit(df_obj, high=None, low=None, avgprice=None, trade_price=None, settle_price=None, limit=0.005, portfolio_type=None):
+def trade_limit(
+    df_obj, 
+    high=None, 
+    low=None, 
+    avgprice=None, 
+    trade_price=None, 
+    settle_price=None, 
+    limit=0.01, 
+    trade_cost = 0.0015,
+    portfolio_type=None
+):
     portfolio_type = df_obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
     high_key = config.trade_keys.high_limit if high is None else high
     low_key = config.trade_keys.low_limit if low is None else low
-    avg_key = config.trade_days.avgprice if avgprice is None else avgprice
+    avg_key = config.trade_keys.avgprice if avgprice is None else avgprice
     trade_key = config.trade_keys.avgprice_adj if trade_price is None else trade_price
-    settle_key = config.trade_days.close_adj if settle_price is None else settle_price
+    settle_key = config.trade_keys.close_adj if settle_price is None else settle_price
+    
     ins = __instance__[portfolio_type]
-    high_limit = (1 -  ins(avg_key) / ins(high_key)) > limit
-    low_limit = (1 - ins(low_key) / ins(avg_key)) > limit
-
-    diff = df_obj.diff()
-
-
-
-
-
-
-
-
-
+    buyable = ((1 -  ins(avg_key) / ins(high_key)) > limit).reindex_like(df_obj).fillna(False)
+    sellable = ((1 - ins(low_key) / ins(avg_key)) > limit).reindex_like(df_obj).fillna(False)
+    trade = ins(trade_key).reindex_like(df_obj)
+    settle = ins(settle_key).reindex_like(df_obj)
+    trader = tradeable(portfolio_type).reindex_like(df_obj).fillna(False)
+    df_obj = df_obj.div(df_obj.sum(axis=1, min_count=1), axis=0).fillna(0)
+    
+    values = {
+        'buyable':buyable.values,
+        'sellable':sellable.values,
+        'trade':trade.values,
+        'settle':settle.values,
+        'order': df_obj.values,
+        'trader':trader.values
+    }
+    
+    start = np.where(                                                                           
+        values['buyable'][0] & values['trader'][0], values['order'][0], 0
+    )
+    portfolio_trade = [                                                                         
+        np.nan_to_num(
+            (start * values['trade'][0]) / np.nansum((start * values['trade'][0])),
+            nan = 0
+        )  * (1 - trade_cost)
+    ] # 交易的资产, 1为本金,扣除交易费用                                                             
+    portfolio_change = [
+        np.nan_to_num(
+            portfolio_trade[0] / values['trade'][0],
+            nan = 0
+        )
+    ] # 交易的股数                   
+    portfolio_hold = [portfolio_change[0]] # 期末持有的股数                                                         
+    portfolio_settle = [                                                                         
+        np.nan_to_num(
+            portfolio_hold[0] * values['settle'][0],
+            nan = 0
+        )
+    ] # 期末持有的资产
+    
+    for i in range(1, df_obj.shape[0]):
+        diff = (values['order'][i] - portfolio_settle[-1] / portfolio_settle[-1].sum()) * portfolio_settle[-1].sum() # 要交易的资产
+        diff = np.nan_to_num(
+            diff / values['settle'][i-1],
+            nan = 0
+        ) # 转化成股份
+        diff = np.where(
+            (((diff < 0) & values['sellable'][i]) | ((diff > 0) & values['buyable'][i])) & values['trader'][i],
+            diff,
+            0
+        )
+        sells = np.where(diff < 0, diff, 0) * np.nan_to_num(values['trade'][i], nan = 0)                                 # 用权重 * 交易价格得到卖出的资产
+        buy = np.where(diff > 0, diff, 0)                                                        # 用卖出资产按照买入资产的权重进行rebalance
+        buy = -np.nansum(sells) / np.nansum(buy * np.nan_to_num(values['trade'][i], nan=0)) * buy * (1 - trade_cost)
+        diff = np.where(buy > 0, buy, diff)                                                      # 在
+        
+        portfolio_change.append(diff)
+        portfolio_hold.append(portfolio_hold[-1] + diff)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+        
+        
