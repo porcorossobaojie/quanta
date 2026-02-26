@@ -155,13 +155,13 @@ def ir(df_obj, periods=126, listing_limit=126, drop_st=1, is_tradeable=True, por
     return ir
 
 def trade_limit(
-    df_obj, 
-    high=None, 
-    low=None, 
-    avgprice=None, 
-    trade_price=None, 
-    settle_price=None, 
-    limit=0.01, 
+    df_obj,
+    high=None,
+    low=None,
+    avgprice=None,
+    trade_price=None,
+    settle_price=None,
+    limit=0.01,
     trade_cost = 0.0015,
     portfolio_type=None
 ):
@@ -171,7 +171,7 @@ def trade_limit(
     avg_key = config.trade_keys.avgprice if avgprice is None else avgprice
     trade_key = config.trade_keys.avgprice_adj if trade_price is None else trade_price
     settle_key = config.trade_keys.close_adj if settle_price is None else settle_price
-    
+
     ins = __instance__[portfolio_type]
     buyable = ((1 -  ins(avg_key) / ins(high_key)) > limit).reindex_like(df_obj).fillna(False)
     sellable = ((1 - ins(low_key) / ins(avg_key)) > limit).reindex_like(df_obj).fillna(False)
@@ -179,7 +179,7 @@ def trade_limit(
     settle = ins(settle_key).reindex_like(df_obj)
     trader = tradeable(portfolio_type).reindex_like(df_obj).fillna(False)
     df_obj = df_obj.div(df_obj.sum(axis=1, min_count=1), axis=0).fillna(0)
-    
+
     values = {
         'buyable':buyable.values,
         'sellable':sellable.values,
@@ -188,30 +188,27 @@ def trade_limit(
         'order': df_obj.values,
         'trader':trader.values
     }
-    
-    start = np.where(                                                                           
+
+    start = np.where(
         values['buyable'][0] & values['trader'][0], values['order'][0], 0
     )
-    portfolio_trade = [                                                                         
-        np.nan_to_num(
-            (start * values['trade'][0]) / np.nansum((start * values['trade'][0])),
-            nan = 0
-        )  * (1 - trade_cost)
-    ] # 交易的资产, 1为本金,扣除交易费用                                                             
+    portfolio_trade = [
+        start / start.sum()  * (1 - trade_cost)
+    ] # 交易的资产, 1为本金,扣除交易费用
     portfolio_change = [
         np.nan_to_num(
             portfolio_trade[0] / values['trade'][0],
             nan = 0
         )
-    ] # 交易的股数                   
-    portfolio_hold = [portfolio_change[0]] # 期末持有的股数                                                         
-    portfolio_settle = [                                                                         
+    ] # 交易的股数
+    portfolio_hold = [portfolio_change[0]] # 期末持有的股数
+    portfolio_settle = [
         np.nan_to_num(
             portfolio_hold[0] * values['settle'][0],
             nan = 0
         )
     ] # 期末持有的资产
-    
+
     for i in range(1, df_obj.shape[0]):
         diff = (values['order'][i] - portfolio_settle[-1] / portfolio_settle[-1].sum()) * portfolio_settle[-1].sum() # 要交易的资产
         diff = np.nan_to_num(
@@ -223,21 +220,26 @@ def trade_limit(
             diff,
             0
         )
-        sells = np.where(diff < 0, diff, 0) * np.nan_to_num(values['trade'][i], nan = 0)                                 # 用权重 * 交易价格得到卖出的资产
-        buy = np.where(diff > 0, diff, 0)                                                        # 用卖出资产按照买入资产的权重进行rebalance
-        buy = -np.nansum(sells) / np.nansum(buy * np.nan_to_num(values['trade'][i], nan=0)) * buy * (1 - trade_cost)
-        diff = np.where(buy > 0, buy, diff)                                                      # 在
-        
+        sells = np.where(diff < 0, diff, 0)
+        buy = np.where(diff > 0, diff, 0)
+        buy = -np.nansum(sells * values['trade'][i]) / np.nansum(buy * values['trade'][i]) * buy * (1 - trade_cost)
+        diff = sells + buy
+
         portfolio_change.append(diff)
+        portfolio_trade.append(np.nan_to_num(diff * values['trade'][i], nan = 0))
         portfolio_hold.append(portfolio_hold[-1] + diff)
-    
-    
-    
-    
-    
-    
-    
-    
-    
-        
-        
+        portfolio_settle.append(np.nan_to_num(portfolio_hold[-1] * values['settle'][i], nan = 0))
+
+    portfolio_trade = pd.DataFrame(portfolio_trade, index=df_obj.index, columns = df_obj.columns)
+
+
+
+
+
+
+
+
+
+
+
+
