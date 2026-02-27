@@ -1,7 +1,7 @@
 from quanta.config import settings as _settings
 _portfolio_types = _settings('data').public_keys.recommand_settings.portfolio_types
 
-from .base import main as _meta
+from ._base import main as _meta
 from ._connect import calendar_days, trade_days
 
 __instance__ = {}

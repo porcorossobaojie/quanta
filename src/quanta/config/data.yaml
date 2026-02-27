@@ -216,7 +216,7 @@ tables:
                 pcf_ratio: {'pcf': ['double(20, 4)', '市现率(PCF, 现金净流量TTM)\n市现率=（股票在指定交易日期的收盘价 * 当日人民币外汇牌价 * 截至当日公司总股本）/现金及现金等价物净增加额TTM']}
                 pcf_ratio2: {'pocf': ['double(20, 4)', '市现率(PCF, 经营现金净流量TTM)\n市现率=（股票在指定交易日期的收盘价 * 截至当日公司总股本）/经营活动现金及经营活动现金等价物净增加额TTM']}
                 dividend_ratio: {'dividend_ratio_ttm': ['double(20, 4)', '(近12个月派现合计/总市值)/100']}
-                free_market_cap: {'s_free_mv': ['double(20, 4)', '自由流通市值(亿元), A股收盘价*自由流通股本, 自由流通股本 = 流通股本-其他扣除数(如高管限售25%)']}
+                free_market_cap: {'free_mv': ['double(20, 4)', '自由流通市值(亿元), A股收盘价*自由流通股本, 自由流通股本 = 流通股本-其他扣除数(如高管限售25%)']}
             commands: jq.get_valuation(self._stock, start_date='{start_date}', end_date='{start_date}') # 这张表每次只能返回1000条数据,所以只能一天天取
 
         astockindicator:

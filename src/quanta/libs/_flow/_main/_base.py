@@ -8,7 +8,7 @@ import pandas as pd
 from functools import reduce
 from functools import lru_cache
 
-from quanta.libs._flow.main._connect import main as meta_table, trade_days, calendar_days
+from quanta.libs._flow._main._connect import main as meta_table, trade_days, calendar_days
 from quanta.config import settings
 table_info = settings('data').public_keys.recommand_settings
 config = settings('flow')
