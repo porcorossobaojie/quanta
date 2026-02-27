@@ -1,11 +1,11 @@
 # D:\codes\quanta\pyproject.toml
 [project]
 name = "python-quanta" # 你的项目名称，建议与你的顶级包名（例如 src/quanta）一致
-version = "0.1.0" # 项目版本号
+version = "0.1.1" # 项目版本号
 description = "A quantitative analysis project for financial data." # 项目的简短描述
 readme = "README.md" # 指向你的 README 文件
 requires-python = ">=3.9" # 项目所需的 Python 版本
-license = { text = "MIT License" } # 示例许可证，你可以改为你的实际许可证，或指向 "LICENSE" 文件
+#license = { text = "MIT" } # 示例许可证，你可以改为你的实际许可证，或指向 "LICENSE" 文件
 
 keywords = ["quantitative", "finance", "data-analysis"] # 关键词，方便搜索
 
