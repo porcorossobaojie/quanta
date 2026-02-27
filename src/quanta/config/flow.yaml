@@ -1,5 +1,6 @@
 ---
 start_date: '2014-01-01'
+extra_pandas_attrname: 'f'
 
 listing:
     astock_listing_date: list_date
@@ -16,12 +17,14 @@ status:
 trade_keys:
     returns: ret
     avgprice: avgprice
+    avgprice_adj: avgprice_adj
+    high: high
     high_limit: high_limit
+    low: low
     low_limit: low_limit
     close: close
-    preclose: preclose
     close_adj: close_adj
-    avgprice_adj: avgprice_adj
+    preclose: preclose
     preclose_adj: preclose_adj
 
 index_mapping:

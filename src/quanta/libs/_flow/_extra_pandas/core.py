@@ -25,19 +25,19 @@ def not_st(value=1, portfolio_type='astock'):
     return ins
 
 @lru_cache(maxsize=8)
-def tradeable(portfolio_type='astock'):
+def statusable(portfolio_type='astock'):
     ins = __instance__.get(portfolio_type)(config.status.tradestatus)
     ins = ~ins.astype(bool)
     return ins
 
 @lru_cache(maxsize=8)
-def refilter(listing_limit=126, drop_st=1, is_tradeable=True, portfolio_type='astock'):
+def filtered(listing_limit=126, drop_st=1, tradestatus=True, portfolio_type='astock'):
     dic = {'listing': __instance__[portfolio_type].listing(listing_limit, portfolio_type)}
     if portfolio_type == 'astock':
         if not_st is not None:
             dic['not_st'] = not_st(drop_st)
-        if  is_tradeable:
-            dic['tradeable'] = tradeable()
+        if tradestatus:
+            dic['statusable'] = statusable()
     count = len(dic)
     dic = pd.concat(dic, axis=1)
     dic = dic.groupby(dic.columns.names[1:], axis=1).sum().astype(int)
@@ -126,9 +126,9 @@ def merge(
     factors_merged = pd.concat(factors_dict, axis=1).groupby(factors[0].columns.name, axis=1).mean()
     return factors_merged
 
-def port(df_obj, listing_limit=126, drop_st=1, is_tradeable=True, portfolio_type=None):
+def port(df_obj, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
     portfolio_type = df_obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
-    filter_df = refilter(listing_limit, drop_st, is_tradeable, portfolio_type).reindex_like(df_obj).fillna(False)
+    filter_df = filtered(listing_limit, drop_st, tradestatus, portfolio_type).reindex_like(df_obj).fillna(False)
     df_obj = df_obj[filter_df]
     ret = __instance__[portfolio_type](config.trade_keys.returns)
     x = df_obj.build.group().build.portfolio(ret).loc['2017:']
@@ -139,22 +139,22 @@ def trend(df_obj, periods=21):
     x = df_obj.rolling(periods, min_periods=periods//4).corr(x)
     return x
 
-def ic(df_obj, listing_limit=126, drop_st=1, is_tradeable=True, portfolio_type=None):
+def ic(df_obj, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
     portfolio_type = df_obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
-    filter_df = refilter(listing_limit, drop_st, is_tradeable, portfolio_type).reindex_like(df_obj).fillna(False)
+    filter_df = filtered(listing_limit, drop_st, tradestatus, portfolio_type).reindex_like(df_obj).fillna(False)
     df_obj = df_obj[filter_df]
     ret = __instance__[portfolio_type](config.trade_keys.returns)
     x = df_obj.shift().corrwith(ret, axis=1)
     return x
 
-def ir(df_obj, periods=126, listing_limit=126, drop_st=1, is_tradeable=True, portfolio_type=None):
+def ir(df_obj, periods=126, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
     if isinstance(df_obj, pd.DataFrame):
-        df_obj = ic(df_obj, listing_limit, drop_st, is_tradeable, portfolio_type)
+        df_obj = ic(df_obj, listing_limit, drop_st, tradestatus, portfolio_type)
     x = df_obj.rolling(periods, min_periods=periods // 4)
     ir = x.mean() / x.std()
     return ir
 
-def trade_limit(
+def qtest(
     df_obj,
     high=None,
     low=None,
@@ -171,14 +171,15 @@ def trade_limit(
     avg_key = config.trade_keys.avgprice if avgprice is None else avgprice
     trade_key = config.trade_keys.avgprice_adj if trade_price is None else trade_price
     settle_key = config.trade_keys.close_adj if settle_price is None else settle_price
+    meta_data = df_obj.copy()
 
+    df_obj = df_obj.replace(0, np.nan).dropna(how='all').div(df_obj.sum(axis=1, min_count=1), axis=0).fillna(0)
     ins = __instance__[portfolio_type]
-    buyable = ((1 -  ins(avg_key) / ins(high_key)) > limit).reindex_like(df_obj).fillna(False)
-    sellable = ((1 - ins(low_key) / ins(avg_key)) > limit).reindex_like(df_obj).fillna(False)
+    buyable = ((1 -  ins(avg_key) / ins(high_key)) >= limit).reindex_like(df_obj).fillna(False)
+    sellable = ((1 - ins(low_key) / ins(avg_key)) >= limit).reindex_like(df_obj).fillna(False)
     trade = ins(trade_key).reindex_like(df_obj)
     settle = ins(settle_key).reindex_like(df_obj)
-    trader = tradeable(portfolio_type).reindex_like(df_obj).fillna(False)
-    df_obj = df_obj.div(df_obj.sum(axis=1, min_count=1), axis=0).fillna(0)
+    trader = statusable(portfolio_type).reindex_like(df_obj).fillna(False)
 
     values = {
         'buyable':buyable.values,
@@ -208,9 +209,10 @@ def trade_limit(
             nan = 0
         )
     ] # 期末持有的资产
-
+    portfolio_different = [np.where(~values['buyable'][0] | ~values['trader'][0], values['order'][0], 0)] # 未能交易的资产
     for i in range(1, df_obj.shape[0]):
         diff = (values['order'][i] - portfolio_settle[-1] / portfolio_settle[-1].sum()) * portfolio_settle[-1].sum() # 要交易的资产
+        meta_diff = diff.copy()
         diff = np.nan_to_num(
             diff / values['settle'][i-1],
             nan = 0
@@ -220,6 +222,7 @@ def trade_limit(
             diff,
             0
         )
+        different = np.where((meta_diff != 0) & (diff == 0), meta_diff, 0)
         sells = np.where(diff < 0, diff, 0)
         buy = np.where(diff > 0, diff, 0)
         buy = -np.nansum(sells * values['trade'][i]) / np.nansum(buy * values['trade'][i]) * buy * (1 - trade_cost)
@@ -229,17 +232,29 @@ def trade_limit(
         portfolio_trade.append(np.nan_to_num(diff * values['trade'][i], nan = 0))
         portfolio_hold.append(portfolio_hold[-1] + diff)
         portfolio_settle.append(np.nan_to_num(portfolio_hold[-1] * values['settle'][i], nan = 0))
+        portfolio_different.append(different)
 
     portfolio_trade = pd.DataFrame(portfolio_trade, index=df_obj.index, columns = df_obj.columns)
-
-
-
-
-
-
-
-
-
-
-
-
+    portfolio_change = pd.DataFrame(portfolio_change, index=df_obj.index, columns = df_obj.columns)
+    portfolio_hold = pd.DataFrame(portfolio_hold, index=df_obj.index, columns = df_obj.columns)
+    portfolio_settle = pd.DataFrame(portfolio_settle, index=df_obj.index, columns = df_obj.columns)
+    portfolio_different = pd.DataFrame(portfolio_different, index=df_obj.index, columns = df_obj.columns)
+    settle_bool = portfolio_settle > 0
+    order_bool = df_obj > 0
+    different = (settle_bool.astype(int) - order_bool.astype(int))
+    class back_test:
+        class order:
+            data = meta_data
+            weight = df_obj
+            limit = portfolio_different
+        class trade:
+            assets = portfolio_trade
+            shares = portfolio_change
+        class settle:
+            assets = portfolio_settle
+            shares = portfolio_hold
+    return back_test
+        
+        
+        
+        
