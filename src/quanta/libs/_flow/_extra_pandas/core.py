@@ -132,7 +132,7 @@ def port(df_obj, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=
     filter_df = filtered(listing_limit, drop_st, tradestatus, portfolio_type).reindex_like(df_obj).fillna(False)
     df_obj = df_obj[filter_df]
     ret = __instance__[portfolio_type](config.trade_keys.returns)
-    x = df_obj.gen.group().gen.portfolio(ret).loc['2017:']
+    x = df_obj.gen.group().gen.portfolio(ret).loc['2017':]
     return x
 
 def trend(df_obj, periods=21):
