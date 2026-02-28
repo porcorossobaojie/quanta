@@ -33,7 +33,7 @@ def statusable(portfolio_type='astock'):
 
 @lru_cache(maxsize=8)
 def filtered(listing_limit=126, drop_st=1, tradestatus=True, portfolio_type='astock'):
-    dic = {'listing': __instance__[portfolio_type].listing(listing_limit, portfolio_type)}
+    dic = {'listing': listing(listing_limit, portfolio_type)}
     if portfolio_type == 'astock':
         if not_st is not None:
             dic['not_st'] = not_st(drop_st)
