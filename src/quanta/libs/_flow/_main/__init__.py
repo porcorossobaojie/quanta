@@ -1,4 +1,4 @@
-from quanta.config import settings as _settings
+from ....config import settings as _settings
 _portfolio_types = _settings('data').public_keys.recommand_settings.portfolio_types
 
 from ._base import main as _meta

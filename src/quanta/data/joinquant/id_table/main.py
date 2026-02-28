@@ -9,9 +9,9 @@ from typing import Any, Literal
 
 import pandas as pd
 
-from quanta.data.joinquant.meta.main import main as meta
+from ....data.joinquant.meta.main import main as meta
 
-from quanta.config import settings
+from ....config import settings
 config = settings('data')
 
 class main(meta):

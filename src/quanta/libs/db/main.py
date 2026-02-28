@@ -5,9 +5,9 @@ Created on Thu Feb 12 14:59:31 2026
 @author: Porco Rosso
 """
 
-from quanta.libs.db._engines.DuckDB import main as DuckDB
-from quanta.libs.db._engines.MySQL import main as MySQL
-from quanta.config import settings
+from ..db._engines.DuckDB import main as DuckDB
+from ..db._engines.MySQL import main as MySQL
+from ...config import settings
 config = settings('libs').db
 ENGINES = {'DuckDB': DuckDB, 'MySQL': MySQL}
 meta = ENGINES.get(config.recommand_settings)

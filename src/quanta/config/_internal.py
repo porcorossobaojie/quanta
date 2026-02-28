@@ -39,7 +39,7 @@ PROJECT_ROOT = _find_project_root_containing_env_folder()
 __all__ = ['settings', 'login_info']
 
 def settings(yaml_file, env_file=None):
-    from quanta.libs.utils import yaml_config as _yaml_config
+    from .libs.utils import yaml_config as _yaml_config
     if yaml_file[-5:].lower() != '.yaml':
         yaml_file = f"{yaml_file}.yaml"
 
@@ -63,7 +63,7 @@ def settings(yaml_file, env_file=None):
     return base
 
 def login_info(env_file):
-    from quanta.libs.utils import yaml_config as _yaml_config
+    from .libs.utils import yaml_config as _yaml_config
     if env_file[-5:].lower() != '.yaml':
         env_file = f"{env_file}.yaml"
 

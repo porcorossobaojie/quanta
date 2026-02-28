@@ -1,2 +1,2 @@
-from quanta.libs.utils._base import *
-from quanta.libs.utils._decorator import *
+from ._base import *
+from ._decorator import *

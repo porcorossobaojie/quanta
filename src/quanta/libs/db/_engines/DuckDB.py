@@ -9,10 +9,10 @@ from  typing import Literal
 import pandas as pd
 import duckdb
 
-from quanta.config import settings
-from quanta.libs.db._engines.meta import main as meta
+from ....config import settings
+from ....libs.db._engines.meta import main as meta
 config = settings('libs').db.DuckDB
-from quanta.libs.db._data_type_standard import data_trans
+from ....libs.db._data_type_standard import data_trans
 
 
 

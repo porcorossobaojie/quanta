@@ -6,7 +6,7 @@ Created on Tue Feb 10 20:00:09 2026
 """
 
 from typing import Any, Callable, Dict, List, Optional, Type
-from quanta.libs.utils import filter_class_attrs, merge_dicts, timing_decorator
+from ....libs.utils import filter_class_attrs, merge_dicts, timing_decorator
 
 class main():
     @classmethod

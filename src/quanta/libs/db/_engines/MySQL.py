@@ -12,10 +12,10 @@ from sqlalchemy import Engine, create_engine
 import pymysql
 from numpy import isreal
 
-from quanta.config import settings
-from quanta.libs.db._engines.meta import main as meta
+from ....config import settings
+from ...db._engines.meta import main as meta
 config = settings('libs').db.MySQL
-from quanta.libs.db._data_type_standard import data_trans
+from ...db._data_type_standard import data_trans
 
 
 

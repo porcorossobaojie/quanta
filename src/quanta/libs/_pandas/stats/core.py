@@ -13,7 +13,7 @@ import pandas as pd
 import statsmodels.api as sm
 from typing import Optional, Union, Tuple, List, Dict, Any, Callable
 
-from quanta.libs.utils import flatten_list
+from ...utils import flatten_list
 
 __all__ = ['standard', 'OLS', 'const', 'neutral']
 

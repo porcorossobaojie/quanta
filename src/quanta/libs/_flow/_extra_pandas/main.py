@@ -7,7 +7,7 @@ Created on Fri Feb 27 16:50:12 2026
 
 from functools import lru_cache
 import pandas as pd
-from quanta.config import settings
+from ....config import settings
 config = settings('flow')
 
 from .core import *
