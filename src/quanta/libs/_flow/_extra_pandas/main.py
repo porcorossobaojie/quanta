@@ -36,9 +36,9 @@ class flow_extra():
         x = statusable(portfolio_type).reindex_like(self._obj).fillna(False)   
         return self._obj[x]
 
-    def filtered(self, limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
+    def filtered(self, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
-        x = filtered(limit, drop_st, tradestatus, portfolio_type).reindex_like(self._obj).fillna(False)   
+        x = filtered(listing_limit, drop_st, tradestatus, portfolio_type).reindex_like(self._obj).fillna(False)   
         return self._obj[x]
     
     def index_members(self, index_code, invert=False):
@@ -67,13 +67,18 @@ class flow_extra():
         return info(self._obj, column, portfolio_type)
     
     @lru_cache(maxsize=64)
-    def ic(self, limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
-        return ic(self._obj, limit, drop_st, tradestatus, portfolio_type)
+    def ic(self, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
+        return ic(self._obj, listing_limit, drop_st, tradestatus, portfolio_type)
     
     @lru_cache(maxsize=64)
-    def ir(self, limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
-        x = self.ic(limit, drop_st, tradestatus, portfolio_type)
+    def ir(self, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
+        x = self.ic(listing_limit, drop_st, tradestatus, portfolio_type)
         return ir(x)
+    
+    @lru_cache(maxsize=8)
+    def port(self, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
+        x = port(self._obj, listing_limit, drop_st, tradestatus, portfolio_type)
+    
     
     @lru_cache(maxsize=2)
     def test(

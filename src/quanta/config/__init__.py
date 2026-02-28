@@ -1,1 +1,1 @@
-from ._internal import *
+from quanta.config._internal import *

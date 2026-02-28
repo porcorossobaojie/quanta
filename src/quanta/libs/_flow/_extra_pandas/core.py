@@ -15,8 +15,8 @@ portfolio_types = settings('data').public_keys.recommand_settings.portfolio_type
 config = settings('flow')
 
 @lru_cache(maxsize=8)
-def listing(limit=126, portfolio_type='astock'):
-    ins = __instance__.get(portfolio_type).listing(limit)
+def listing(listing_limit=126, portfolio_type='astock'):
+    ins = __instance__.get(portfolio_type).listing(listing_limit)
     return ins
 
 @lru_cache(maxsize=8)

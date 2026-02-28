@@ -1,4 +1,4 @@
-from ....config import settings as _settings
+from quanta.config import settings as _settings
 _config = _settings('data').tables.dt_table
 
 from .main import main as _class_obj
