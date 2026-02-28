@@ -1,2 +1,2 @@
 from . import config, libs
-from . import _pandas
+from .libs import _pandas
