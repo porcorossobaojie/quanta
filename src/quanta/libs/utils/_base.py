@@ -6,10 +6,8 @@ Created on Wed Feb  4 13:58:29 2026
 """
 
 from typing import Dict, List, Any, Type
-from box import Box
-import yaml
 
-__all__ = ['filter_class_attrs', 'filter_parents_class_attrs', 'merge_dicts', 'flatten_list', 'yaml_config']
+__all__ = ['filter_class_attrs', 'filter_parents_class_attrs', 'merge_dicts', 'flatten_list']
 
 def filter_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
     """
@@ -156,13 +154,3 @@ def flatten_list(lst: List[Any],) -> List[Any]:
     return sum(
         (flatten_list(i) if isinstance(i, list) else [i] for i in lst), []
     )
-
-def yaml_config(files):
-    config = Box(default_box=False)
-    for i in files:
-        with open(str(i), 'r', encoding = 'utf-8') as f:
-            x = yaml.safe_load_all(f)
-            for j in x:
-                if j:
-                    config.merge_update(j)
-    return config

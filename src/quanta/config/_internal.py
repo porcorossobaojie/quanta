@@ -8,7 +8,8 @@ Created on Tue Feb 10 17:22:33 2026
 import os
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv # Import dotenv functions
-
+from box import Box
+import yaml
 
 # Load environment variables from .env file, searching from the current working directory
 load_dotenv(find_dotenv(usecwd=True))
@@ -36,10 +37,19 @@ def _find_project_root_containing_env_folder():
 
 PROJECT_ROOT = _find_project_root_containing_env_folder()
 
+def _yaml_config(files):
+    config = Box(default_box=False)
+    for i in files:
+        with open(str(i), 'r', encoding = 'utf-8') as f:
+            x = yaml.safe_load_all(f)
+            for j in x:
+                if j:
+                    config.merge_update(j)
+    return config
+
 __all__ = ['settings', 'login_info']
 
 def settings(yaml_file, env_file=None):
-    from .libs.utils import yaml_config as _yaml_config
     if yaml_file[-5:].lower() != '.yaml':
         yaml_file = f"{yaml_file}.yaml"
 
@@ -63,7 +73,6 @@ def settings(yaml_file, env_file=None):
     return base
 
 def login_info(env_file):
-    from .libs.utils import yaml_config as _yaml_config
     if env_file[-5:].lower() != '.yaml':
         env_file = f"{env_file}.yaml"
 
