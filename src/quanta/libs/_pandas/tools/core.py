@@ -10,7 +10,7 @@ import pandas as pd
 from typing import Union, List, Any
 from numpy.lib.stride_tricks import as_strided
 
-from ...utils import flatten_list
+from quanta.libs.utils import flatten_list
 
 __all__ = ['fillna', 'shift', 'log', 'half_life', 'array_roll']
 

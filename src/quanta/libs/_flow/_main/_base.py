@@ -9,7 +9,7 @@ from functools import reduce
 from functools import lru_cache
 
 from ._connect import main as meta_table, trade_days, calendar_days
-from ....config import settings
+from quanta.config import settings
 table_info = settings('data').public_keys.recommand_settings
 config = settings('flow')
 

@@ -8,8 +8,9 @@ Created on Fri Feb 20 15:40:15 2026
 import numpy as np
 import pandas as pd
 from functools import lru_cache
-from .._main import __instance__
-from ....config import settings
+from quanta.libs._flow._main import __instance__
+from quanta.config import settings
+
 col_info = settings('data').public_keys.recommand_settings.key
 portfolio_types = settings('data').public_keys.recommand_settings.portfolio_types
 config = settings('flow')
