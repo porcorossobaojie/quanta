@@ -1,1 +1,1 @@
-import quanta.config
+from . import config
