@@ -78,7 +78,7 @@ class flow_extra():
     @lru_cache(maxsize=8)
     def port(self, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
         x = port(self._obj, listing_limit, drop_st, tradestatus, portfolio_type)
-    
+        return x
     
     @lru_cache(maxsize=2)
     def test(
