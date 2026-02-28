@@ -1,1 +1,1 @@
-from .config._internal import *
+from ._internal import *

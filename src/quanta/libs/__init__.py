@@ -1,2 +1,2 @@
-from ..libs import utils
-from ..libs.db.main import main as db
+from . import utils
+from .db.main import main as db
