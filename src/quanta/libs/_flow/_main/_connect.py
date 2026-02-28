@@ -9,7 +9,7 @@ from functools import lru_cache
 from typing import Literal
 import pandas as pd
 
-from quanta.libs.db._engines.meta import main as db
+from quanta.libs.db.main import main as db
 from quanta.config import settings, login_info
 config = settings('data').public_keys
 columns_info = config.recommand_settings.key
