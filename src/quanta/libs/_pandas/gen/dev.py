@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from typing import Optional, Dict, List, Union
 
-from ..tools.core import fillna as fillna_func
+from quanta.libs._pandas.tools.core import fillna as fillna_func
 
 def portfolio(df_obj: pd.DataFrame,
     returns: pd.DataFrame,

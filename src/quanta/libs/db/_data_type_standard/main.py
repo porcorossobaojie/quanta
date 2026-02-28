@@ -5,7 +5,7 @@ Created on Tue Feb 10 17:38:54 2026
 @author: Porco Rosso
 """
 
-from ....config import settings
+from quanta.config import settings
 config = settings('libs').db
 
 __all__ = ['data_trans']

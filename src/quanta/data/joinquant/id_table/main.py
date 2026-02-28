@@ -9,7 +9,7 @@ from typing import Any, Literal
 
 import pandas as pd
 
-from quanta.libs.data.joinquant.meta.main import main as meta
+from quanta.data.joinquant.meta.main import main as meta
 
 from quanta.config import settings
 config = settings('data')

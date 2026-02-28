@@ -9,15 +9,14 @@ from  typing import Literal
 import pandas as pd
 import duckdb
 
-from ....config import settings
-from ....libs.db._engines.meta import main as meta
+from quanta.config import settings
+from .meta import main as meta
 config = settings('libs').db.DuckDB
-from ....libs.db._data_type_standard import data_trans
+from quanta.libs.db._data_type_standard import data_trans
 
 
 
 class main(meta, type('', (), config.recommand_settings)):
-
     @classmethod
     def __engine__(cls, **kwargs) -> duckdb.DuckDBPyConnection:
         """
