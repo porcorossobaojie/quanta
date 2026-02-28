@@ -1,7 +1,7 @@
 # D:\codes\quanta\pyproject.toml
 [project]
 name = "python-quanta" # 你的项目名称，建议与你的顶级包名（例如 src/quanta）一致
-version = "0.3.3" # 项目版本号
+version = "0.3.4" # 项目版本号
 description = "A quantitative analysis project for financial data." # 项目的简短描述
 readme = "README.md" # 指向你的 README 文件
 requires-python = ">=3.9" # 项目所需的 Python 版本
