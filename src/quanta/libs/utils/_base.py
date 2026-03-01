@@ -9,11 +9,12 @@ from typing import Dict, List, Any, Type
 
 __all__ = ['filter_class_attrs', 'filter_parents_class_attrs', 'merge_dicts', 'flatten_list']
 
+
 def filter_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
     """
     ===========================================================================
-
-    Extracts attributes and their values from a class object, excluding dunder methods.
+    Extracts attributes and their values from a class object, excluding
+    dunder methods.
 
     Parameters
     ----------
@@ -23,38 +24,66 @@ def filter_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
     Returns
     -------
     Dict[str, Any]
-        A dictionary where keys are attribute names and values are their corresponding values.
-
+        A dictionary where keys are attribute names and values are their
+        corresponding values.
     ---------------------------------------------------------------------------
-
-    从类对象中提取属性及其值，排除双下划线方法。
+    从类对象中提取属性及其值, 排除双下划线方法.
 
     参数
-    ----------
+    ----
     class_object : Type[Any]
-        要从中提取属性的类对象。
+        要从中提取属性的类对象.
 
     返回
-    -------
+    ----
     Dict[str, Any]
-        一个字典，其中键是属性名称，值是其对应的值。
-
+        一个字典, 其中键是属性名称, 值是其对应的值.
     ---------------------------------------------------------------------------
     """
     def check_double_underscore(s: str) -> bool:
         return s.startswith('__') and s.endswith('__') and len(s) > 4
 
     dic = {
-        i:j for i, j in class_object.__dict__.items()
+        i: j for i, j in class_object.__dict__.items()
         if not check_double_underscore(i)
     }
     return dic
 
+
 def filter_parents_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
+    """
+    ===========================================================================
+    Extracts attributes from a class and all its parent classes (MRO),
+    excluding dunder methods.
+
+    Parameters
+    ----------
+    class_object : Type[Any]
+        The class object from which to extract inherited attributes.
+
+    Returns
+    -------
+    Dict[str, Any]
+        A dictionary containing merged attributes from the entire
+        inheritance hierarchy.
+    ---------------------------------------------------------------------------
+    从类及其所有父类(MRO)中提取属性, 排除双下划线方法.
+
+    参数
+    ----
+    class_object : Type[Any]
+        要从中提取继承属性的类对象.
+
+    返回
+    ----
+    Dict[str, Any]
+        包含从整个继承层次结构合并属性的字典.
+    ---------------------------------------------------------------------------
+    """
     def check_double_underscore(s: str) -> bool:
         return s.startswith('__') and s.endswith('__') and len(s) > 4
     all_attrs = {}
-    for cls in reversed(class_object.__mro__): # 反向遍历 MRO，先处理基类
+    for cls in reversed(class_object.__mro__):  # 反向遍历 MRO，先处理基类
         # 忽略 object 类，因为它包含大量不相关的内置属性
         if cls is object:
             continue
@@ -71,12 +100,12 @@ def filter_parents_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
 
     return all_attrs
 
-def merge_dicts(*dicts: Dict[str, Any],) -> Dict[str, Any]:
+
+def merge_dicts(*dicts: Dict[str, Any]) -> Dict[str, Any]:
     """
     ===========================================================================
-
-    Merges multiple dictionaries into one, with later dictionaries overriding
-    earlier ones for common keys.
+    Merges multiple dictionaries into one, with later dictionaries
+    overriding earlier ones for common keys.
 
     Parameters
     ----------
@@ -87,21 +116,18 @@ def merge_dicts(*dicts: Dict[str, Any],) -> Dict[str, Any]:
     -------
     Dict[str, Any]
         A new dictionary containing the merged key-value pairs.
-
     ---------------------------------------------------------------------------
-
-    将多个字典合并为一个，后面字典的键值会覆盖前面字典的键值。
+    将多个字典合并为一个, 后面字典的键值会覆盖前面字典的键值.
 
     参数
-    ----------
+    ----
     *dicts : Dict[str, Any]
-        要合并的字典的可变数量参数。
+        要合并的字典的可变数量参数.
 
     返回
-    -------
+    ----
     Dict[str, Any]
-        包含合并后的键值对的新字典。
-
+        包含合并后的键值对的新字典.
     ---------------------------------------------------------------------------
     """
     all_keys = set().union(*dicts)
@@ -119,10 +145,9 @@ def merge_dicts(*dicts: Dict[str, Any],) -> Dict[str, Any]:
     }
 
 
-def flatten_list(lst: List[Any],) -> List[Any]:
+def flatten_list(lst: List[Any]) -> List[Any]:
     """
     ===========================================================================
-
     Flattens a nested list into a single-level list.
 
     Parameters
@@ -133,22 +158,20 @@ def flatten_list(lst: List[Any],) -> List[Any]:
     Returns
     -------
     List[Any]
-        A new list containing all elements from the nested list in a single level.
-
+        A new list containing all elements from the nested list in a single
+        level.
     ---------------------------------------------------------------------------
-
-    将嵌套列表展平为单层列表。
+    将嵌套列表展平为单层列表.
 
     参数
-    ----------
+    ----
     lst : List[Any]
-        要展平的嵌套列表。
+        要展平的嵌套列表.
 
     返回
-    -------
+    ----
     List[Any]
-        一个新列表，包含嵌套列表中所有元素，且为单层。
-
+        一个新列表, 包含嵌套列表中所有元素, 且为单层.
     ---------------------------------------------------------------------------
     """
     return sum(

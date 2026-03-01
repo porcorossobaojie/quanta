@@ -11,44 +11,52 @@ import time
 
 __all__ = ['timing_decorator']
 
+
 def timing_decorator(
-    schema: Optional[str] = None, 
-    table: Optional[str] = None, 
+    schema: Optional[str] = None,
+    table: Optional[str] = None,
     show_time: bool = False,
 ):
     """
     ===========================================================================
-
-    A timer decorator that supports selecting time units.
+    A timer decorator that supports logging execution time for data
+    source operations.
 
     Parameters
     ----------
     schema : str, optional
-        The database schema name. Defaults to None.
+        The database schema name, by default None.
     table : str, optional
-        The table name. Defaults to None.
+        The table name, by default None.
     show_time : bool, optional
-        Whether to display the execution time. Defaults to False.
+        Whether to display the execution time, by default False.
 
+    Returns
+    -------
+    Callable
+        The decorated function with timing logic.
     ---------------------------------------------------------------------------
-
-    支持选择时间单位的计时装饰器。
+    支持记录数据源操作执行时间的计时装饰器.
 
     参数
-    ----------
+    ----
     schema : str, optional
-        数据库模式名称。默认为 None。
+        数据库模式名称, 默认为 None.
     table : str, optional
-        表名。默认为 None。
+        表名, 默认为 None.
     show_time : bool, optional
-        是否显示执行时间。默认为 False。
-        
+        是否显示执行时间, 默认为 False.
+
+    返回
+    ----
+    Callable
+        带有计时逻辑的装饰函数.
     ---------------------------------------------------------------------------
     """
     def decorator(func):
         @wraps(func)
         def wrapper(
-            *args: Any, 
+            *args: Any,
             **kwargs: Any
         ):
             if show_time:
@@ -56,7 +64,7 @@ def timing_decorator(
                 result = func(*args, **kwargs)
                 end_time = time.time()
                 execution_time = end_time - start_time
-                
+
                 if execution_time >= 0.1:
                     unit = 's'
                     print(
