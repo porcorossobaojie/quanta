@@ -18,7 +18,7 @@ class main():
 
     def group(
         self,
-        rule = np.linspace(0,1,11).round(2),
+        rule = np.linspace(0,1,11).round(2).tolist(),
         pct: bool = True,
         order: bool = False,
         nlevels: Optional[Any] = None,
