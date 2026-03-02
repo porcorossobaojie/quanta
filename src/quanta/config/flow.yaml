@@ -46,7 +46,7 @@ status:
 # -----------------------------------------------------------------------------
 # 交易数据字段的标准键, 如价格和收益率.
 # -----------------------------------------------------------------------------
-trade_keys:
+trade_keys: &public_keys
     returns: ret
     avgprice: avgprice
     avgprice_adj: avgprice_adj
@@ -58,6 +58,28 @@ trade_keys:
     close_adj: close_adj
     preclose: preclose
     preclose_adj: preclose_adj
+    tradestatus: tradestatus
+    post_factor: post_factor
+
+cap:
+    <<: *public_keys
+    trade_price: avgprice
+    settle_price: close
+    unit_types: [weight, share, assets]
+    state_types: [signal, order, trade, settle]
+    recommand_settings:
+        is_adj: True
+        trade_cost: 0.0015
+        untrade_limit: 0.01
+        unit: weight
+        state: signal
+        cash: 1000000
+        price_mapping:
+            signal: close
+            order: preclose
+            trade: avgprice
+            settle: close
+
 
 # =============================================================================
 # Mapping between index identifiers and their respective codes or components.
