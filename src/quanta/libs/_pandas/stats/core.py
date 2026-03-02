@@ -17,6 +17,7 @@ from quanta.libs.utils import flatten_list
 
 __all__ = ['standard', 'OLS', 'const', 'neutral']
 
+
 def standard(
     df_obj: Union[pd.Series, pd.DataFrame],
     method: str = 'gauss',
@@ -25,58 +26,46 @@ def standard(
 ) -> Union[pd.Series, pd.DataFrame]:
     """
     ===========================================================================
-
-    Standardizes a Series or DataFrame using specified method.
-
-    This function applies Gaussian or uniform standardization to the input data.
-
-    ---------------------------------------------------------------------------
-
-    使用指定方法标准化 Series 或 DataFrame。
-
-    此函数对输入数据应用高斯或均匀标准化。
-
-    ---------------------------------------------------------------------------
+    Standardizes a Series or DataFrame using Gaussian or uniform ranking
+    methods.
 
     Parameters
     ----------
     df_obj : Union[pd.Series, pd.DataFrame]
-        The input Series or DataFrame to standardize.
-    method : str, optional
-        Standardization method ('gauss' for Gaussian, 'uniform' for uniform),
-        by default 'gauss'.
-    rank : Tuple[Optional[float], Optional[float]], optional
-        The rank range for uniform standardization, by default (-5, 5).
-    axis : Optional[int], optional
-        Axis along which to standardize, by default None (0 for Series, 1 for DataFrame).
-
-    ---------------------------------------------------------------------------
-
-    参数
-    ----------
-    df_obj : Union[pd.Series, pd.DataFrame]
-        要标准化的输入 Series 或 DataFrame。
-    method : str, optional
-        标准化方法（'gauss' 为高斯，'uniform' 为均匀），默认为 'gauss'。
-    rank : Tuple[Optional[float], Optional[float]], optional
-        均匀标准化的排名范围，默认为 (-5, 5)。
-    axis : Optional[int], optional
-        标准化轴，默认为 None（Series 为 0，DataFrame 为 1）。
-
-    ---------------------------------------------------------------------------
+        The input data to standardize.
+    method : str
+        Standardization method: 'gauss' (Gaussian/Z-score) or 'uniform'
+        (ranking to a range). Default is 'gauss'.
+    rank : Tuple[Optional[float], Optional[float]]
+        The clipping range for 'gauss' or mapping range for 'uniform'.
+        Default is (-5, 5).
+    axis : Optional[int]
+        Axis along which to standardize. Default is None (0 for Series,
+        1 for DataFrame).
 
     Returns
     -------
     Union[pd.Series, pd.DataFrame]
-        The standardized Series or DataFrame.
-
+        The standardized data.
     ---------------------------------------------------------------------------
+    使用高斯或均匀排名方法对 Series 或 DataFrame 进行标准化.
+
+    参数
+    ----
+    df_obj : Union[pd.Series, pd.DataFrame]
+        要标准化的输入数据.
+    method : str
+        标准化方法: 'gauss' (高斯/Z-score) 或 'uniform' (排名映射到指定范围).
+        默认为 'gauss'.
+    rank : Tuple[Optional[float], Optional[float]]
+        'gauss' 的裁剪范围或 'uniform' 的映射范围. 默认为 (-5, 5).
+    axis : Optional[int]
+        标准化的轴. 默认为 None (Series 为 0, DataFrame 为 1).
 
     返回
-    -------
+    ----
     Union[pd.Series, pd.DataFrame]
-        标准化后的 Series 或 DataFrame。
-
+        标准化后的数据.
     ---------------------------------------------------------------------------
     """
     axis = 0 if axis is None else axis
@@ -104,78 +93,60 @@ def OLS(
 ) -> Union[Dict[Any, sm.regression.linear_model.RegressionResultsWrapper], List[sm.regression.linear_model.RegressionResultsWrapper]]:
     """
     ===========================================================================
-
-    Performs Ordinary Least Squares (OLS) regression.
-
-    This function fits an OLS model, optionally with a constant, rolling window,
-    and weights.
-
-    ---------------------------------------------------------------------------
-
-    执行普通最小二乘 (OLS) 回归。
-
-    此函数拟合 OLS 模型，可选择包含常数项、滚动窗口和权重。
-
-    ---------------------------------------------------------------------------
+    Performs Ordinary Least Squares (OLS) or Weighted Least Squares (WLS)
+    regression, supporting rolling windows.
 
     Parameters
     ----------
     df_obj : pd.DataFrame
-        The input DataFrame, where the first column is the dependent variable
-        and subsequent columns are independent variables.
-    const : bool, optional
-        If True, adds a constant to the independent variables, by default False.
-    roll : Optional[int], optional
-        The rolling window size for regression, by default None (full data).
-    min_periods : Optional[int], optional
-        Minimum number of observations in window required to have a value,
-        by default None (0).
-    dropna : bool, optional
-        If True, drops rows with NaN values before regression, by default True.
-    keys : Tuple[int, int], optional
-        Tuple indicating how to get the key for the results dictionary.
-        (0 for index, 1 for columns), (index/column position), by default (0, -1).
-    returns : type, optional
-        Type of return value (dict or list), by default dict.
-    weight : Optional[pd.DataFrame], optional
-        Weights for Weighted Least Squares (WLS), by default None.
-
-    ---------------------------------------------------------------------------
-
-    参数
-    ----------
-    df_obj : pd.DataFrame
-        输入 DataFrame，其中第一列是因变量，后续列是自变量。
-    const : bool, optional
-        如果为 True，则向自变量添加一个常数项，默认为 False。
-    roll : Optional[int], optional
-        回归的滚动窗口大小，默认为 None（全数据）。
-    min_periods : Optional[int], optional
-        窗口中需要有值的最小观察数，默认为 None (0)。
-    dropna : bool, optional
-        如果为 True，则在回归前删除包含 NaN 值的行，默认为 True。
-    keys : Tuple[int, int], optional
-        元组，指示如何获取结果字典的键。
-        （0 表示索引，1 表示列），（索引/列位置），默认为 (0, -1)。
-    returns : type, optional
-        返回值类型（dict 或 list），默认为 dict。
-    weight : Optional[pd.DataFrame], optional
-        加权最小二乘 (WLS) 的权重，默认为 None。
-
-    ---------------------------------------------------------------------------
+        Input data: first column is dependent, others are independent.
+    const : bool
+        If True, adds a constant term to the independent variables.
+        Default is True.
+    roll : Optional[int]
+        Rolling window size for regression. Default is None (full data).
+    min_periods : Optional[int]
+        Minimum observations required in window. Default is None (0).
+    dropna : bool
+        If True, drops rows with NaNs before regression. Default is True.
+    keys : Tuple[int, int]
+        Indicator for result dictionary keys: (0 for index, 1 for columns),
+        followed by position. Default is (0, -1).
+    returns : type
+        Return type: dict or list. Default is dict.
+    weight : Optional[pd.DataFrame]
+        Weights for Weighted Least Squares. Default is None.
 
     Returns
     -------
-    Union[Dict[Any, sm.regression.linear_model.RegressionResultsWrapper], List[sm.regression.linear_model.RegressionResultsWrapper]]
-        A dictionary or list of OLS regression results.
-
+    Union[Dict, List]
+        Regression results as a dictionary or list.
     ---------------------------------------------------------------------------
+    执行普通最小二乘 (OLS) 或加权最小二乘 (WLS) 回归, 支持滚动窗口.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        输入数据: 第一列为因变量, 其他为自变量.
+    const : bool
+        如果为 True, 则向自变量添加常数项. 默认为 True.
+    roll : Optional[int]
+        回归的滚动窗口大小. 默认为 None (全数据).
+    min_periods : Optional[int]
+        窗口中所需的最小观测数. 默认为 None (0).
+    dropna : bool
+        如果为 True, 则在回归前删除包含 NaN 的行. 默认为 True.
+    keys : Tuple[int, int]
+        结果字典键的指示器: (0 表示索引, 1 表示列), 后跟位置. 默认为 (0, -1).
+    returns : type
+        返回类型: dict 或 list. 默认为 dict.
+    weight : Optional[pd.DataFrame]
+        加权最小二乘的权重. 默认为 None.
 
     返回
-    -------
-    Union[Dict[Any, sm.regression.linear_model.RegressionResultsWrapper], List[sm.regression.linear_model.RegressionResultsWrapper]]
-        OLS 回归结果的字典或列表。
-
+    ----
+    Union[Dict, List]
+        字典或列表形式的回归结果.
     ---------------------------------------------------------------------------
     """
     df = df_obj.copy()
@@ -186,21 +157,22 @@ def OLS(
 
     for i in range(len(df) - roll + 1):
         y = df.iloc[i: i + roll]
-        w = weight.iloc[i : i + roll] if weight is not None else 1.0
+        w = weight.iloc[i: i + roll] if weight is not None else 1.0
         key = y.index[keys[1]] if keys[0] == 0 else y.columns[keys[1]]
         if len(y.dropna()) >= min_periods:
-            dic[key] = sm.WLS(y.iloc[:, 0].astype(float), y.iloc[:,1:].astype(float), weights=w, missing='drop').fit()
-        elif dropna == False:
+            dic[key] = sm.WLS(y.iloc[:, 0].astype(float), y.iloc[:, 1:].astype(float), weights=w, missing='drop').fit()
+        elif dropna is False:
             dic[key] = None
         if returns is dict:
             return dic
     if isinstance(returns, dict):
         return dic
     else:
-        dic = list(dic.values())
-        if len(dic) == 1:
-            dic = dic[0]
-        return dic
+        results = list(dic.values())
+        if len(results) == 1:
+            return results[0]
+        return results
+
 
 def const(
     df_obj: Union[pd.Series, pd.DataFrame],
@@ -210,57 +182,41 @@ def const(
 ) -> pd.DataFrame:
     """
     ===========================================================================
-
-    Creates dummy variables for categorical data.
-
-    This function converts categorical data into dummy/indicator variables.
-
-    ---------------------------------------------------------------------------
-
-    为分类数据创建虚拟变量。
-
-    此函数将分类数据转换为虚拟/指示变量。
-
-    ---------------------------------------------------------------------------
+    Creates dummy/indicator variables for categorical data.
 
     Parameters
     ----------
     df_obj : Union[pd.Series, pd.DataFrame]
-        The input Series or DataFrame containing categorical data.
-    columns : Optional[List[Any]], optional
-        Columns to convert into dummy variables, by default None (all columns).
-    prefix : Optional[Union[str, List[str]]], optional
-        String to prepend to dummy column names, by default None.
-    sep : str, optional
-        Separator between prefix and column name, by default ''.
-
-    ---------------------------------------------------------------------------
-
-    参数
-    ----------
-    df_obj : Union[pd.Series, pd.DataFrame]
-        包含分类数据的输入 Series 或 DataFrame。
-    columns : Optional[List[Any]], optional
-        要转换为虚拟变量的列，默认为 None（所有列）。
-    prefix : Optional[Union[str, List[str]]], optional
-        要添加到虚拟列名前的字符串，默认为 None。
-    sep : str, optional
-        前缀和列名之间的分隔符，默认为 ''。
-
-    ---------------------------------------------------------------------------
+        Input data containing categorical values.
+    columns : Optional[List[Any]]
+        Specific columns to convert. Default is None (all columns).
+    prefix : Optional[Union[str, List[str]]]
+        Prefix to prepend to dummy column names. Default is None.
+    sep : str
+        Separator between prefix and dummy names. Default is ''.
 
     Returns
     -------
     pd.DataFrame
-        DataFrame with dummy variables.
-
+        DataFrame containing the dummy variables.
     ---------------------------------------------------------------------------
+    为分类数据创建虚拟/指示变量.
+
+    参数
+    ----
+    df_obj : Union[pd.Series, pd.DataFrame]
+        包含分类值的输入数据.
+    columns : Optional[List[Any]]
+        要转换的特定列. 默认为 None (所有列).
+    prefix : Optional[Union[str, List[str]]]
+        添加到虚拟列名的前缀. 默认为 None.
+    sep : str
+        前缀与虚拟名之间的分隔符. 默认为 ''.
 
     返回
-    -------
+    ----
     pd.DataFrame
-        包含虚拟变量的 DataFrame。
-
+        包含虚拟变量的 DataFrame.
     ---------------------------------------------------------------------------
     """
     return pd.get_dummies(df_obj, prefix=prefix, prefix_sep=sep, columns=columns)
@@ -273,68 +229,52 @@ def _array_3D(
 ) -> Any:
     """
     ===========================================================================
-
-    Converts DataFrames into a 3D NumPy array for regression analysis.
-
-    This function prepares data for multi-variate regression by stacking
-    dependent and independent variables into a 3D array.
-
-    ---------------------------------------------------------------------------
-
-    将 DataFrame 转换为用于回归分析的 3D NumPy 数组。
-
-    此函数通过将因变量和自变量堆叠到 3D 数组中来准备多元回归数据。
-
-    ---------------------------------------------------------------------------
+    Converts DataFrames into a structured 3D NumPy array for efficient
+    regression analysis.
 
     Parameters
     ----------
     target_df : pd.DataFrame
         The dependent variable DataFrame.
-    const : bool, optional
-        If True, adds a constant array, by default True.
+    const : bool
+        If True, adds a constant term array. Default is True.
     **kwargs : pd.DataFrame
-        Independent variable DataFrames.
-
-    ---------------------------------------------------------------------------
-
-    参数
-    ----------
-    target_df : pd.DataFrame
-        因变量 DataFrame。
-    const : bool, optional
-        如果为 True，则添加一个常数数组，默认为 True。
-    **kwargs : pd.DataFrame
-        自变量 DataFrame。
-
-    ---------------------------------------------------------------------------
+        Additional independent variable DataFrames.
 
     Returns
     -------
     Any
-        A custom object containing the 3D array and metadata.
-
+        A custom object containing the 3D values and metadata.
     ---------------------------------------------------------------------------
+    将 DataFrame 转换为结构化 3D NumPy 数组, 用于高效的回归分析.
+
+    参数
+    ----
+    target_df : pd.DataFrame
+        因变量 DataFrame.
+    const : bool
+        如果为 True, 则添加常数项数组. 默认为 True.
+    **kwargs : pd.DataFrame
+        附加自变量 DataFrame.
 
     返回
-    -------
+    ----
     Any
-        包含 3D 数组和元数据的自定义对象。
-
+        包含 3D 数值和元数据的自定义对象.
     ---------------------------------------------------------------------------
     """
     target_df = target_df.sort_index(axis=1).sort_index()
     dic = (
-        {'target':target_df.values}
+        {'target': target_df.values}
         | ({'const': np.ones_like(target_df)} if const else {})
-        | {i:j.reindex_like(target_df).values for i,j in kwargs.items()}
+        | {i: j.reindex_like(target_df).values for i, j in kwargs.items()}
     )
     x = type('array_3D',
              (),
              {'index': target_df.index,
               'columns': target_df.columns,
               'labels': list(dic.keys()),
-              'values': np.array(list(dic.values())).transpose(1,2,0)
+              'values': np.array(list(dic.values())).transpose(1, 2, 0)
               }
     )
     return x
@@ -347,54 +287,38 @@ def _array_roll(
 ) -> np.ndarray:
     """
     ===========================================================================
-
-    Creates a rolling window view of a 3D NumPy array.
-
-    This function generates a view of the input 3D array, where each element
-    is a sub-array representing a rolling window.
-
-    ---------------------------------------------------------------------------
-
-    创建 3D NumPy 数组的滚动窗口视图。
-
-    此函数生成输入 3D 数组的视图，其中每个元素都是表示滚动窗口的子数组。
-
-    ---------------------------------------------------------------------------
+    Creates a rolling window view of a 3D NumPy array using stride tricks.
 
     Parameters
     ----------
     array_3D : np.ndarray
         The input 3D NumPy array.
     periods : int
-        The size of the rolling window.
-    flatten : bool, optional
-        If True, flattens the windowed array, by default False.
-
-    ---------------------------------------------------------------------------
-
-    参数
-    ----------
-    array_3D : np.ndarray
-        输入的 3D NumPy 数组。
-    periods : int
-        滚动窗口的大小。
-    flatten : bool, optional
-        如果为 True，则展平窗口数组，默认为 False。
-
-    ---------------------------------------------------------------------------
+        The rolling window size.
+    flatten : bool
+        If True, flattens the rolling windows into a 2D-like view.
+        Default is False.
 
     Returns
     -------
     np.ndarray
-        The rolling window view of the array.
-
+        The windowed array view.
     ---------------------------------------------------------------------------
+    使用步长技巧创建 3D NumPy 数组的滚动窗口视图.
+
+    参数
+    ----
+    array_3D : np.ndarray
+        输入的 3D NumPy 数组.
+    periods : int
+        滚动窗口大小.
+    flatten : bool
+        如果为 True, 则将滚动窗口展平为类 2D 视图. 默认为 False.
 
     返回
-    -------
+    ----
     np.ndarray
-        数组的滚动窗口视图。
-
+        分窗后的数组视图.
     ---------------------------------------------------------------------------
     """
     axis = 0
@@ -412,55 +336,40 @@ def _array_roll(
         window = window.reshape(window.shape[0], -1, window.shape[-1])
     return window
 
+
 def __lstsq(
     array_2D: np.ndarray,
     w: Optional[np.ndarray] = None
-) -> np.ndarray:
+) -> Tuple[np.ndarray, np.ndarray, float]:
     """
     ===========================================================================
-
-    Performs least squares regression on a 2D array.
-
-    This is an internal helper function for `_lstsq`.
-
-    ---------------------------------------------------------------------------
-
-    对 2D 数组执行最小二乘回归。
-
-    这是 `_lstsq` 的内部辅助函数。
-
-    ---------------------------------------------------------------------------
+    Internal helper performing least squares regression on a 2D data slice.
 
     Parameters
     ----------
     array_2D : np.ndarray
-        The input 2D array, with dependent variable in the first column.
-    w : Optional[np.ndarray], optional
-        Weights for weighted least squares, by default None.
-
-    ---------------------------------------------------------------------------
-
-    参数
-    ----------
-    array_2D : np.ndarray
-        输入 2D 数组，因变量在第一列。
-    w : Optional[np.ndarray], optional
-        加权最小二乘的权重，默认为 None。
-
-    ---------------------------------------------------------------------------
+        2D array slice (rows, features).
+    w : Optional[np.ndarray]
+        Weights for weighted least squares. Default is None.
 
     Returns
     -------
-    np.ndarray
-        Array of regression parameters.
-
+    Tuple[np.ndarray, np.ndarray, float]
+        Tuple of (parameters, t-values, valid observation count).
     ---------------------------------------------------------------------------
+    内部辅助函数, 对 2D 数据切片执行最小二乘回归.
+
+    参数
+    ----
+    array_2D : np.ndarray
+        2D 数据切片 (行, 特征).
+    w : Optional[np.ndarray]
+        加权最小二乘的权重. 默认为 None.
 
     返回
-    -------
-    np.ndarray
-        回归参数数组。
-
+    ----
+    Tuple[np.ndarray, np.ndarray, float]
+        (参数, t值, 有效观测数) 元组.
     ---------------------------------------------------------------------------
     """
     not_nan = ~np.isnan(array_2D).any(axis=1)
@@ -495,57 +404,40 @@ def _lstsq(
     array_3D: np.ndarray,
     neu_axis: int = 1,
     w: Optional[np.ndarray] = None
-) -> np.ndarray:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     ===========================================================================
-
-    Applies least squares regression across a 3D array.
-
-    This function iterates through slices of a 3D array and performs least
-    squares regression on each slice.
-
-    ---------------------------------------------------------------------------
-
-    对 3D 数组应用最小二乘回归。
-
-    此函数遍历 3D 数组的切片，并对每个切片执行最小二乘回归。
-
-    ---------------------------------------------------------------------------
+    Vectorized application of least squares regression across a 3D array.
 
     Parameters
     ----------
     array_3D : np.ndarray
-        The input 3D array.
-    neu_axis : int, optional
-        Axis along which to perform regression (0 or 1), by default 1.
-    w : Optional[np.ndarray], optional
-        Weights for weighted least squares, by default None.
-
-    ---------------------------------------------------------------------------
-
-    参数
-    ----------
-    array_3D : np.ndarray
-        输入的 3D 数组。
-    neu_axis : int, optional
-        执行回归的轴（0 或 1），默认为 1。
-    w : Optional[np.ndarray], optional
-        加权最小二乘的权重，默认为 None。
-
-    ---------------------------------------------------------------------------
+        The input 3D data array.
+    neu_axis : int
+        The axis along which to perform regression. Default is 1.
+    w : Optional[np.ndarray]
+        Weights for weighted least squares. Default is None.
 
     Returns
     -------
-    np.ndarray
-        Array of regression parameters for each slice.
-
+    Tuple[np.ndarray, np.ndarray, np.ndarray]
+        Aggregated parameters, t-values, and counts.
     ---------------------------------------------------------------------------
+    在 3D 数组上向量化应用最小二乘回归.
+
+    参数
+    ----
+    array_3D : np.ndarray
+        输入 3D 数据数组.
+    neu_axis : int
+        执行回归的轴. 默认为 1.
+    w : Optional[np.ndarray]
+        加权最小二乘的权重. 默认为 None.
 
     返回
-    -------
-    np.ndarray
-        每个切片的回归参数数组。
-
+    ----
+    Tuple[np.ndarray, np.ndarray, np.ndarray]
+        汇总的参数, t值和计数.
     ---------------------------------------------------------------------------
     """
     array_3D = array_3D.transpose(1, 0, 2) if neu_axis == 0 else array_3D
@@ -556,10 +448,8 @@ def _lstsq(
         partial_func = partial(__lstsq, w=w)
         x = list(map(partial_func, array_3D))
     params, t, p = zip(*x)
-    params = np.array(params)
-    t = np.array(t)
-    p = np.array(p)
-    return params, t, p
+    return np.array(params), np.array(t), np.array(p)
+
 
 def neutral(
     df_obj: pd.DataFrame,
@@ -574,75 +464,64 @@ def neutral(
 ) -> Any:
     """
     ===========================================================================
-
-    Performs factor neutralization using linear regression.
-
-    This function neutralizes a target DataFrame against specified factors,
-    optionally over rolling periods.
-
-    ---------------------------------------------------------------------------
-
-    使用线性回归执行因子中性化。
-
-    此函数根据指定因子对目标 DataFrame 进行中性化，可选择在滚动周期内进行。
-
-    ---------------------------------------------------------------------------
+    Performs factor neutralization using multi-variate linear regression,
+    optionally in rolling windows.
 
     Parameters
     ----------
     df_obj : pd.DataFrame
-        The target DataFrame to be neutralized.
-    const : bool, optional
-        If True, includes a constant term in the regression, by default True.
-    neu_axis : int, optional
-        Axis along which to perform neutralization (0 for rows, 1 for columns),
-        by default 1.
-    periods : Optional[int], optional
-        Rolling window size for neutralization, by default None (full data).
-    flatten : bool, optional
-        If True, flattens the rolling window data, by default False.
-    w : Optional[np.ndarray], optional
-        Weights for weighted regression, by default None.
-    resid : bool, optional
-        If True, returns residuals; otherwise, returns parameters, by default True.
+        The target factor DataFrame to be neutralized.
+    const : bool
+        If True, includes a constant term. Default is True.
+    neu_axis : int
+        Axis for neutralization: 0 (cross-sectional per column), 1 (per row).
+        Default is 1.
+    periods : Optional[int]
+        Rolling window size. Default is None (full data).
+    flatten : bool
+        If True, flattens rolling window data for regression.
+        Default is False.
+    w : Optional[np.ndarray]
+        Weights for weighted regression. Default is None.
+    resid : bool
+        If True, returns residuals in the result object. Default is True.
+    t : bool
+        If True, returns t-values in the result object. Default is True.
     **key_dfs : pd.DataFrame
-        Factor DataFrames for neutralization.
-
-    ---------------------------------------------------------------------------
-
-    参数
-    ----------
-    df_obj : pd.DataFrame
-        要中性化的目标 DataFrame。
-    const : bool, optional
-        如果为 True，则在回归中包含常数项，默认为 True。
-    neu_axis : int, optional
-        执行中性化的轴（0 为行，1 为列），默认为 1。
-    periods : Optional[int], optional
-        中性化的滚动窗口大小，默认为 None（全数据）。
-    flatten : bool, optional
-        如果为 True，则展平滚动窗口数据，默认为 False。
-    w : Optional[np.ndarray], optional
-        加权回归的权重，默认为 None。
-    resid : bool, optional
-        如果为 True，则返回残差；否则返回参数，默认为 True。
-    **key_dfs : pd.DataFrame
-        用于中性化的因子 DataFrame。
-
-    ---------------------------------------------------------------------------
+        Factors to neutralize against.
 
     Returns
     -------
-    Any
-        A custom object containing regression parameters and/or residuals.
-
+    NeutralObj
+        Custom result object with parameters, residuals, and statistics.
     ---------------------------------------------------------------------------
+    使用多元线性回归执行因子中性化, 可选择在滚动窗口内进行.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        要中性化的目标因子 DataFrame.
+    const : bool
+        如果为 True, 则包含常数项. 默认为 True.
+    neu_axis : int
+        中性化轴: 0 (每列横截面), 1 (每行). 默认为 1.
+    periods : Optional[int]
+        滚动窗口大小. 默认为 None (全数据).
+    flatten : bool
+        如果为 True, 则展平滚动窗口数据以进行回归. 默认为 False.
+    w : Optional[np.ndarray]
+        加权回归的权重. 默认为 None.
+    resid : bool
+        如果为 True, 则在结果对象中返回残差. 默认为 True.
+    t : bool
+        如果为 True, 则在结果对象中返回 t值. 默认为 True.
+    **key_dfs : pd.DataFrame
+        用于中性化的因子.
 
     返回
-    -------
-    Any
-        包含回归参数和/或残差的自定义对象。
-
+    ----
+    NeutralObj
+        包含参数, 残差和统计信息的自定义结果对象.
     ---------------------------------------------------------------------------
     """
     data_obj = _array_3D(df_obj, const, **key_dfs)
@@ -681,12 +560,14 @@ def neutral(
             self.var_count = p
             self.rsquared = r
             self.rsquared_adj = adj_r
+
         @property
         def p(self):
             df = pd.DataFrame(sp.stats.t.sf(self.t.abs(), self.var_count) * 2, index=self.t.index, columns=self.t.columns)
             return df
+
         def predict(self, const=True, **kdfs):
-            dic = {i: j.mul(self.params[i], axis=0) for i,j in kdfs.items()}
+            dic = {i: j.mul(self.params[i], axis=0) for i, j in kdfs.items()}
             dic = pd.concat(dic, axis=1)
             n_levels = list(range(1, dic.columns.nlevels))
             dic = dic.groupby(level=n_levels, axis=1).sum(min_count=1)
@@ -694,6 +575,7 @@ def neutral(
                 dic = dic.add(self.params['const'], axis=0)
             return dic
 
+    _resid = False
     if t:
         _resid = True
 
@@ -716,7 +598,7 @@ def neutral(
             (resid_df**2).sum(axis=1, min_count=1)
             /
             (resid_df.notnull().sum(axis=1) - len(key_dfs) - const)
-            ) ** 0.5
+        ) ** 0.5
         s = t_df.mul(s, axis=0)
         t_df = parameters / s
     else:

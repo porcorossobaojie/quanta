@@ -9,7 +9,42 @@ from typing import Optional, Dict, Any, List, Tuple
 from functools import wraps
 import time
 
-__all__ = ['timing_decorator']
+__all__ = ['timing_decorator', 'doc_inherit']
+
+
+def doc_inherit(source_func: Any):
+    """
+    ===========================================================================
+    A decorator that copies the docstring from a source function to the
+    decorated method.
+
+    Parameters
+    ----------
+    source_func : Any
+        The function from which to inherit the docstring.
+
+    Returns
+    -------
+    Callable
+        The decorated method with the inherited docstring.
+    ---------------------------------------------------------------------------
+    从源函数复制文档字符串到装饰方法的装饰器.
+
+    参数
+    ----
+    source_func : Any
+        从中继承文档字符串的函数.
+
+    返回
+    ----
+    Callable
+        具有继承文档字符串的装饰方法.
+    ---------------------------------------------------------------------------
+    """
+    def decorator(target_func):
+        target_func.__doc__ = source_func.__doc__
+        return target_func
+    return decorator
 
 
 def timing_decorator(

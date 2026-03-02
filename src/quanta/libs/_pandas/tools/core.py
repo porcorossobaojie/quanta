@@ -14,56 +14,40 @@ from quanta.libs.utils import flatten_list
 
 __all__ = ['fillna', 'shift', 'log', 'half_life', 'array_roll']
 
+
 def fillna(
     df_obj: pd.DataFrame,
     fill_list: List[Any]
-):
+) -> pd.DataFrame:
     """
     ===========================================================================
-
-    Forward fills a DataFrame based on a new index.
-
-    This function extends a DataFrame to a new index, forward-filling existing
-    values to the new index points.
-
-    ---------------------------------------------------------------------------
-
-    根据新索引前向填充 DataFrame。
-
-    此函数将 DataFrame 扩展到新索引，并将现有值前向填充到新索引点。
-
-    ---------------------------------------------------------------------------
+    Forward fills a DataFrame based on a new index, effectively extending it.
 
     Parameters
     ----------
     df_obj : pd.DataFrame
         The source DataFrame to be filled.
     fill_list : List[Any]
-        A list of new index labels to be included.
-
-    ---------------------------------------------------------------------------
-
-    参数
-    ----------
-    df_obj : pd.DataFrame
-        需要填充的源 DataFrame。
-    fill_list : List[Any]
-        需要包含的新索引标签列表。
-
-    ---------------------------------------------------------------------------
+        A list of new index labels to be included in the result.
 
     Returns
     -------
     pd.DataFrame
         A new DataFrame with the combined and forward-filled index.
-
     ---------------------------------------------------------------------------
+    根据新索引前向填充 DataFrame, 有效地扩展它.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        要填充的源 DataFrame.
+    fill_list : List[Any]
+        要包含在结果中的新索引标签列表.
 
     返回
-    -------
+    ----
     pd.DataFrame
-        一个包含合并和前向填充索引的新 DataFrame。
-
+        具有合并和前向填充索引的新 DataFrame.
     ---------------------------------------------------------------------------
     """
     df_obj = df_obj.sort_index()
@@ -88,56 +72,40 @@ def fillna(
     lst.index.name = getattr(fill_list, 'name', df_obj.index.name)
     return lst
 
+
 def shift(
     df_obj: pd.DataFrame,
     n: int
-):
+) -> pd.DataFrame:
     """
     ===========================================================================
-
-    Conditionally shifts columns with NaN values in the last row.
-
-    This function iteratively shifts down columns that have a NaN value in
-    their last row, up to a maximum of 'n' times.
-
-    ---------------------------------------------------------------------------
-
-    有条件地移动最后一行存在 NaN 值的列。
-
-    此函数迭代地向下移动在其最后一行具有 NaN 值的列，最多移动 'n' 次。
-
-    ---------------------------------------------------------------------------
+    Iteratively shifts down columns that have a NaN value in their last row.
 
     Parameters
     ----------
     df_obj : pd.DataFrame
         The DataFrame to process.
     n : int
-        The maximum number of shifts to perform.
-
-    ---------------------------------------------------------------------------
-
-    参数
-    ----------
-    df_obj : pd.DataFrame
-        要处理的 DataFrame。
-    n : int
-        要执行的最大移动次数。
-
-    ---------------------------------------------------------------------------
+        The maximum number of shifts to perform for each column.
 
     Returns
     -------
     pd.DataFrame
-        The processed DataFrame with columns shifted.
-
+        The processed DataFrame with columns shifted as needed.
     ---------------------------------------------------------------------------
+    迭代地向下移动在其最后一行具有 NaN 值的列.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        要处理的 DataFrame.
+    n : int
+        每列执行的最大移动次数.
 
     返回
-    -------
+    ----
     pd.DataFrame
-        经过列移动处理后的 DataFrame。
-
+        根据需要进行列移动处理后的 DataFrame.
     ---------------------------------------------------------------------------
     """
     bools = df_obj.iloc[-1].isnull()
@@ -149,62 +117,46 @@ def shift(
 
     return df_obj
 
+
 def log(
     df_obj: pd.DataFrame,
     bias_adj: Union[int, float] = 1,
     abs_adj: bool = True
-):
+) -> pd.DataFrame:
     """
     ===========================================================================
-
-    Applies a sign-adjusted logarithmic transformation to a DataFrame.
-
-    This function computes the logarithm of DataFrame values, with an option
-    to adjust for the sign of the original values.
-
-    ---------------------------------------------------------------------------
-
-    对 DataFrame 应用符号调整的对数变换。
-
-    此函数计算 DataFrame 值的对数，并提供一个选项来调整原始值的符号。
-
-    ---------------------------------------------------------------------------
+    Applies a sign-preserved or standard logarithmic transformation.
 
     Parameters
     ----------
     df_obj : pd.DataFrame
         The input DataFrame.
-    bias_adj : Union[int, float], optional
-        A bias value to add before the logarithm, by default 1.
-    abs_adj : bool, optional
+    bias_adj : Union[int, float]
+        A bias value to add before the logarithm. Default is 1.
+    abs_adj : bool
         If True, applies the log to the absolute value and restores the sign.
-        By default True.
-
-    ---------------------------------------------------------------------------
-
-    参数
-    ----------
-    df_obj : pd.DataFrame
-        输入的 DataFrame。
-    bias_adj : Union[int, float], optional
-        在对数运算前添加的偏置值，默认为 1。
-    abs_adj : bool, optional
-        如果为 True，则对绝对值应用对数并恢复符号。默认为 True。
-
-    ---------------------------------------------------------------------------
+        Default is True.
 
     Returns
     -------
     pd.DataFrame
         The transformed DataFrame.
-
     ---------------------------------------------------------------------------
+    应用符号保留或标准的对数变换.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        输入的 DataFrame.
+    bias_adj : Union[int, float]
+        在对数运算前添加的偏置值. 默认为 1.
+    abs_adj : bool
+        如果为 True, 则对绝对值应用对数并恢复符号. 默认为 True.
 
     返回
-    -------
+    ----
     pd.DataFrame
-        转换后的 DataFrame。
-
+        转换后的 DataFrame.
     ---------------------------------------------------------------------------
     """
     if abs_adj:
@@ -215,10 +167,42 @@ def log(
 
     return x
 
+
 def half_life(
-    window,
-    half_life
-):
+    window: int,
+    half_life: Union[int, float]
+) -> np.ndarray:
+    """
+    ===========================================================================
+    Generates an exponential decay weight array based on a given half-life.
+
+    Parameters
+    ----------
+    window : int
+        The size of the window (length of the weight array).
+    half_life : Union[int, float]
+        The decay half-life.
+
+    Returns
+    -------
+    np.ndarray
+        The generated weight array.
+    ---------------------------------------------------------------------------
+    根据给定的半衰期生成指数衰减权重数组.
+
+    参数
+    ----
+    window : int
+        窗口大小 (权重数组的长度).
+    half_life : Union[int, float]
+        衰减半衰期.
+
+    返回
+    ----
+    np.ndarray
+        生成的权重数组.
+    ---------------------------------------------------------------------------
+    """
     L, Lambda = 0.5**(1/half_life), 0.5**(1/half_life)
     W = []
     for i in range(window):
@@ -227,14 +211,14 @@ def half_life(
     W = np.array(W[::-1])
     return W
 
+
 def array_roll(
     array_2D: np.ndarray,
     periods: int
 ) -> np.ndarray:
     """
     ===========================================================================
-
-    Creates rolling windows from a 2D NumPy array.
+    Creates a rolling window view of a 2D NumPy array using stride tricks.
 
     Parameters
     ----------
@@ -247,26 +231,23 @@ def array_roll(
     -------
     np.ndarray
         A 3D NumPy array representing the rolling windows.
-
     ---------------------------------------------------------------------------
-
-    从2D NumPy数组创建滚动窗口。
+    使用步长技巧从 2D NumPy 数组创建滚动窗口视图.
 
     参数
-    ----------
+    ----
     array_2D : np.ndarray
-        输入的2D NumPy数组。
+        输入的 2D NumPy 数组.
     periods : int
-        滚动窗口的大小。
+        滚动窗口的大小.
 
     返回
-    -------
+    ----
     np.ndarray
-        表示滚动窗口的3D NumPy数组。
-
+        表示滚动窗口的 3D NumPy 数组.
     ---------------------------------------------------------------------------
     """
-    axis=0
+    axis = 0
 
     new_shape = list(array_2D.shape)
     new_shape[axis] = [periods, new_shape[axis] - periods + 1, ]
