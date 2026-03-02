@@ -1,4 +1,16 @@
+# =============================================================================
+# Data source configuration, defining table mappings and public keys for
+# JoinQuant and local databases.
+# -----------------------------------------------------------------------------
+# 数据源配置, 定义了 JoinQuant 及本地数据库的表映射和公共键.
+# -----------------------------------------------------------------------------
+
 public_keys:
+    # =========================================================================
+    # Recommended public key settings for cross-module data alignment.
+    # -------------------------------------------------------------------------
+    # 推荐的公共键设置, 用于跨模块数据对齐.
+    # -------------------------------------------------------------------------
     recommand_settings: &recommand_settings
         portfolio_types: [astock, afund, aindex]
         date_start:  "2010-01-01"
@@ -14,6 +26,11 @@ public_keys:
             time_bias: "15 hours"
 
 tables:
+    # =========================================================================
+    # Global table management settings, including primary keys and partitioning.
+    # -------------------------------------------------------------------------
+    # 全局表管理设置, 包括主键和分区规则.
+    # -------------------------------------------------------------------------
     recommand_settings:
         <<: *recommand_settings
         key:
@@ -22,6 +39,11 @@ tables:
             primary_key: unique_key
             partition: "pd.date_range('2005-01-01', '2030-12-31', freq='YE')"
 
+    # =========================================================================
+    # Transformation mapping for raw source fields to standardized internal keys.
+    # -------------------------------------------------------------------------
+    # 原始源字段到标准化内部键的转换映射.
+    # -------------------------------------------------------------------------
     transform:
         id: id_key
         pub_date: ann_dt
@@ -31,6 +53,11 @@ tables:
         time: trade_dt
         day: trade_dt
 
+    # =========================================================================
+    # Configurations for tables indexed by incremental IDs (e.g., statements).
+    # -------------------------------------------------------------------------
+    # 按增量 ID 索引的表配置 (例如 财务报表).
+    # -------------------------------------------------------------------------
     id_table:
         astockbalancesheet:
             table: astockbalancesheet
@@ -112,6 +139,11 @@ tables:
                 .order_by(jq.finance.FUND_SHARE_DAILY.id)
                 .filter((jq.finance.FUND_SHARE_DAILY.id > {id_key})))
 
+    # =========================================================================
+    # Configurations for tables indexed by trade dates (e.g., EOD prices).
+    # -------------------------------------------------------------------------
+    # 按交易日期索引的表配置 (例如 日末行情).
+    # -------------------------------------------------------------------------
     dt_table:
         afundeodprices:
             table: afundeodprices

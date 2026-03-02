@@ -40,6 +40,12 @@ How Initial Local Settings
                     database: Locals              # name of database file
                     schema: jq_data               # schema name
 
+    For technical details on the underlying database abstraction and supported engines, see:
+    [Database Abstraction Layer](src/quanta/libs/db/README.md)
+
+    For a detailed explanation of all configuration fields, see:
+    [Configuration Definitions](src/quanta/config/README.md)
+
 Why python-quanta
 -----------------
 
@@ -50,6 +56,9 @@ Why python-quanta
             -- trading data: stock, index(not in CSI), etf
             -- finance data: stock
 
+        For details on data provider integration and table logic, see:
+        [Data Management](src/quanta/data/README.md)
+
     II specialized financial analytical extensions (based on pandas.DataFrame)
         -- DataFrame.gen
                         .group()                 # quick-grouping based on multi-factor theory
@@ -58,6 +67,9 @@ Why python-quanta
                         .sth()                   # specialized rolling, e.g., "get 3 max volume in 21 days"
         -- DataFrame.stats
                         .neutral()               # OLS or factor neutralization (e.g., .stats.neutral)
+
+        For a full reference of available accessors and metrics, see:
+        [Analytical Extensions](src/quanta/libs/_pandas/README.md)
 
     III more powerful functions with database
         if user have join quant account, python-quanta will be more powerful:
@@ -70,11 +82,17 @@ Why python-quanta
                        ir                        # Information Ratio (IR, annual)
                        port / test               # rapid group return calculation and backtesting
 
+        For a deep dive into research interfaces and Pandas extensions, see: 
+        [Research Flow Layer](src/quanta/libs/_flow/README.md) --> _extra_pandas
+        
     IV high-efficiency research workflow (quanta.flow)
         The `flow` module provides a high-level abstraction for factor/strategy research:
         -- quanta.flow.astock("key")             # unified interface for price and financial data
         -- quanta.flow.astock._help              # metadata lookup for tables, columns, and comments
         -- quanta.flow.astock.help("keyword")    # fuzzy search within metadata (e.g., "oper" for operating data)
+
+        For a deep dive into research interfaces and Pandas extensions, see:
+        [Research Flow Layer](src/quanta/libs/_flow/README.md) --> _extra_pandas
 
     V standard factor library (Roadmap)
         Ongoing implementation of benchmark factors for strategy comparison:
@@ -129,6 +147,12 @@ How Initial Local Settings
                     database: Locals              # 数据库文件名
                     schema: jq_data               # Schema 名称
 
+    有关底层数据库抽象及支持引擎的技术详情, 请参阅:
+    [数据库抽象层详解](src/quanta/libs/db/README.md)
+
+    有关所有配置字段的详细定义说明, 请参阅:
+    [配置定义详解](src/quanta/config/README.md)
+
 Why python-quanta
 -----------------
 
@@ -139,6 +163,9 @@ Why python-quanta
             -- 交易数据: 股票, 指数(非中证系列), ETF.
             -- 财务数据: 全量股票财务报表.
 
+        有关数据供应商集成及表逻辑的详细说明, 请参阅:
+        [数据管理详解](src/quanta/data/README.md)
+
     II 专业金融分析扩展 (基于 pandas.DataFrame)
         -- DataFrame.gen
                         .group()                 # 基于多因子理论的高效分组函数
@@ -147,6 +174,9 @@ Why python-quanta
                         .sth()                   # 专用滚动窗口函数(如: "获取21日内成交量最大的3个交易日")
         -- DataFrame.stats
                         .neutral()               # 因子中性化处理及截面 OLS 回归
+
+        有关可用访问器及指标的完整参考, 请参阅:
+        [专业分析扩展详解](src/quanta/libs/_pandas/README.md)
 
     III 数据库增强型高级功能
         需配合聚宽账户以实现更强大的分析能力:
@@ -159,11 +189,17 @@ Why python-quanta
                        ir                        # 因子 IR (Information Ratio, 年化) 计算
                        port / test               # 快速计算分组收益及策略回测
 
+        有关研究接口及 Pandas 扩展功能的深入说明, 请参阅:
+        [研究流层详解](src/quanta/libs/_flow/README.md)  --> _extra_pandas
+
     IV 高效研究流工具 (quanta.flow)
         `flow` 模块为因子与策略研发提供高层抽象:
         -- quanta.flow.astock("key")             # 获取价格或财务数据的统一接口
         -- quanta.flow.astock._help              # 快速查询数据库表, 字段及注释信息
         -- quanta.flow.astock.help("key")        # 模糊搜索元数据(如搜索 "oper" 获取营业相关字段)
+
+        有关研究接口及 Pandas 扩展功能的深入说明, 请参阅:
+        [研究流层详解](src/quanta/libs/_flow/README.md)  --> _main
 
     V 标准因子库 (发展路线)
         持续集成行业标准因子以供对比与测试:
