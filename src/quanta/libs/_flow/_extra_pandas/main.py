@@ -5,107 +5,201 @@ Created on Fri Feb 27 16:50:12 2026
 @author: Porco Rosso
 """
 
-from functools import lru_cache
 import pandas as pd
+import numpy as np
+from functools import lru_cache
+from typing import Optional, Union, List, Any
 from quanta.config import settings
-config = settings('flow')
-
+from quanta.libs.utils._decorator import doc_inherit
 from .core import *
 
+config = settings('flow')
+
+
 class class_obj:
-    merge = merge
+    """
+    ===========================================================================
+    Static utility class registered to Pandas for standalone flow extra
+    operations.
+    ---------------------------------------------------------------------------
+    注册到 Pandas 的静态工具类, 用于独立的数据流额外操作.
+    ---------------------------------------------------------------------------
+    """
+    merge = staticmethod(merge)
+
+
 setattr(pd, config.extra_pandas_attrname, class_obj)
+
 
 @pd.api.extensions.register_dataframe_accessor(config.extra_pandas_attrname)
 class flow_extra():
-    def __init__(self, df_obj):
+    """
+    ===========================================================================
+    Pandas DataFrame accessor for extended data flow operations, including
+    filtering, indexing, and backtesting.
+    ---------------------------------------------------------------------------
+    用于扩展数据流操作的 Pandas DataFrame 访问器, 包括过滤, 指数成份股和回测.
+    ---------------------------------------------------------------------------
+    """
+
+    def __init__(self, df_obj: pd.DataFrame):
         self._obj = df_obj
-        
-    def listing(self, limit, portfolio_type=None):
+
+    @doc_inherit(listing)
+    def listing(
+        self,
+        limit: int,
+        portfolio_type: Optional[str] = None
+    ) -> pd.DataFrame:
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
-        x = listing(limig, portfolio_type).reindex_like(self._obj).fillna(False)
+        x = listing(limit, portfolio_type).reindex_like(self._obj).fillna(False)
         return self._obj[x]
-    
-    def not_st(self, value=1, portfolio_type=None):
+
+    @doc_inherit(not_st)
+    def not_st(
+        self,
+        value: int = 1,
+        portfolio_type: Optional[str] = None
+    ) -> pd.DataFrame:
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
         x = not_st(value, portfolio_type).reindex_like(self._obj).fillna(False)
         return self._obj[x]
 
-    def tradestatus(self, portfolio_type=None):
+    @doc_inherit(statusable)
+    def tradestatus(self, portfolio_type: Optional[str] = None) -> pd.DataFrame:
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
-        x = statusable(portfolio_type).reindex_like(self._obj).fillna(False)   
+        x = statusable(portfolio_type).reindex_like(self._obj).fillna(False)
         return self._obj[x]
 
-    def filtered(self, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
+    @doc_inherit(filtered)
+    def filtered(
+        self,
+        listing_limit: int = 126,
+        drop_st: int = 1,
+        tradestatus: bool = True,
+        portfolio_type: Optional[str] = None
+    ) -> pd.DataFrame:
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
-        x = filtered(listing_limit, drop_st, tradestatus, portfolio_type).reindex_like(self._obj).fillna(False)   
+        x = filtered(listing_limit, drop_st, tradestatus, portfolio_type).reindex_like(self._obj).fillna(False)
         return self._obj[x]
-    
-    def index_members(self, index_code, invert=False):
-        x = index_members(index_code).reindex_like(self._obj).fillna(False)   
+
+    @doc_inherit(index_members)
+    def index_members(
+        self,
+        index_code: str,
+        invert: bool = False
+    ) -> pd.DataFrame:
+        x = index_members(index_code).reindex_like(self._obj).fillna(False)
         x = ~x if invert else x
         return self._obj[x]
-    
-    def label(self, code=None, label_df=None, portfolio_type=None):
+
+    @doc_inherit(label)
+    def label(
+        self,
+        code: Optional[str] = None,
+        label_df: Optional[pd.DataFrame] = None,
+        portfolio_type: Optional[str] = None
+    ) -> pd.DataFrame:
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
         x = label(code, label_df, portfolio_type)
-        reindex_key = list(set(self.obj.columns.names) & set(x.columns.names))[0]
+        reindex_key = list(set(self._obj.columns.names) & set(x.columns.names))[0]
         df = self._obj.reindex(x.columns.get_level_values(reindex_key), axis=1)
-        df.collumns = x.columns
+        df.columns = x.columns
         x = x.reindex_like(df).fillna(False)
         return df[x]
-    
-    def expand(self, portfolio_type='asotck'):
+
+    @doc_inherit(expand)
+    def expand(self, portfolio_type: str = 'astock') -> pd.DataFrame:
         if portfolio_type == 'astock':
-            target_df = label(self._obj.columns.name, portfolio_type)
+            target_df = label(self._obj.columns.name, portfolio_type=portfolio_type)
             x = expand(self._obj, target_df)
             return x
         else:
             raise ValueError('Warning: only support stock -- industry translate...')
-            
-    def info(self, column, portfolio_type=None):
+
+    @doc_inherit(info)
+    def info(
+        self,
+        column: str,
+        portfolio_type: Optional[str] = None
+    ) -> pd.DataFrame:
         return info(self._obj, column, portfolio_type)
-    
+
     @lru_cache(maxsize=64)
-    def ic(self, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
+    @doc_inherit(ic)
+    def ic(
+        self,
+        listing_limit: int = 126,
+        drop_st: int = 1,
+        tradestatus: bool = True,
+        portfolio_type: Optional[str] = None
+    ) -> pd.Series:
         return ic(self._obj, listing_limit, drop_st, tradestatus, portfolio_type)
-    
+
     @lru_cache(maxsize=64)
-    def ir(self, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
+    @doc_inherit(ir)
+    def ir(
+        self,
+        listing_limit: int = 126,
+        drop_st: int = 1,
+        tradestatus: bool = True,
+        portfolio_type: Optional[str] = None
+    ) -> pd.Series:
         x = self.ic(listing_limit, drop_st, tradestatus, portfolio_type)
         return ir(x)
-    
+
     @lru_cache(maxsize=8)
-    def port(self, listing_limit=126, drop_st=1, tradestatus=True, portfolio_type=None):
+    @doc_inherit(port)
+    def port(
+        self,
+        listing_limit: int = 126,
+        drop_st: int = 1,
+        tradestatus: bool = True,
+        portfolio_type: Optional[str] = None
+    ) -> pd.DataFrame:
         x = port(self._obj, listing_limit, drop_st, tradestatus, portfolio_type)
         return x
-    
+
     @lru_cache(maxsize=2)
+    @doc_inherit(qtest)
     def test(
         self,
-        shift = 0,     
-        high = None,
-        low = None,
-        avgprice = None,
-        trade_price = None,
-        settle_price = None,
-        limit = 0.01,
-        trade_cost = 0.0015,
-        portfolio_type = None
-    ):
+        shift: int = 0,
+        high: Optional[str] = None,
+        low: Optional[str] = None,
+        avgprice: Optional[str] = None,
+        trade_price: Optional[str] = None,
+        settle_price: Optional[str] = None,
+        limit: float = 0.01,
+        trade_cost: float = 0.0015,
+        portfolio_type: Optional[str] = None
+    ) -> Any:
         df = self._obj if shift == 0 else self._obj.shift(shift).dropna(how='all')
         obj = qtest(df, high, low, avgprice, trade_price, settle_price, limit, trade_cost, portfolio_type)
         return obj
 
+
 @pd.api.extensions.register_series_accessor(config.extra_pandas_attrname)
-class flow_extra():
-    def __init__(self, df_obj):
-        self._obj = df_obj       
-        
-    def info(self, column, portfolio_type=None):
+class flow_extra_series():
+    """
+    ===========================================================================
+    Pandas Series accessor for extended data flow operations.
+    ---------------------------------------------------------------------------
+    用于扩展数据流操作的 Pandas Series 访问器.
+    ---------------------------------------------------------------------------
+    """
+
+    def __init__(self, series_obj: pd.Series):
+        self._obj = series_obj
+
+    @doc_inherit(series_info)
+    def info(
+        self,
+        column: str,
+        portfolio_type: Optional[str] = None
+    ) -> pd.Series:
         return series_info(self._obj, column, portfolio_type)
-    
-    def day_shift(self, shift=1):
+
+    @doc_inherit(day_shift)
+    def day_shift(self, shift: int = 1) -> pd.Series:
         return day_shift(self._obj, shift, True)
-    
-        
