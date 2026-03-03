@@ -14,6 +14,8 @@ from quanta.config import settings
 config = settings('flow').cap
 
 
+
+
 class Series(pd.Series):
     _internal_names = pd.Series._internal_names + []
     _internal_names_set = set(_internal_names)
@@ -24,6 +26,9 @@ class Series(pd.Series):
     def _get_values(cls, portfolio_type, key, name):
         x = __instance__[portfolio_type](key).loc[name]
         return x
+    def _lazymem_clean(self):
+        attrs = {i for i in self.__dict__.keys() if '__lazymem_' in i}
+        [delattr(self, i) for i in attrs]
 
     @property
     def _constructor(self):
@@ -69,7 +74,7 @@ class Series(pd.Series):
             self = self.reindex(index, fill_value=0)
             other = other.reindex(index, fill_value=0)
             if getattr(other, 'unit', self.unit) != self.unit:
-                raise ValueError('<WARNING>: portoflio unit isnot match...')
+                raise ValueError('<WARNING>: portoflio unit is not match...')
             x = super().__sub__(other)
             x.cash = x.cash + getattr(other, 'cash', 0)
             x.name = max(self.name,pd.to_datetime(other.name))
@@ -104,7 +109,7 @@ class Series(pd.Series):
     @name.setter
     def name(self, trade_dt: pd.Timestamp):
         trade_dt = pd.to_datetime(trade_dt)
-        if (self.name is not None 
+        if (getattr(self, '_name', None) is not None
             and (self._unit == 'share') 
             and (self._is_adj == False)
         ):
@@ -117,11 +122,22 @@ class Series(pd.Series):
                 )
             )
             self.values[:] = self.values * post_adj
+        self._lazymem_clean()
         self._name = trade_dt
                     
     @property
     def cash(self):
-        return self._cash
+        if self.state != 'trade':
+            return self._cash
+        else:
+            if not hasattr(self, '__lazymem_cash__'):
+                x = (self * self._get_values(
+                    self.portfolio_type, 
+                    config.trade_price + ('_adj' if self.is_adj else ''), 
+                    self._name
+                )).sum() * -1
+                setattr(self, '__lazymem_cash__', x)
+            return getattr(self, '__lazymem_cash__')
     @cash.setter
     def cash(self, v):
         self._cash = v
@@ -136,6 +152,7 @@ class Series(pd.Series):
                 self.portfolio_type, config.post_factor, self.name
             )
             self.values[:] = self.values * post_adj
+        self._lazymem_clean()
         self._is_adj = v
         
     @property
@@ -144,12 +161,23 @@ class Series(pd.Series):
     @state.setter
     def state(self, v):
         assert v in config.state_types
-        getattr(self, f'__{self._state}_to_{v}__')(v)
+        self._lazymem_clean()
+        if (self._state == 'signal') and (v != 'signal'):
+            self.f.day_shift(n=1, copy=False)
+            self._cash = 0
+        
         self._state = v
         
-    def __signal_to_order__(self, copy=True):
-        x = self.f.day_shift()
-        return x
+    def __signal_to_order__(self):
+        self.f.day_shift(n=1, copy=False)
+        self._cash = 0
+    
+    def __order_to_trade__(self):
+        self._state = 'trade'
+        
+    def __trade_to_settle__(self):
+        self._state = 'settle'
+    
         
     @property
     def unit(self):
