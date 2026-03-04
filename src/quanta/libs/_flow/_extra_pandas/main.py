@@ -196,10 +196,11 @@ class flow_extra_series():
     def info(
         self,
         column: str,
-        portfolio_type: Optional[str] = None
+        portfolio_type: Optional[str] = None,
+        **kwargs
     ) -> pd.Series:
-        return series_info(self._obj, column, portfolio_type)
+        return series_info(self._obj, column, portfolio_type, **kwargs)
 
     @doc_inherit(day_shift)
-    def day_shift(self, shift: int = 1) -> pd.Series:
-        return day_shift(self._obj, shift, True)
+    def day_shift(self, shift: int = 1, copy=True) -> pd.Series:
+        return day_shift(self._obj, shift, copy)

@@ -379,7 +379,8 @@ def info(
 def series_info(
     series_obj: pd.Series,
     column: str,
-    portfolio_type: Optional[str] = None
+    portfolio_type: Optional[str] = None,
+    **kwargs
 ) -> pd.Series:
     """
     ===========================================================================
@@ -416,8 +417,12 @@ def series_info(
         包含元信息的 Series.
     ---------------------------------------------------------------------------
     """
+    kwargs  = {'end': series_obj.name} | kwargs
     portfolio_type = series_obj.index.name.split('_')[0] if portfolio_type is None else portfolio_type
-    df = __instance__.get(portfolio_type)(column).loc[series_obj.name].reindex(series_obj.index)
+    try:
+        df = __instance__.get(portfolio_type)(column).loc[series_obj.name].reindex(series_obj.index)
+    except:
+        df = __instance__.get(portfolio_type)(column, **kwargs).reindex(series_obj.index, axis=1)
     return df
 
 

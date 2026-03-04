@@ -155,7 +155,15 @@ class main():
         index = index.groupby(index.columns[-3])[index.columns[-2]].apply(list).to_dict()
         return index
 
-    def __call__(self, *columns: str) -> Union[pd.Series, pd.DataFrame]:
+    def __call__(
+        self,
+        columns: Union[str, List[Any]],
+        end: Optional[pd.Timestamp] = None,
+        quarter_adj: bool = False,
+        quarter_diff: bool = False,
+        shift: int = 0,
+        **kwargs: Any
+        ) -> Union[pd.Series, pd.DataFrame]:
         """
         =======================================================================
         Retrieves data for specified columns across multiple tables.
@@ -164,7 +172,16 @@ class main():
         ----------
         *columns : str
             Variable number of column names to fetch.
-
+        end : Optional[pd.Timestamp]
+            End date for time-based filtering. Default is None.
+        quarter_adj : bool
+            Whether to apply financial quarter adjustment. Default is False.
+        quarter_diff : bool
+            Indicator for quarter difference calculation. Default is False.
+        shift : int
+            Number of periods to shift the data. Default is 0.
+        **kwargs : Any
+            Additional keyword arguments.
         Returns
         -------
         Union[pd.Series, pd.DataFrame]
@@ -174,9 +191,16 @@ class main():
 
         参数
         ----
-        *columns : str
-            要获取的可变数量的列名.
-
+        columns : Union[str, List[Any]]
+            要获取的列名.
+        end : Optional[pd.Timestamp]
+            基于时间的过滤的结束日期. 默认为 None.
+        quarter_adj : bool
+            是否应用财务季度调整. 默认为 False.
+        quarter_diff : bool
+            季度差计算指示器. 默认为 False.
+        shift : int
+            数据位移周期. 默认为 0.
         返回
         ----
         Union[pd.Series, pd.DataFrame]
@@ -185,10 +209,16 @@ class main():
         """
         dic = self.__columns_to_tables__(columns)
         if len(dic) - 1:
-            df = {i: getattr(self, i)(j) for i, j in dic.items()}
+            df = {i: getattr(self, i)(
+                j, 
+                end=end, quarter_adj=quarter_adj, quarter_diff=quarter_diff, shift=shift, **kwargs
+                ) for i, j in dic.items()}
             df = pd.concat(df, axis=1)
         else:
-            df = [getattr(self, i)(j[0] if len(j) == 1 else j) for i, j in dic.items()][0]
+            df = [getattr(self, i)(
+                j[0] if len(j) == 1 else j, 
+                end=end, quarter_adj=quarter_adj, quarter_diff=quarter_diff, shift=shift, **kwargs
+                ) for i, j in dic.items()][0]
 
         if isinstance(df, pd.Series) or (isinstance(df, pd.DataFrame) & (df.columns.nlevels > 1)):
             return df

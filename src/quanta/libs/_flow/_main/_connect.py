@@ -371,7 +371,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
         -----------------------------------------------------------------------
         """
         df = self.__read_from_internal__(columns, **kwargs)
-        if end is not None and len(set([self.trade_dt, self.ann_dt]) & self.columns):
+        if end is not None and len(set([self.trade_dt, self.ann_dt]) & set(self.columns)):
             df = df[df.index.get_level_values(self.filter_key) <= end]
 
         if self.ann_dt in df.index.names:
