@@ -8,7 +8,8 @@ warnings.simplefilter(action='ignore')
 # Third-party library imports
 from pylab import mpl
 mpl.rcParams['font.sans-serif'] = ['Microsoft YaHei']
-
+import numpy as np
+np.set_printoptions(legacy='1.25')
 MODULE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 path = 'quanta.libs._pandas'
 folders = [x.name for x in MODULE_DIR.iterdir() if x.is_dir() and not x.name.startswith('__')]

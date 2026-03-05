@@ -17,7 +17,7 @@ class Series(pd.Series):
     _internal_names = pd.Series._internal_names + []
     _internal_names_set = set(_internal_names)
     _metadata = pd.Series._metadata  + [f'_{i}' for i in config.recommand_settings.keys()]
-    
+
     def __repr__(self) -> str:
         x = super().__repr__()
         x = x + '\nstate: %s, unit: %s, \ncount: %s, cash: %s, \nis_adj: %s' %(self.state, self.unit, len(self), round(self.cash, 3), self.is_adj)
@@ -29,15 +29,14 @@ class Series(pd.Series):
 
     @property
     def _constructor_sliced(self):
-        return Series    
-    
+        return Series
+
     @classmethod
     @lru_cache(maxsize=16)
     def __get_values__(cls, portfolio_type, key, name):
         x = __instance__[portfolio_type](key).loc[name]
         return x
-    
-    @classmethod
+
     def __pos_neg_rebalance__(self, zero_adj=True, total_weight=None, **kwargs):
         pos = self > 0
         x = self.copy()
@@ -47,11 +46,10 @@ class Series(pd.Series):
             if total_weight is not None:
                 x = x * total_weight
         else: # 计算多空差异,以差异为权重1,再*total_weight
-            w = np.abs(np.nansum(x[pos]) + np.nanzum(x[~pos]))                  
-            w = w * (total_weight if total_weight is not None else total_weight)
-            x = x / w 
+            w = np.abs(x.sum()) * (total_weight if total_weight is not None else 1)
+            x = x / w
         return x
-        
+
     def ___lazymem_clean__(self):
         attrs = {i for i in self.__dict__.keys() if '__lazymem_' in i}
         [delattr(self, i) for i in attrs]
@@ -68,11 +66,11 @@ class Series(pd.Series):
             x.name = max(self.name,pd.to_datetime(other.name))
         else:
             x = super().__add__(other)
-        return x    
-    
+        return x
+
     def __radd__(self, other: pd.Series) -> 'Series':
         return self.__add__(other)
-    
+
     def __sub__(self, other: pd.Series) -> 'Series':
         if isinstance(other, pd.Series):
             index = self.index.union(other.index)
@@ -81,30 +79,22 @@ class Series(pd.Series):
             if getattr(other, 'unit', self.unit) != self.unit:
                 raise ValueError('<WARNING>: portoflio unit is not match...')
             x = super().__sub__(other)
-            x.cash = x.cash + getattr(other, 'cash', 0)
+            x.cash = x.cash - getattr(other, 'cash', 0)
             x.name = max(self.name,pd.to_datetime(other.name))
         else:
             x = super().__sub__(other)
-        return x    
-    
+        return x
+
     def __rsub__(self, other: pd.Series) -> 'Series':
         return self.__sub__(other)
-    
+
     def __mul__(self, others: [int, float, np.number, pd.Series]) -> 'Series':
-        if isinstance(others, (int, float, np.number)):
-            x = super().__mul__(others)
-            x.cash = x.cash * others
-        else:
-            x = super().__mul__(others)
+        x = super().__mul__(others)
         x.name = self.name
         return x
-    
+
     def __truediv__(self, others: [int, float, np.number, pd.Series]) -> 'Series':
-        if isinstance(others, (int, float, np.number)):
-            x = super().__truediv__(others)
-            x.cash = x.cash / others
-        else:
-            x = super().__truediv__(others)
+        x = super().__truediv__(others)
         x.name = self.name
         return x
 
@@ -120,11 +110,11 @@ class Series(pd.Series):
         params = config.recommand_settings.to_dict() | kwargs
         [setattr(self, f'_{i}',j) for i,j in params.items()]
         super().__init__(data, index, dtype, name, copy, fastpath)
-            
+
     def __zero_check__(self):
         if (self.values == 0).all():
             raise ValueError("<WARNING>: all of series values is 0.")
-        
+
     def __weight_to_weight__(self, zero_adj=False, total_weight=None, **kwargs):
         self.__zero_check__()
         x = self.__pos_neg_rebalance__(zero_adj, total_weight)
@@ -136,19 +126,19 @@ class Series(pd.Series):
         x = self.__pos_neg_rebalance__(zero_adj, total_weight) * cash
         x._unit = 'assets'
         return x
-    
+
     def __weight_to_share__(self, cash, zero_adj=False, total_weight=None, **kwargs):
         self.__zero_check__()
         x = self.__pos_neg_rebalance__(zero_adj, total_weight) * cash / self.current()
         x._unit = 'share'
-        return    
-     
+        return
+
     def __assets_to_weight__(self, zero_adj=False, total_weight=None, **kwargs):
         self.__zero_check__()
         x = self.__pos_neg_rebalance__(zero_adj, total_weight)
         x._unit = 'weight'
         return x
-        
+
     def __assets_to_assets__(self, **kwargs):
         self.__zero_check__()
         return self.copy()
@@ -158,26 +148,26 @@ class Series(pd.Series):
         x = self / self.current()
         x._unit = 'share'
         return x
-    
+
     def __share_to_weight__(self, zero_adj=False, total_weight=None, **kwargs):
         self.__zero_check__()
         x = (self * self.current()).__assets_to_weight__(zero_adj, total_weight)
         x._unit = 'weight'
         return x
-            
+
     def __share_to_assets__(self, **kwargs):
         self.__zero_check__()
         x = self * self.current()
         self._unit = 'assets'
         return x
-            
+
     def __sahre_to_share__(self, **kwargs):
         return self.copy()
-    
-    @property    
+
+    @property
     def portfolio_type(self):
         return self.index.name.split('_')[0]
-    
+
     @property
     def name(self) -> pd.Timestamp:
         return self._name
@@ -185,7 +175,7 @@ class Series(pd.Series):
     def name(self, trade_dt: pd.Timestamp):
         trade_dt = pd.to_datetime(trade_dt)
         if (getattr(self, '_name', None) is not None
-            and (self._unit == 'share') 
+            and (self._unit == 'share')
             and (self._is_adj == False)
         ):
             post_adj = (
@@ -195,32 +185,29 @@ class Series(pd.Series):
                 self.__get_values__(
                     self.portfolio_type, config.post_factor, self.name
                 )
-            )
+            ).reindex(self.index)
             self.values[:] = self.values * post_adj
         self.___lazymem_clean__()
         self._name = trade_dt
-                    
+
     @property
     def cash(self):
-        if self.state == 'trade':
+        if self.state == 'settle':
+            return self._cash
+        elif self.state in ['signal', 'weight']:
+            return 0
+        else:
             if self.unit == 'share':
                 if not hasattr(self, '__lazymem_cash__'):
                     x  = (self * self.current()).sum() * -1
                     setattr(self, '__lazymem_cash__', x)
                 return getattr(self, '__lazymem_cash__')
-            elif self.unit == 'assets':
-                if not hasattr(self, '__lazymem_assets__'):
-                    x = self.sum() * -1
-                    setattr(self, '__lazymem_assets__', x)
-                return getattr(self, '__lazymem_assets__')
             else:
-                return self._cash
-        else:
-            return self._cash
+                return x.sum() * -1
     @cash.setter
     def cash(self, v):
         self._cash = v
-        
+
     @property
     def is_adj(self):
         return self._is_adj
@@ -229,20 +216,19 @@ class Series(pd.Series):
         if (self.unit == 'share') and (self._is_adj != v):
             post_adj =  self.__get_values__(
                 self.portfolio_type, config.post_factor, self.name
-            )
+            ).reindex(self.index)
             self.values[:] = self.values * post_adj
         self.___lazymem_clean__()
         self._is_adj = v
-        
+
     @property
     def state(self):
         return self._state
 
-        
     @property
     def unit(self):
         return self._unit
-    
+
     def current(self, is_adj=None, reindex=True):
         key = self._price_mapping.get(self._state)
         is_adj = self.is_adj if is_adj is None else is_adj
@@ -251,56 +237,113 @@ class Series(pd.Series):
         if reindex:
             x = x.reindex(self.index)
         return x
-    
+
     def weight(self):
         x = getattr(self, f"__{self.unit}_to_weight__")(copy=True)
         x._unit = 'weight'
         return x
-    
+
     def assets(self, cash=None):
         x = getattr(self, f"__{self.unit}_to_assets__")(cash=cash, copy=True)
         x._unit = 'assets'
         return x
-    
+
     def share(self, cash=None):
         x = getattr(self, f"__{self.unit}_to_share__")(cash=cash, copy=True)
         x._unit = 'share'
         return x
-    
-    def entrade(self, auto_state=True):
+
+    def signal(self, shift=-1):
+        if self.state != 'signal':
+            x = self.f.shift(shift)
+            x._state = 'signal'
+        else:
+            x = self.copy()
+        return x
+
+    def order(self, shift=1):
+        if self.state != 'signal':
+            x = self.copy()
+        else:
+            x = self.f.shift(shift)
+        x._state = 'order'
+        return x
+
+    def trade(self, shift=1):
+        if self.state != 'signal':
+            x = self.copy()
+        else:
+            x = self.f.shift(shift)
+        x._state = 'trade'
+        return x
+
+    def settle(self, shift=1):
+        if self.state != 'signal':
+            x = self.copy()
+        else:
+            x = self.f.shift(shift)
+        x._state = 'settle'
+        return x
+
+    def to(self, unit_or_state, **kwargs):
+        return getattr(self, unit_or_state)(**kwargs)
+
+    def entrade(self, auto_state=True, shift=1):
         x = self.copy()
         if auto_state:
-            x.state = 'trade'
+            x = x.trade(shift)
         tradestatus = ~x.__get_values__(x.portfolio_type, config.tradestatus, x.name).astype('bool')
         return x[tradestatus]
-        
-    def untrade(self, auto_state=True):
+    def untrade(self, auto_state=True, shift=1):
         x = self.copy()
         if auto_state:
-            x.state = 'trade'
+            x = x.trade(shift)
         tradestatus = x.__get_values__(x.portfolio_type, config.tradestatus, x.name).astype('bool')
         return x[tradestatus]
-        
-    def enbuy(self, auto_state=True):
+
+    def enbuy(self, auto_state=True, shift=1):
         x = self[self > 0]
         if auto_state:
-            x.state = 'trade'
-        x 
-    
+            x = x.trade(shift)
+        buy = 1 - x.__get_values__(x.portfolio_type, config.trade_price, x.name) / x.__get_values__(x.portfolio_type, config.high_limit, x.name) >= self._untrade_limit
+        return x[buy]
+    def unbuy(self, auto_state=True, shift=1):
+        x = self[self > 0]
+        if auto_state:
+            x = x.trade(shift)
+        buy_limit = 1 - x.__get_values__(x.portfolio_type, config.trade_price, x.name) / x.__get_values__(x.portfolio_type, config.high_limit, x.name) < self._untrade_limit
+        return x[buy_limit]
+
+    def ensell(self, auto_state=True, shift=1):
+        x = self[self <= 0]
+        if auto_state:
+            x = x.trade(shift)
+        sell = 1 - x.__get_values__(x.portfolio_type, config.low_limit, x.name) / x.__get_values__(x.portfolio_type, config.trade_price, x.name) >= self._untrade_limit
+        return x[sell]
+    def unsell(self, auto_state=True, shift=1):
+        x = self[self <= 0]
+        if auto_state:
+            x = x.trade(shift)
+        sell_limit = 1 - x.__get_values__(x.portfolio_type, config.low_limit, x.name) / x.__get_values__(x.portfolio_type, config.trade_price, x.name) < self._untrade_limit
+        return x[sell_limit]
+
+    def trade_cost(self, trade_check=True, **kwargs):
+        if trade_check:
+            x = self.entrade()
+            x = x.enbuy(**kwargs).cash * -1 + self.ensell(**kwargs).cash
+            x = x * self._trade_cost
+        else:
+            x = self.abs().cash * self._trade_cost
+            return x
 
 
 
-                
-
-        
 
 
 
-                        
-    
-    
-    
-    
-    
-    
-            
+
+
+
+
+
+
