@@ -38,7 +38,7 @@ def _find_project_root_containing_env_folder():
 PROJECT_ROOT = _find_project_root_containing_env_folder()
 
 def _yaml_config(files):
-    config = Box(default_box=False)
+    config = Box(default_box=False, box_dots=True)
     for i in files:
         with open(str(i), 'r', encoding = 'utf-8') as f:
             x = yaml.safe_load_all(f)

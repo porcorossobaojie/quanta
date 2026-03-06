@@ -466,9 +466,12 @@ def day_shift(
         以平移后日期为名称的 Series.
     ---------------------------------------------------------------------------
     """
-    days = __instance__.get('trade_days')
-    day = days.get_loc(series_obj.name) + n
-    day = days[day]
+    if n != 0:
+        days = __instance__.get('trade_days')
+        day = days.get_loc(series_obj.name) + n
+        day = days[day]
+    else:
+        day = series_obj.name
     if copy:
         x = series_obj.copy()
         x.name = day
