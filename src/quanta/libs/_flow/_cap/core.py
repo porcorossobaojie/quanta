@@ -94,6 +94,7 @@ class Unit():
     def trade_cost(self):
         return self.entrade.trade_cost(trade_check=False) if self.signal is not None else 0
     
+    @lru_cache(maxsize=16)
     def roll(self, trade_cost=True):
         if self.signal is not None:
             settle = self.settle.share()
@@ -125,11 +126,11 @@ class Unit():
         settle = self.roll()
         self._target_setter(new_target)
         signal = self.target - settle
-        x = Series(signal=signal, settle=settle, target=None)
+        x = Unit(signal=signal, settle=settle, target=None)
         return x
     
 
-        
+''' 
 from quanta import flow
 ret = flow.astock('ret')
 series = Series(ret.iloc[200, :200]).abs().share(1000)
@@ -137,3 +138,4 @@ self = Unit(signal=series, cash=1000)
 new_target = Series(ret.iloc[300, 100:300]).abs()
 g1 = self(new_target)
 print(1)
+'''
