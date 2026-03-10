@@ -70,15 +70,17 @@ class Series(pd.Series):
         [delattr(self, i) for i in attrs]
 
     def __add__(self, other: pd.Series) -> 'Series':
-        if isinstance(other, pd.Series):
+        if isinstance(other, (Series, pd.Series)):
             index = self.index.union(other.index)
-            self = self.reindex(index, fill_value=0)
-            other = other.reindex(index, fill_value=0)
+            x = self.reindex(index, fill_value=0).astype('float64')
+            other = other.reindex(index, fill_value=0).astype('float64')
             if getattr(other, 'unit', self.unit) != self.unit:
                 raise ValueError('<WARNING>: portoflio unit isnot match...')
-            x = super().__add__(other)
+            x = super(Series, x).__add__(other).astype('float64')
             x.cash = x.cash + getattr(other, 'cash', 0)
-            x.name = max(self.name,pd.to_datetime(other.name))
+            x.name = max(
+                pd.to_datetime(self.name) if self.name else pd.Timestamp.min,
+                pd.to_datetime(other.name) if other.name else pd.Timestamp.min)
         else:
             x = super().__add__(other)
         return x
@@ -87,30 +89,34 @@ class Series(pd.Series):
         return self.__add__(other)
 
     def __sub__(self, other: pd.Series) -> 'Series':
-        if isinstance(other, pd.Series):
+        if isinstance(other, (Series, pd.Series)):
             index = self.index.union(other.index)
-            self = self.reindex(index, fill_value=0)
-            other = other.reindex(index, fill_value=0)
+            x = self.reindex(index, fill_value=0).astype('float64')
+            other = other.reindex(index, fill_value=0).astype('float64')
             if getattr(other, 'unit', self.unit) != self.unit:
-                raise ValueError('<WARNING>: portoflio unit is not match...')
-            x = super().__sub__(other)
+                raise ValueError('<WARNING>: portoflio unit isnot match...')
+            x = super(Series, x).__sub__(other).astype('float64')
             x.cash = x.cash - getattr(other, 'cash', 0)
-            x.name = max(self.name,pd.to_datetime(other.name))
+            x.name = max(
+                pd.to_datetime(self.name) if self.name else pd.Timestamp.min,
+                pd.to_datetime(other.name) if other.name else pd.Timestamp.min)
         else:
-            x = super().__sub__(other)
+            x = super().__sub__(other).astype('float64')
         return x
 
     def __rsub__(self, other: pd.Series) -> 'Series':
         return self.__sub__(other)
 
     def __mul__(self, others: [int, float, np.number, pd.Series]) -> 'Series':
-        x = super().__mul__(others)
+        x = super().__mul__(others).astype('float64')
         x.name = self.name
+        x.index.name = self.index.name
         return x
 
     def __truediv__(self, others: [int, float, np.number, pd.Series]) -> 'Series':
-        x = super().__truediv__(others)
+        x = super().__truediv__(others).astype('float64')
         x.name = self.name
+        x.index.name = self.index.name
         return x
 
     def __init__(self,
@@ -184,7 +190,7 @@ class Series(pd.Series):
 
     def __share_to_assets__(self, **kwargs):
         x = self * self.current()
-        self._unit = 'assets'
+        x._unit = 'assets'
         return x
 
     def __share_to_share__(self, **kwargs):
@@ -263,7 +269,7 @@ class Series(pd.Series):
         x._unit = 'share'
         return x
 
-    def signal(self, shift=-1):
+    def signal(self, shift=0):
         if self.state != 'signal':
             x = self.f.day_shift(shift)
             x._state = 'signal'

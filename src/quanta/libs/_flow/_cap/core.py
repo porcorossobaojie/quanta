@@ -10,87 +10,130 @@ from functools import lru_cache
 from quanta.libs._flow._cap.base import Series, DataFrame
 
 class Unit():
-    def __init__(self, **kwargs):
+    def __init__(self, signal=None, settle=None, target=None, cash=None, trade_cost=None):
         series_instance = Series._config.recommand_settings.to_dict()
-        series_instance = series_instance | {'state': 'settle', 'unit':'share'} | {i: j for i,j in kwargs.items() if i in series_instance.keys()}
-        self._meta_data = {'settle': Series([], **series_instance)} | {i: j for i,j in kwargs.items() if i not in series_instance.keys()}
-        self._exist_info = list(self._meta_data.keys())
-        [setattr(self, i, j) for i,j in self._meta_data.items()]
+        series_instance.update(
+            {k: v for k, v in [('cash', cash), ('trade_cost', trade_cost)] if v is not None}
+        )
+        params = {'signal':signal, 'settle':settle, 'targret':target}
+        params = {i:j for i, j in params.items() if j is not None}
+        if not len(params):
+            raise ValueError(f"parameters:<{params}> can not be all None...")
         
-    def __get_state__(self, *order_chain, method):
-        states = [getattr(self, i, None) for i in order_chain]
-        state = next((c for c in states if c is not None), None)
-        if state is None:
-            raise AttributeError(f"Failed to get attribute: <{order_chain[0]}>")
-        return getattr(state, method)()
-    
+        if signal is not None:
+            self.signal = signal
+        else:
+            if settle is not None:
+                self.signal = Series(
+                    [], 
+                    index = pd.CategoricalIndex([], name=settle.index.name),
+                    name = settle.name,
+                    state = 'signal',
+                    unit = 'share',
+                    cash = 0
+                )
+                
+        if settle is None:
+            obj = signal if signal is not None else target
+            settle = Series(
+                [], 
+                index = pd.CategoricalIndex([], name=obj.index.name),
+                name = obj.name,
+                state = 'settle',
+                unit = 'share',
+                cash = series_instance['cash']
+            )
+        self.settle = settle
+        if target is not None and not isinstance(target, Series):
+            target = Series(target, cash=0, unit='weight', state='settle')
+            if target.index.name is None:
+                target.index.name = self.settle.index.name
+            if target.name is None:
+                target.name = self.settle.name
+        self._target = target
+        
+        self._meta_attrs = series_instance | {'signal':signal, 'settle':settle, 'target':target}
+        
     @property
     def signal(self):
-        chain = ['_signal', '_order', '_trade']
-        return self.__get_state__(*chain, method='signal')
+        return self._signal
     @signal.setter
     def signal(self, v):
-        if not isinstance(v, Series):
-            v = Series(v)
+        if isinstance(v, Series):
+            v = v.signal().share()
+        elif v is None:
+            pass
+        else:
+            v = Series(v, state='signal', unit='share')
         setattr(self, '_signal', v)
     
     @property
     def order(self):
-        chain = ['_order', '_signal', '_trade']
-        return self.__get_state__(*chain, method='order')
+        return self.signal.order() if self.signal is not None else None
         
     @property
     def trade(self):
-        chain = ['_trade', '_order', '_signal']
-        return self.__get_state__(*chain, method='trade')
+        return self.order.trade() if self.signal is not None else None
     
     @property
     def entrade(self):
         x = self.trade
-        x = x.enbuy() + x.ensell()
+        x = (x.enbuy() + x.ensell()) if self.signal is not None else None
         return x
     
     @property
     def settle(self):
-        x = self._settle
-        if x.name is None:
-            x.name = self.signal.name
-        if x.index.name is None:
-            x.index.name = self.signal.index.name
-        return x
+        return self._settle
     @settle.setter
     def settle(self, v):
         if not isinstance(v, Series):
-            v = Series(v)
-        setattr(self, '_settle', v)
+            v = Series(v, state='settle', unit='share')
+        self._settle = v
         
     @property
     def trade_cost(self):
-        return self.entrade.trade_cost(trade_check=False)
+        return self.entrade.trade_cost(trade_check=False) if self.signal is not None else 0
     
-    def forward(self, trade_cost=True):
-        settle = self.settle.share() + self.entrade.share()
-        if trade_cost:
-            settle.cash = settle.cash + self.trade_cost
+    def roll(self, trade_cost=True):
+        if self.signal is not None:
+            settle = self.settle.share()
+            entrade = self.entrade.share()
+            settle = settle + entrade
+            settle = settle.settle()
+            if trade_cost:
+                settle.cash = settle.cash + self.trade_cost
+        else:
+            settle = self.settle.f.day_shift(1)
         return settle
     
-    def target_position(self, target):
-        if not isinstance(target, Series):
-            target = Series(target)
-        target = target.assets(self.forward().total_assets())
-        signal = (target - self.forward().assets()).share().signal()
-        return signal
-
-        
-        
-        
-
+    @property
+    def target(self):
+        if self._target is not None:
+            return self._target
+        else:
+            roll = self.roll()
+            target = roll.share(roll.total_assets() - self.trade_cost)
+            target.cash = 0
+            return target
     
-'''
+    def _target_setter(self, v):
+        roll = self.roll()
+        x = Series(v, state='settle', unit='weight').weight().share(roll.total_assets())
+        self._target = x
+        
+    def __call__(self, new_target):
+        settle = self.roll()
+        self._target_setter(new_target)
+        signal = self.target - settle
+        x = Series(signal=signal, settle=settle, target=None)
+        return x
+    
+
+        
 from quanta import flow
 ret = flow.astock('ret')
 series = Series(ret.iloc[200, :200]).abs().share(1000)
 self = Unit(signal=series, cash=1000)
-target = ret.iloc[201, 100:300].abs()
-target = Series(target).weight()
-'''
+new_target = Series(ret.iloc[300, 100:300]).abs()
+g1 = self(new_target)
+print(1)
