@@ -53,16 +53,19 @@ class Series(pd.Series):
         return x
 
     def __pos_neg_rebalance__(self, zero_adj=True, total_weight=None, **kwargs):
-        pos = self > 0
+        total_weight = 1.0 if total_weight is None else total_weight
         x = self.copy()
-        if zero_adj: # 平衡买卖
-            x[pos] = x[pos] / x[pos].sum()
-            x[~pos] = x[~pos] / x[~pos].sum()
-            if total_weight is not None:
-                x = x * total_weight
+        meta_values = x.values
+        if zero_adj: # 平衡买卖 np.nansum is 5 more fast than pandas.sum()
+            pos = meta_values > 0
+            values = np.where(
+                pos, 
+                np.nansum(meta_values[pos]),
+                np.nansum(meta_values[~pos])
+            )
+            x.values[:] = meta_values / (values / total_weight)
         else: # 计算多空差异,以差异为权重1,再*total_weight
-            w = np.abs(x.sum()) * (total_weight if total_weight is not None else 1)
-            x = x / w
+            x.values[:] = meta_values / (np.abs(np.nansum(meta_values)) / total_weight)
         return x
 
     def ___lazymem_clean__(self):
@@ -133,9 +136,10 @@ class Series(pd.Series):
         super().__init__(data, index, dtype, name, copy, fastpath)
 
     def __zero_check__(self):
-        return (self.values == 0).all()
+        return not np.any(self.values)
 
     def __weight_to_weight__(self, zero_adj=False, total_weight=None, **kwargs):
+        total_weight = 1 if total_weight is None else total_weight
         x = (
             self.copy() 
             if self.__zero_check__() else 
@@ -145,24 +149,27 @@ class Series(pd.Series):
         return x
 
     def __weight_to_assets__(self, cash, zero_adj=False, total_weight=None, **kwargs):
+        total_weight = 1 if total_weight is None else total_weight
         x = (
             self.copy() 
             if self.__zero_check__() else 
-            self.__pos_neg_rebalance__(zero_adj, total_weight) * cash
+            self.__pos_neg_rebalance__(zero_adj,  total_weight*cash)
         )
         x._unit = 'assets'
         return x
 
     def __weight_to_share__(self, cash, zero_adj=False, total_weight=None, **kwargs):
-        x = (
-            self.copy() 
-            if self.__zero_check__() else 
-            self.__pos_neg_rebalance__(zero_adj, total_weight) * cash / self.current()
-        )
+        total_weight = 1 if total_weight is None else total_weight
+        if self.__zero_check__():
+            x = self.copy()
+        else:
+            x = self.__pos_neg_rebalance__(zero_adj, total_weight * cash)
+            x.values[:] = x.values / self.current().values
         x._unit = 'share'
         return x
 
     def __assets_to_weight__(self, zero_adj=False, total_weight=None, **kwargs):
+        total_weight = 1 if total_weight is None else total_weight
         x = (
             self.copy() 
             if self.__zero_check__() else 
@@ -175,21 +182,23 @@ class Series(pd.Series):
         return self.copy()
 
     def __assets_to_share__(self,**kwargs):
-        x = self / self.current()
+        x = self.copy()
+        x.values[:] = x.values / self.current().values
         x._unit = 'share'
         return x
 
     def __share_to_weight__(self, zero_adj=False, total_weight=None, **kwargs):
-        x = (
-            self.copy() 
-            if self.__zero_check__() else 
-            (self * self.current()).__assets_to_weight__(zero_adj, total_weight)
-        )
+        total_weight = 1 if total_weight is None else total_weight
+        x = self.copy()
+        if not self.__zero_check__():
+            x.values[:] = x.values * self.current().values
+            x = x.__assets_to_weight__(zero_adj, total_weight)
         x._unit = 'weight'
         return x
 
     def __share_to_assets__(self, **kwargs):
-        x = self * self.current()
+        x = self.copy()
+        x.values[:] = x.values * self.current().values
         x._unit = 'assets'
         return x
 
@@ -230,9 +239,11 @@ class Series(pd.Series):
             return 0
         else:
             if self.unit == 'share':
-                return (self * self.current()).sum() * -1
+                x = np.nansum(self.values * self.current().values) * -1
+                return x
             else:
-                return self.sum() * -1
+                x = np.nansum(self.values) * -1
+                return x
     @cash.setter
     def cash(self, v):
         self._cash = v
@@ -250,8 +261,10 @@ class Series(pd.Series):
     def current(self, reindex=True):
         key = self._price_mapping.get(self._state) + ('_adj' if self.is_adj else '')
         x = self.__get_values__(self.portfolio_type, key, self.name)
+        if not hasattr(self, '_internal_code_position'):
+            self._internal_code_position = x.index.get_indexer(self.index)
         if reindex:
-            x = x.reindex(self.index)
+            x = x.iloc[self._internal_code_position]
         return x
 
     def weight(self):
@@ -362,16 +375,18 @@ class Series(pd.Series):
 
     def trade_cost(self, trade_check=True, pct=None, **kwargs):
         if trade_check:
-            x = self.entrade()
-            x = x.enbuy(**kwargs).cash * -1 + self.ensell(**kwargs).cash
-            x = x * (self._trade_cost if pct is None else pct)
+            x = self.entrade().assets()
         else:
-            x = self.abs().cash * self._trade_cost
+            x = self.trade().assets()
+        x = np.nansum(np.abs(x))
+        x = x * (self._trade_cost if pct is None else pct)
         return x
 
     def total_assets(self):
-        x = self.assets()
-        return x.sum() + self.cash
+        x = np.nansum(self.assets().values)
+        if np.isnan(x):
+            x = 0
+        return x + self.cash
     
 class DataFrame(pd.DataFrame):
     _internal_names = pd.DataFrame._internal_names + []

@@ -4,6 +4,8 @@ Created on Fri Mar  6 10:52:40 2026
 
 @author: Porco Rosso
 """
+
+from box import Box
 import pandas as pd
 from functools import lru_cache
 #from .base import Series, DataFrame
@@ -20,18 +22,6 @@ class Unit():
         if not len(params):
             raise ValueError(f"parameters:<{params}> can not be all None...")
 
-        if settle is not None and signal is None:
-            self.signal = Series(
-                [],
-                index = pd.CategoricalIndex([], name=settle.index.name),
-                name = settle.name,
-                state = 'signal',
-                unit = 'share',
-                cash = 0
-            )
-        else:
-            self.signal = signal
-
         if settle is None:
             obj = signal if signal is not None else target
             settle = Series(
@@ -43,6 +33,20 @@ class Unit():
                 cash = series_instance['cash']
             )
         self.settle = settle
+
+        if signal is None:
+            obj = settle if settle is not None else target
+            signal = Series(
+                [],
+                index = pd.CategoricalIndex([], name=obj.index.name),
+                name = obj.name,
+                state = 'signal',
+                unit = 'share',
+                cash = 0
+            )
+        self.signal = signal
+
+
         if target is not None and not isinstance(target, Series):
             target = Series(target, cash=0, unit='weight', state='settle')
             if target.index.name is None:
@@ -61,8 +65,6 @@ class Unit():
     def signal(self, v):
         if isinstance(v, Series):
             v = v.signal().share()
-        elif v is None:
-            pass
         else:
             v = Series(v, state='signal', unit='share')
         setattr(self, '_signal', v)
@@ -86,7 +88,9 @@ class Unit():
         return self._settle
     @settle.setter
     def settle(self, v):
-        if not isinstance(v, Series):
+        if isinstance(v, Series):
+            v = v.settle().share()
+        else:
             v = Series(v, state='settle', unit='share')
         self._settle = v
 
@@ -128,30 +132,66 @@ class Unit():
         signal = self.target - settle
         x = Unit(signal=signal, settle=settle, target=None)
         return x
-
+    
+    @property
+    @lru_cache(maxsize=1)
+    def turnover(self):
+        t1 = round(self.entrade.assets().abs().sum() / self.settle.total_assets(), 4)
+        t2 = round(self.trade.assets().abs().sum() / self.settle.total_assets(), 4)
+        t3 = round(self.order.assets().abs().sum() / self.settle.total_assets(), 4)
+        dic = {'actual':t1, 'theory':t2, 'order': t3}
+        x = Box(default_box=False, box_dots=True)
+        x.merge_update(dic)
+        return x
+    
+    @property
+    @lru_cache(maxsize=1)
+    def returns(self):
+        r1 = round(self.roll().total_assets() / self.settle.total_assets() - 1, 4)
+        r2 = round(((self.settle + self.trade).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 4)
+        r3 = round(((self.settle + self.order).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 4)
+        dic = {'actual':r1, 'theory':r2, 'order': r3}
+        x = Box(default_box=False, box_dots=True)
+        x.merge_update(dic)
+        return x
+    
+    @property
+    @lru_cache(maxsize=1)
+    def different(self):
+        turnover = self.turnover
+        returns = self.returns
+        dic = {'turnover':turnover, 'returns':returns}
+        x = Box(default_box=False, box_dots=True)
+        x.merge_update(dic)
+        return pd.DataFrame(x)
+    
 class Chain:
     def __init__(self, dataframe, cash=10000, trade_cost=True):
         self.cash = cash
         self.trade_cost = trade_cost
-        self._obj = dataframe
+        self._obj = DataFrame(dataframe)
+        
     def __call__(self):
         dic = {}
         unit_obj = Unit(target=self._obj.iloc[0], cash=self.cash, trade_cost=self.trade_cost)
         dic[unit_obj.settle.name] = unit_obj
         for i,j in self._obj.iloc[1:].iterrows():
             if i.month != unit_obj.settle.name.month:
-                print(i)
-            dic[i] = unit_obj(j)
+                print(i, unit_obj.settle.name)
+            unit_obj = unit_obj(j)
+            dic[i] = unit_obj
 
         return dic
 
 
 '''
-from quanta import flow
-ret = flow.astock('ret')
-series = Series(ret.iloc[200, :200]).abs().share(1000)
-self = Unit(signal=eries(ret.iloc[200, :200]).abs().share(1000), cash=1000)
-new_target = Series(ret.iloc[300, 100:300]).abs()
-g1 = self(new_target)
-print(1)
+dic = {}
+unit_obj = Unit(target=self._obj.iloc[0], cash=self.cash, trade_cost=self.trade_cost)
+dic[unit_obj.settle.name] = unit_obj
+for i,j in self._obj.iloc[1:].iterrows():
+    if i.month != unit_obj.settle.name.month:
+        print(i, unit_obj.settle.name)
+    unit_obj = unit_obj(j)
+    dic[i] = unit_obj
+
 '''
