@@ -13,12 +13,14 @@ from quanta.libs._flow._main import __instance__
 from quanta.config import settings
 config = settings('flow').cap
 
+__all__ = ['Series', 'DataFrame']
+
 class Series(pd.Series):
     _internal_names = pd.Series._internal_names + []
     _internal_names_set = set(_internal_names)
     _metadata = pd.Series._metadata  + [f'_{i}' for i in config.recommand_settings.keys()]
     _config = config
-    
+
     def __repr__(self) -> str:
         x = super().__repr__()
         x = x + '\nstate: %s, unit: %s, \ncount: %s, cash: %s, \nis_adj: %s' %(self.state, self.unit, len(self), round(self.cash, 3), self.is_adj)
@@ -37,15 +39,15 @@ class Series(pd.Series):
         try:
             cls._config.merge_update(dict_obj)
         except Exception as e:
-            print(f"config update failed: not exist keys:{dict_obj.keys()} {e}") 
-            
+            print(f"config update failed: not exist keys:{dict_obj.keys()} {e}")
+
     @classmethod
     def init_option(cls):
         init_config = settings('flow').cap
         cls._config.clear()
         cls._config.update(init_config)
         cls._metadata = pd.Series._metadata + [f'_{i}' for i in cls._config.recommand_settings.keys()]
-        
+
     @classmethod
     @lru_cache(maxsize=16)
     def __get_values__(cls, portfolio_type, key, name):
@@ -59,7 +61,7 @@ class Series(pd.Series):
         if zero_adj: # 平衡买卖 np.nansum is 5 more fast than pandas.sum()
             pos = meta_values > 0
             values = np.where(
-                pos, 
+                pos,
                 np.nansum(meta_values[pos]),
                 np.nansum(meta_values[~pos])
             )
@@ -138,7 +140,7 @@ class Series(pd.Series):
         params = config.recommand_settings.to_dict() | kwargs
         [setattr(self, f'_{i}',j) for i,j in params.items()]
         super().__init__(data, index, dtype, name, copy, fastpath)
-    
+
     @property
     def __zero_check__(self):
         if not hasattr(self, '_internal_zero_check_result'):
@@ -153,8 +155,8 @@ class Series(pd.Series):
     def __weight_to_weight__(self, zero_adj=False, total_weight=None, **kwargs):
         total_weight = 1 if total_weight is None else total_weight
         x = (
-            self.copy() 
-            if self.__zero_check__ else 
+            self.copy()
+            if self.__zero_check__ else
             self.__pos_neg_rebalance__(zero_adj, total_weight)
         )
         x._unit = 'weight'
@@ -163,8 +165,8 @@ class Series(pd.Series):
     def __weight_to_assets__(self, cash, zero_adj=False, total_weight=None, **kwargs):
         total_weight = 1 if total_weight is None else total_weight
         x = (
-            self.copy() 
-            if self.__zero_check__ else 
+            self.copy()
+            if self.__zero_check__ else
             self.__pos_neg_rebalance__(zero_adj,  total_weight*cash)
         )
         x._unit = 'assets'
@@ -183,8 +185,8 @@ class Series(pd.Series):
     def __assets_to_weight__(self, zero_adj=False, total_weight=None, **kwargs):
         total_weight = 1 if total_weight is None else total_weight
         x = (
-            self.copy() 
-            if self.__zero_check__ else 
+            self.copy()
+            if self.__zero_check__ else
             self.__pos_neg_rebalance__(zero_adj, total_weight)
         )
         x._unit = 'weight'
@@ -331,7 +333,7 @@ class Series(pd.Series):
 
     def to(self, unit_or_state, **kwargs):
         return getattr(self, unit_or_state)(**kwargs)
-    
+
     def enadj(self):
         x = self.copy()
         if (x.unit == 'share') and not x._is_adj:
@@ -353,8 +355,8 @@ class Series(pd.Series):
                 self._internal_hash_code_result = post_adj.index.get_indexer(self.index)
             post_adj = post_adj.iloc[self._internal_hash_code_result].values
             x.values[:] = self.values / post_adj
-        return x            
-            
+        return x
+
     def entrade(self):
         if not hasattr(self, '_internal_entrade_result'):
             tradestatus = (
@@ -381,10 +383,10 @@ class Series(pd.Series):
     def enbuy(self):
         if not hasattr(self, '_internal_enbuy_result'):
             buy = (
-                1 - 
-                self.__get_values__(self.portfolio_type, config.trade_price, self.name) / 
+                1 -
+                self.__get_values__(self.portfolio_type, config.trade_price, self.name) /
                 self.__get_values__(self.portfolio_type, config.high_limit, self.name).values
-                >= 
+                >=
                 self._untrade_limit
             )
             if not hasattr(self, '_internal_hash_code_result'):
@@ -396,10 +398,10 @@ class Series(pd.Series):
     def unbuy(self):
         if not hasattr(self, '_internal_enbuy_result'):
             buy = (
-                1 - 
-                self.__get_values__(self.portfolio_type, config.trade_price, self.name) / 
+                1 -
+                self.__get_values__(self.portfolio_type, config.trade_price, self.name) /
                 self.__get_values__(self.portfolio_type, config.high_limit, self.name).values
-                >= 
+                >=
                 self._untrade_limit
             )
             if not hasattr(self, '_internal_hash_code_result'):
@@ -412,10 +414,10 @@ class Series(pd.Series):
     def ensell(self):
         if not hasattr(self, '_internal_ensell_result'):
             sell = (
-                1 - 
-                self.__get_values__(self.portfolio_type, config.low_limit, self.name) / 
+                1 -
+                self.__get_values__(self.portfolio_type, config.low_limit, self.name) /
                 self.__get_values__(self.portfolio_type, config.trade_price, self.name).values
-                >= 
+                >=
                 self._untrade_limit
             )
             if not hasattr(self, '_internal_hash_code_result'):
@@ -427,10 +429,10 @@ class Series(pd.Series):
     def unsell(self):
         if not hasattr(self, '_internal_ensell_result'):
             sell = (
-                1 - 
-                self.__get_values__(self.portfolio_type, config.low_limit, self.name) / 
+                1 -
+                self.__get_values__(self.portfolio_type, config.low_limit, self.name) /
                 self.__get_values__(self.portfolio_type, config.trade_price, self.name).values
-                >= 
+                >=
                 self._untrade_limit
             )
             if not hasattr(self, '_internal_hash_code_result'):
@@ -450,17 +452,17 @@ class Series(pd.Series):
         if np.isnan(x):
             x = 0
         return x + self.cash
-    
+
 class DataFrame(pd.DataFrame):
     _internal_names = pd.DataFrame._internal_names + []
     _internal_names_set = set(_internal_names)
     _metadata = pd.DataFrame._metadata
-    
+
     @property
     def _constructor(self):
         return DataFrame
-    
+
     @property
     def _constructor_sliced(self):
         return Series
-    
+

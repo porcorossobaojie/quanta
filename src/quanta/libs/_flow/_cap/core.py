@@ -11,6 +11,8 @@ from functools import lru_cache
 #from .base import Series, DataFrame
 from quanta.libs._flow._cap.base import Series, DataFrame
 
+__all__ = ['Series', 'DataFrame', 'Unit', 'Chain']
+
 class Unit():
     def __init__(self, signal=None, settle=None, target=None, cash=None, trade_cost=True):
         series_instance = Series._config.recommand_settings.to_dict()
@@ -70,14 +72,17 @@ class Unit():
         setattr(self, '_signal', v)
 
     @property
+    @lru_cache(maxsize=1)
     def order(self):
         return self.signal.order() if self.signal is not None else None
 
     @property
+    @lru_cache(maxsize=1)
     def trade(self):
         return self.order.trade() if self.signal is not None else None
 
     @property
+    @lru_cache(maxsize=1)
     def entrade(self):
         x = self.trade
         x = (x.enbuy() + x.ensell()) if self.signal is not None else None
@@ -95,6 +100,7 @@ class Unit():
         self._settle = v
 
     @property
+    @lru_cache(maxsize=1)
     def trade_cost(self):
         return self.entrade.trade_cost() if self.signal is not None else 0
 
@@ -132,31 +138,51 @@ class Unit():
         signal = self.target - settle
         x = Unit(signal=signal, settle=settle, target=None)
         return x
-    
+
     def turnover(self, actual=True, theory=True, order=True):
         dic = {}
         if actual:
-            dic['actual'] = round(self.entrade.assets().abs().sum() / self.settle.total_assets(), 3)
+            try:
+                x = round(self.entrade.assets().abs().sum() / self.settle.total_assets(), 3)
+            except:
+                x = 0
+            dic['actual'] = x
         if theory:
-            dic['theory'] = round(self.trade.assets().abs().sum() / self.settle.total_assets(), 3)
+            try:
+                x = round(self.trade.assets().abs().sum() / self.settle.total_assets(), 3)
+            except:
+                x = 0
+            dic['theory'] = x
         if order:
-            dic['order'] = round(self.order.assets().abs().sum() / self.settle.total_assets(), 3)
+            try:
+                x = round(self.order.assets().abs().sum() / self.settle.total_assets(), 3)
+            except:
+                x = 0
+            dic['order'] = x
         return dic
-    
+
     def returns(self, actual=True, theory=True, order=True):
         dic = {}
         if actual:
             try:
-                r1 = round(self.roll().total_assets() / self.settle.total_assets() - 1, 3)
+                x = round(self.roll().total_assets() / self.settle.total_assets() - 1, 3)
             except:
-                r1 = 0
-            dic['actual'] = r1
+                x = 0
+            dic['actual'] = x
         if theory:
-            dic['theory'] = round(((self.settle + self.trade).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 3)
+            try:
+                x = round(((self.settle + self.trade).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 3)
+            except:
+                x = 0
+            dic['theory'] = x
         if order:
-            dic['order'] = round(((self.settle + self.order).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 3)
+            try:
+                x = round(((self.settle + self.order).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 3)
+            except:
+                x = 0
+            dic['order'] = x
         return dic
-    
+
     def different(self, actual=True, theory=True, order=True):
         turnover = self.turnover(actual, theory, order)
         returns = self.returns(actual, theory, order)
@@ -164,13 +190,13 @@ class Unit():
         x = Box(default_box=False, box_dots=True)
         x.merge_update(dic)
         return pd.DataFrame(x)
-    
+
 class Chain:
     def __init__(self, dataframe, cash=10000, trade_cost=True):
         self.cash = cash
         self.trade_cost = trade_cost
         self._obj = DataFrame(dataframe)
-        
+
     def __call__(self):
         dic = {}
         unit_obj = Unit(target=self._obj.iloc[0], cash=self.cash, trade_cost=self.trade_cost)
@@ -180,17 +206,28 @@ class Chain:
                 print(unit_obj.settle.name, round(unit_obj.roll().total_assets(), 4))
             unit_obj = unit_obj(j)
             dic[i] = unit_obj
+            self._internal_data = dic
         return dic
 
+    @property
+    @lru_cache(maxsize=1)
+    def settle(self):
+        if not hasattr(self, '_internal_data'):
+            self.__call__()
+        x = pd.Series({i:j.settle.total_assets() for i,j in self._internal_data.items()}).shift(-1)
+        return x
 
-'''
-dic = {}
-unit_obj = Unit(target=self._obj.iloc[0], cash=self.cash, trade_cost=self.trade_cost)
-dic[unit_obj.settle.name] = unit_obj
-for i,j in self._obj.iloc[1:].iterrows():
-    if i.month != unit_obj.settle.name.month:
-        print(i, unit_obj.settle.name)
-    unit_obj = unit_obj(j)
-    dic[i] = unit_obj
+    @property
+    def returns(self):
+        return self.settle.pct_change()
 
-'''
+    @property
+    @lru_cache(maxsize=1)
+    def turnover(self):
+        if not hasattr(self, '_internal_data'):
+            self.__call__()
+        settle = self.settle.shift()
+        trade = pd.Series({i:j.entrade._cash for i,j in self._internal_data.items() if i !=list(self._internal_data.keys())[-1] })
+        x = (trade / settle).abs()
+        return x
+

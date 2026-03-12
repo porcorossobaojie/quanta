@@ -12,6 +12,7 @@ from typing import Optional, Union, List, Any
 from quanta.config import settings
 from quanta.libs.utils._decorator import doc_inherit
 from .core import *
+from .._cap.core import *
 
 config = settings('flow')
 
@@ -26,7 +27,10 @@ class class_obj:
     ---------------------------------------------------------------------------
     """
     merge = staticmethod(merge)
-
+    Series = staticmethod(Series)
+    DataFrame = staticmethod(DataFrame)
+    unit = staticmethod(Unit)
+    chain = staticmethod(Chain)
 
 setattr(pd, config.extra_pandas_attrname, class_obj)
 
@@ -178,6 +182,14 @@ class flow_extra():
         obj = qtest(df, high, low, avgprice, trade_price, settle_price, limit, trade_cost, portfolio_type)
         return obj
 
+    @lru_cache(maxsize=2)
+    @doc_inherit(qtest)
+    def chain(
+        self,
+        cash=10000,
+        trade_cost=True
+    ):
+        return Chain(self._obj, cash, trade_cost)()
 
 @pd.api.extensions.register_series_accessor(config.extra_pandas_attrname)
 class flow_extra_series():

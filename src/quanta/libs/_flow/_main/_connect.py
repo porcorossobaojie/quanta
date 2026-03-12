@@ -251,7 +251,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
                 where = f"{self.filter_key} >='{filter_value}'"
             else:
                 where = kwargs.get('where', None)
-            df = self.__read__(where=where)
+            df = self.__read__(where=where, show_time=True)
             df.columns = pd.CategoricalIndex(df.columns)
             df[self.code] = pd.CategoricalIndex(df[self.code])
             df = df.set_index(self.index_keys)
