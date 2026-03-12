@@ -96,7 +96,7 @@ class Unit():
 
     @property
     def trade_cost(self):
-        return self.entrade.trade_cost(trade_check=False) if self.signal is not None else 0
+        return self.entrade.trade_cost() if self.signal is not None else 0
 
     @lru_cache(maxsize=16)
     def roll(self):
@@ -106,7 +106,7 @@ class Unit():
             settle = settle + entrade
             settle = settle.settle()
             if self._trade_cost:
-                settle.cash = settle.cash + self.trade_cost
+                settle.cash = settle.cash - self.trade_cost
         else:
             settle = self.settle.f.day_shift(1)
         return settle
@@ -121,45 +121,45 @@ class Unit():
             target.cash = 0
             return target
 
-    def _target_setter(self, v):
+    def set_target(self, v):
         roll = self.roll()
         x = Series(v, state='settle', unit='weight').weight().share(roll.total_assets())
         self._target = x
 
     def __call__(self, new_target):
         settle = self.roll()
-        self._target_setter(new_target)
+        self.set_target(new_target)
         signal = self.target - settle
         x = Unit(signal=signal, settle=settle, target=None)
         return x
     
-    @property
-    @lru_cache(maxsize=1)
-    def turnover(self):
-        t1 = round(self.entrade.assets().abs().sum() / self.settle.total_assets(), 4)
-        t2 = round(self.trade.assets().abs().sum() / self.settle.total_assets(), 4)
-        t3 = round(self.order.assets().abs().sum() / self.settle.total_assets(), 4)
-        dic = {'actual':t1, 'theory':t2, 'order': t3}
-        x = Box(default_box=False, box_dots=True)
-        x.merge_update(dic)
-        return x
+    def turnover(self, actual=True, theory=True, order=True):
+        dic = {}
+        if actual:
+            dic['actual'] = round(self.entrade.assets().abs().sum() / self.settle.total_assets(), 3)
+        if theory:
+            dic['theory'] = round(self.trade.assets().abs().sum() / self.settle.total_assets(), 3)
+        if order:
+            dic['order'] = round(self.order.assets().abs().sum() / self.settle.total_assets(), 3)
+        return dic
     
-    @property
-    @lru_cache(maxsize=1)
-    def returns(self):
-        r1 = round(self.roll().total_assets() / self.settle.total_assets() - 1, 4)
-        r2 = round(((self.settle + self.trade).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 4)
-        r3 = round(((self.settle + self.order).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 4)
-        dic = {'actual':r1, 'theory':r2, 'order': r3}
-        x = Box(default_box=False, box_dots=True)
-        x.merge_update(dic)
-        return x
+    def returns(self, actual=True, theory=True, order=True):
+        dic = {}
+        if actual:
+            try:
+                r1 = round(self.roll().total_assets() / self.settle.total_assets() - 1, 3)
+            except:
+                r1 = 0
+            dic['actual'] = r1
+        if theory:
+            dic['theory'] = round(((self.settle + self.trade).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 3)
+        if order:
+            dic['order'] = round(((self.settle + self.order).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 3)
+        return dic
     
-    @property
-    @lru_cache(maxsize=1)
-    def different(self):
-        turnover = self.turnover
-        returns = self.returns
+    def different(self, actual=True, theory=True, order=True):
+        turnover = self.turnover(actual, theory, order)
+        returns = self.returns(actual, theory, order)
         dic = {'turnover':turnover, 'returns':returns}
         x = Box(default_box=False, box_dots=True)
         x.merge_update(dic)
@@ -177,10 +177,9 @@ class Chain:
         dic[unit_obj.settle.name] = unit_obj
         for i,j in self._obj.iloc[1:].iterrows():
             if i.month != unit_obj.settle.name.month:
-                print(i, unit_obj.settle.name)
+                print(unit_obj.settle.name, round(unit_obj.roll().total_assets(), 4))
             unit_obj = unit_obj(j)
             dic[i] = unit_obj
-
         return dic
 
 

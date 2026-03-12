@@ -74,16 +74,18 @@ class Series(pd.Series):
 
     def __add__(self, other: pd.Series) -> 'Series':
         if isinstance(other, (Series, pd.Series)):
+            new_name =  max(
+                pd.to_datetime(self.name) if self.name else pd.Timestamp.min,
+                pd.to_datetime(other.name) if other.name else pd.Timestamp.min
+            )
             index = self.index.union(other.index)
             x = self.reindex(index, fill_value=0).astype('float64')
             other = other.reindex(index, fill_value=0).astype('float64')
             if getattr(other, 'unit', self.unit) != self.unit:
                 raise ValueError('<WARNING>: portoflio unit isnot match...')
             x = super(Series, x).__add__(other).astype('float64')
+            x.name = new_name
             x.cash = x.cash + getattr(other, 'cash', 0)
-            x.name = max(
-                pd.to_datetime(self.name) if self.name else pd.Timestamp.min,
-                pd.to_datetime(other.name) if other.name else pd.Timestamp.min)
         else:
             x = super().__add__(other)
         return x
@@ -93,18 +95,20 @@ class Series(pd.Series):
 
     def __sub__(self, other: pd.Series) -> 'Series':
         if isinstance(other, (Series, pd.Series)):
+            new_name =  max(
+                pd.to_datetime(self.name) if self.name else pd.Timestamp.min,
+                pd.to_datetime(other.name) if other.name else pd.Timestamp.min
+            )
             index = self.index.union(other.index)
             x = self.reindex(index, fill_value=0).astype('float64')
             other = other.reindex(index, fill_value=0).astype('float64')
             if getattr(other, 'unit', self.unit) != self.unit:
                 raise ValueError('<WARNING>: portoflio unit isnot match...')
-            x = super(Series, x).__sub__(other).astype('float64')
+            x = super(Series, x).__sub__(other)
+            x.name = new_name
             x.cash = x.cash - getattr(other, 'cash', 0)
-            x.name = max(
-                pd.to_datetime(self.name) if self.name else pd.Timestamp.min,
-                pd.to_datetime(other.name) if other.name else pd.Timestamp.min)
         else:
-            x = super().__sub__(other).astype('float64')
+            x = super().__sub__(other)
         return x
 
     def __rsub__(self, other: pd.Series) -> 'Series':
@@ -134,15 +138,23 @@ class Series(pd.Series):
         params = config.recommand_settings.to_dict() | kwargs
         [setattr(self, f'_{i}',j) for i,j in params.items()]
         super().__init__(data, index, dtype, name, copy, fastpath)
-
+    
+    @property
     def __zero_check__(self):
-        return not np.any(self.values)
+        if not hasattr(self, '_internal_zero_check_result'):
+            self._internal_zero_check_result = (not np.any(self.values))
+        return self._internal_zero_check_result
+    @property
+    def __zero_bigger__(self):
+        if not hasattr(self, '_internal_zero_bigger_result'):
+            self._internal_zero_bigger_result = self.values > 0
+        return self._internal_zero_bigger_result
 
     def __weight_to_weight__(self, zero_adj=False, total_weight=None, **kwargs):
         total_weight = 1 if total_weight is None else total_weight
         x = (
             self.copy() 
-            if self.__zero_check__() else 
+            if self.__zero_check__ else 
             self.__pos_neg_rebalance__(zero_adj, total_weight)
         )
         x._unit = 'weight'
@@ -152,7 +164,7 @@ class Series(pd.Series):
         total_weight = 1 if total_weight is None else total_weight
         x = (
             self.copy() 
-            if self.__zero_check__() else 
+            if self.__zero_check__ else 
             self.__pos_neg_rebalance__(zero_adj,  total_weight*cash)
         )
         x._unit = 'assets'
@@ -160,7 +172,7 @@ class Series(pd.Series):
 
     def __weight_to_share__(self, cash, zero_adj=False, total_weight=None, **kwargs):
         total_weight = 1 if total_weight is None else total_weight
-        if self.__zero_check__():
+        if self.__zero_check__:
             x = self.copy()
         else:
             x = self.__pos_neg_rebalance__(zero_adj, total_weight * cash)
@@ -172,7 +184,7 @@ class Series(pd.Series):
         total_weight = 1 if total_weight is None else total_weight
         x = (
             self.copy() 
-            if self.__zero_check__() else 
+            if self.__zero_check__ else 
             self.__pos_neg_rebalance__(zero_adj, total_weight)
         )
         x._unit = 'weight'
@@ -190,7 +202,7 @@ class Series(pd.Series):
     def __share_to_weight__(self, zero_adj=False, total_weight=None, **kwargs):
         total_weight = 1 if total_weight is None else total_weight
         x = self.copy()
-        if not self.__zero_check__():
+        if not self.__zero_check__:
             x.values[:] = x.values * self.current().values
             x = x.__assets_to_weight__(zero_adj, total_weight)
         x._unit = 'weight'
@@ -225,8 +237,11 @@ class Series(pd.Series):
                 ) /
                 self.__get_values__(
                     self.portfolio_type, config.post_factor, self.name
-                )
-            ).reindex(self.index)
+                ).values
+            )
+            if not hasattr(self, '_internal_hash_code_result'):
+                self._internal_hash_code_result = post_adj.index.get_indexer(self.index)
+            post_adj = post_adj.iloc[self._internal_hash_code_result].values
             self.values[:] = self.values * post_adj
         self.___lazymem_clean__()
         self._name = trade_dt
@@ -261,10 +276,10 @@ class Series(pd.Series):
     def current(self, reindex=True):
         key = self._price_mapping.get(self._state) + ('_adj' if self.is_adj else '')
         x = self.__get_values__(self.portfolio_type, key, self.name)
-        if not hasattr(self, '_internal_code_position'):
-            self._internal_code_position = x.index.get_indexer(self.index)
+        if not hasattr(self, '_internal_hash_code_result'):
+            self._internal_hash_code_result = x.index.get_indexer(self.index)
         if reindex:
-            x = x.iloc[self._internal_code_position]
+            x = x.iloc[self._internal_hash_code_result]
         return x
 
     def weight(self):
@@ -282,35 +297,35 @@ class Series(pd.Series):
         x._unit = 'share'
         return x
 
-    def signal(self, shift=0):
+    def signal(self, signal_adj=0):
         if self.state != 'signal':
-            x = self.f.day_shift(shift)
+            x = self.f.day_shift(signal_adj)
             x._state = 'signal'
         else:
             x = self.copy()
         return x
 
-    def order(self, shift=1):
+    def order(self, signal_adj=1):
         if self.state != 'signal':
             x = self.copy()
         else:
-            x = self.f.day_shift(shift)
+            x = self.f.day_shift(signal_adj)
         x._state = 'order'
         return x
 
-    def trade(self, shift=1):
+    def trade(self, signal_adj=1):
         if self.state != 'signal':
             x = self.copy()
         else:
-            x = self.f.day_shift(shift)
+            x = self.f.day_shift(signal_adj)
         x._state = 'trade'
         return x
 
-    def settle(self, shift=1):
+    def settle(self, signal_adj=1):
         if self.state != 'signal':
             x = self.copy()
         else:
-            x = self.f.day_shift(shift)
+            x = self.f.day_shift(signal_adj)
         x._state = 'settle'
         return x
 
@@ -322,7 +337,10 @@ class Series(pd.Series):
         if (x.unit == 'share') and not x._is_adj:
             post_adj =  x.__get_values__(
                 x.portfolio_type, config.post_factor, x.name
-            ).reindex(x.index)
+            )
+            if not hasattr(self, '_internal_hash_code_result'):
+                self._internal_hash_code_result = post_adj.index.get_indexer(self.index)
+            post_adj = post_adj.iloc[self._internal_hash_code_result].values
             x.values[:] = self.values * post_adj
         return x
     def unadj(self):
@@ -330,55 +348,100 @@ class Series(pd.Series):
         if (x.unit == 'share') and not x._is_adj:
             post_adj =  x.__get_values__(
                 x.portfolio_type, config.post_factor, x.name
-            ).reindex(x.index)
+            )
+            if not hasattr(self, '_internal_hash_code_result'):
+                self._internal_hash_code_result = post_adj.index.get_indexer(self.index)
+            post_adj = post_adj.iloc[self._internal_hash_code_result].values
             x.values[:] = self.values / post_adj
         return x            
             
-    def entrade(self, auto_state=True, shift=1):
-        x = self.copy()
-        if auto_state:
-            x = x.trade(shift)
-        tradestatus = ~x.__get_values__(x.portfolio_type, config.tradestatus, x.name).astype('bool')
-        return x[tradestatus]
-    def untrade(self, auto_state=True, shift=1):
-        x = self.copy()
-        if auto_state:
-            x = x.trade(shift)
-        tradestatus = x.__get_values__(x.portfolio_type, config.tradestatus, x.name).astype('bool')
-        return x[tradestatus]
+    def entrade(self):
+        if not hasattr(self, '_internal_entrade_result'):
+            tradestatus = (
+                ~self.__get_values__(self.portfolio_type, config.tradestatus, self.name)
+                .astype('bool')
+            )
+            if not hasattr(self, '_internal_hash_code_result'):
+                self._internal_hash_code_result = tradestatus.index.get_indexer(self.index)
+            tradestatus = tradestatus.iloc[self._internal_hash_code_result].values
+            self._internal_entrade_result = tradestatus
+        return self[self._internal_entrade_result]
+    def untrade(self):
+        if not hasattr(self, '_internal_entrade_result'):
+            tradestatus = (
+                ~self.__get_values__(self.portfolio_type, config.tradestatus, self.name)
+                .astype('bool')
+            )
+            if not hasattr(self, '_internal_hash_code_result'):
+                self._internal_hash_code_result = tradestatus.index.get_indexer(self.index)
+            tradestatus = tradestatus.iloc[self._internal_hash_code_result].values
+            self._internal_entrade_result = tradestatus
+        return self[~self._internal_entrade_result]
 
-    def enbuy(self, auto_state=True, shift=1):
-        x = self[self > 0]
-        if auto_state:
-            x = x.trade(shift)
-        buy = 1 - x.__get_values__(x.portfolio_type, config.trade_price, x.name) / x.__get_values__(x.portfolio_type, config.high_limit, x.name) >= self._untrade_limit
-        return x[buy]
-    def unbuy(self, auto_state=True, shift=1):
-        x = self[self > 0]
-        if auto_state:
-            x = x.trade(shift)
-        buy_limit = 1 - x.__get_values__(x.portfolio_type, config.trade_price, x.name) / x.__get_values__(x.portfolio_type, config.high_limit, x.name) < self._untrade_limit
-        return x[buy_limit]
+    def enbuy(self):
+        if not hasattr(self, '_internal_enbuy_result'):
+            buy = (
+                1 - 
+                self.__get_values__(self.portfolio_type, config.trade_price, self.name) / 
+                self.__get_values__(self.portfolio_type, config.high_limit, self.name).values
+                >= 
+                self._untrade_limit
+            )
+            if not hasattr(self, '_internal_hash_code_result'):
+                self._internal_hash_code_result = buy.index.get_indexer(self.index)
+            buy = buy.iloc[self._internal_hash_code_result].values
+            self._internal_enbuy_result = buy
+        x = self[self._internal_enbuy_result & self.__zero_bigger__]
+        return x
+    def unbuy(self):
+        if not hasattr(self, '_internal_enbuy_result'):
+            buy = (
+                1 - 
+                self.__get_values__(self.portfolio_type, config.trade_price, self.name) / 
+                self.__get_values__(self.portfolio_type, config.high_limit, self.name).values
+                >= 
+                self._untrade_limit
+            )
+            if not hasattr(self, '_internal_hash_code_result'):
+                self._internal_hash_code_result = buy.index.get_indexer(self.index)
+            buy = buy.iloc[self._internal_hash_code_result].values
+            self._internal_enbuy_result = buy
+            x = self[~self._internal_enbuy_resul & self.__zero_bigger__]
+        return x
 
-    def ensell(self, auto_state=True, shift=1):
-        x = self[self <= 0]
-        if auto_state:
-            x = x.trade(shift)
-        sell = 1 - x.__get_values__(x.portfolio_type, config.low_limit, x.name) / x.__get_values__(x.portfolio_type, config.trade_price, x.name) >= self._untrade_limit
-        return x[sell]
-    def unsell(self, auto_state=True, shift=1):
-        x = self[self <= 0]
-        if auto_state:
-            x = x.trade(shift)
-        sell_limit = 1 - x.__get_values__(x.portfolio_type, config.low_limit, x.name) / x.__get_values__(x.portfolio_type, config.trade_price, x.name) < self._untrade_limit
-        return x[sell_limit]
+    def ensell(self):
+        if not hasattr(self, '_internal_ensell_result'):
+            sell = (
+                1 - 
+                self.__get_values__(self.portfolio_type, config.low_limit, self.name) / 
+                self.__get_values__(self.portfolio_type, config.trade_price, self.name).values
+                >= 
+                self._untrade_limit
+            )
+            if not hasattr(self, '_internal_hash_code_result'):
+                self._internal_hash_code_result = sell.index.get_indexer(self.index)
+            sell = sell.iloc[self._internal_hash_code_result].values
+            self._internal_ensell_result = sell
+        x = self[self._internal_ensell_result & ~self.__zero_bigger__]
+        return x
+    def unsell(self):
+        if not hasattr(self, '_internal_ensell_result'):
+            sell = (
+                1 - 
+                self.__get_values__(self.portfolio_type, config.low_limit, self.name) / 
+                self.__get_values__(self.portfolio_type, config.trade_price, self.name).values
+                >= 
+                self._untrade_limit
+            )
+            if not hasattr(self, '_internal_hash_code_result'):
+                self._internal_hash_code_result = sell.index.get_indexer(self.index)
+            sell = sell.iloc[self._internal_hash_code_result].values
+            self._internal_ensell_result = sell
+        x = self[~self._internal_ensell_result & ~self.__zero_bigger__]
+        return x
 
-    def trade_cost(self, trade_check=True, pct=None, **kwargs):
-        if trade_check:
-            x = self.entrade().assets()
-        else:
-            x = self.trade().assets()
-        x = np.nansum(np.abs(x))
+    def trade_cost(self, pct=None):
+        x = np.nansum(np.abs(self.assets().values))
         x = x * (self._trade_cost if pct is None else pct)
         return x
 
