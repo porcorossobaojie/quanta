@@ -8,13 +8,50 @@ Created on Fri Mar  6 10:52:40 2026
 from box import Box
 import pandas as pd
 from functools import lru_cache
-#from .base import Series, DataFrame
+from typing import Optional, Union, Dict, Any
 from quanta.libs._flow._cap.base import Series, DataFrame
 
 __all__ = ['Series', 'DataFrame', 'Unit', 'Chain']
 
-class Unit():
-    def __init__(self, signal=None, settle=None, target=None, cash=None, trade_cost=True):
+class Unit:
+    """
+    ===========================================================================
+    A single transaction and settlement unit for a specific trade date.
+
+    Attributes
+    ----------
+    settle : Series
+        The settled position at the beginning of the period.
+    signal : Series
+        The target trade signal for the period.
+    _target : Series
+        The target portfolio weights.
+    _trade_cost : bool
+        Whether to account for trading costs.
+    ---------------------------------------------------------------------------
+    特定交易日的单个交易和结算单元.
+
+    属性
+    ----
+    settle : Series
+        期初已结算的持仓.
+    signal : Series
+        本期的目标交易信号.
+    _target : Series
+        目标投资组合权重.
+    _trade_cost : bool
+        是否计算交易成本.
+    ---------------------------------------------------------------------------
+    """
+    def __init__(
+        self,
+        signal: Optional[Series] = None,
+        settle: Optional[Series] = None,
+        target: Optional[Union[Series, pd.Series]] = None,
+        cash: Optional[float] = None,
+        trade_cost: bool = True
+    ):
+        """Initializes the transaction unit | 初始化交易单元"""
         series_instance = Series._config.recommand_settings.to_dict()
         series_instance.update(
             {k: v for k, v in [('cash', cash), ('trade_cost', trade_cost)] if v is not None}
@@ -61,10 +98,13 @@ class Unit():
         self._meta_attrs = series_instance | {'signal':signal, 'settle':settle, 'target':target}
 
     @property
-    def signal(self):
+    def signal(self) -> Series:
+        """Returns the signal position | 返回信号持仓"""
         return self._signal
+
     @signal.setter
-    def signal(self, v):
+    def signal(self, v: Union[Series, pd.Series]) -> None:
+        """Sets the signal position | 设置信号持仓"""
         if isinstance(v, Series):
             v = v.signal().share()
         else:
@@ -73,26 +113,32 @@ class Unit():
 
     @property
     @lru_cache(maxsize=1)
-    def order(self):
+    def order(self) -> Optional[Series]:
+        """Returns the order series | 返回订单序列"""
         return self.signal.order() if self.signal is not None else None
 
     @property
     @lru_cache(maxsize=1)
-    def trade(self):
+    def trade(self) -> Optional[Series]:
+        """Returns the trade series | 返回交易序列"""
         return self.order.trade() if self.signal is not None else None
 
     @property
     @lru_cache(maxsize=1)
-    def entrade(self):
+    def entrade(self) -> Optional[Series]:
+        """Returns tradable instruments | 返回可交易标的"""
         x = self.trade
         x = (x.enbuy() + x.ensell()) if self.signal is not None else None
         return x
 
     @property
-    def settle(self):
+    def settle(self) -> Series:
+        """Returns the settled position | 返回已结算持仓"""
         return self._settle
+
     @settle.setter
-    def settle(self, v):
+    def settle(self, v: Union[Series, pd.Series]) -> None:
+        """Sets the settled position | 设置已结算持仓"""
         if isinstance(v, Series):
             v = v.settle().share()
         else:
@@ -101,11 +147,13 @@ class Unit():
 
     @property
     @lru_cache(maxsize=1)
-    def trade_cost(self):
+    def trade_cost(self) -> float:
+        """Calculates trading costs | 计算交易成本"""
         return self.entrade.trade_cost() if self.signal is not None else 0
 
     @lru_cache(maxsize=16)
-    def roll(self):
+    def roll(self) -> Series:
+        """Rolls position to the next period | 将持仓滚动至下一期"""
         if self.signal is not None:
             settle = self.settle.share()
             entrade = self.entrade.share()
@@ -118,7 +166,8 @@ class Unit():
         return settle
 
     @property
-    def target(self):
+    def target(self) -> Series:
+        """Returns target weights | 返回目标权重"""
         if self._target is not None:
             return self._target
         else:
@@ -127,19 +176,27 @@ class Unit():
             target.cash = 0
             return target
 
-    def set_target(self, v):
+    def set_target(self, v: Union[Series, pd.Series]) -> None:
+        """Sets the target weights | 设置目标权重"""
         roll = self.roll()
         x = Series(v, state='settle', unit='weight').weight().share(roll.total_assets())
         self._target = x
 
-    def __call__(self, new_target):
+    def __call__(self, new_target: Union[Series, pd.Series]) -> 'Unit':
+        """Executes a transition to a new target | 执行向新目标的转换"""
         settle = self.roll()
         self.set_target(new_target)
         signal = self.target - settle
         x = Unit(signal=signal, settle=settle, target=None)
         return x
 
-    def turnover(self, actual=True, theory=True, order=True):
+    def turnover(
+        self,
+        actual: bool = True,
+        theory: bool = True,
+        order: bool = True
+    ) -> Dict[str, float]:
+        """Calculates portfolio turnover | 计算投资组合换手率"""
         dic = {}
         if actual:
             try:
@@ -161,7 +218,13 @@ class Unit():
             dic['order'] = x
         return dic
 
-    def returns(self, actual=True, theory=True, order=True):
+    def returns(
+        self,
+        actual: bool = True,
+        theory: bool = True,
+        order: bool = True
+    ) -> Dict[str, float]:
+        """Calculates portfolio returns | 计算投资组合收益率"""
         dic = {}
         if actual:
             try:
@@ -183,7 +246,13 @@ class Unit():
             dic['order'] = x
         return dic
 
-    def different(self, actual=True, theory=True, order=True):
+    def different(
+        self,
+        actual: bool = True,
+        theory: bool = True,
+        order: bool = True
+    ) -> pd.DataFrame:
+        """Generates performance comparison table | 生成绩效对比表"""
         turnover = self.turnover(actual, theory, order)
         returns = self.returns(actual, theory, order)
         dic = {'turnover':turnover, 'returns':returns}
@@ -192,12 +261,44 @@ class Unit():
         return pd.DataFrame(x)
 
 class Chain:
-    def __init__(self, dataframe, cash=10000, trade_cost=True):
+    """
+    ===========================================================================
+    A sequence of linked transaction units over time.
+
+    Attributes
+    ----------
+    cash : float
+        Initial cash for the chain.
+    trade_cost : bool
+        Whether to account for trading costs.
+    _obj : DataFrame
+        Source target weights for each period.
+    ---------------------------------------------------------------------------
+    一系列随时间关联的交易单元.
+
+    属性
+    ----
+    cash : float
+        链条的初始现金.
+    trade_cost : bool
+        是否计算交易成本.
+    _obj : DataFrame
+        各时期的原始目标权重.
+    ---------------------------------------------------------------------------
+    """
+    def __init__(
+        self,
+        dataframe: pd.DataFrame,
+        cash: float = 10000,
+        trade_cost: bool = True
+    ):
+        """Initializes the backtest chain | 初始化回测链条"""
         self.cash = cash
         self.trade_cost = trade_cost
         self._obj = DataFrame(dataframe)
 
-    def __call__(self):
+    def __call__(self) -> Dict[pd.Timestamp, Unit]:
+        """Executes the complete backtest chain | 执行完整的向后回测链条"""
         dic = {}
         unit_obj = Unit(target=self._obj.iloc[0], cash=self.cash, trade_cost=self.trade_cost)
         dic[unit_obj.settle.name] = unit_obj
@@ -211,23 +312,25 @@ class Chain:
 
     @property
     @lru_cache(maxsize=1)
-    def settle(self):
+    def settle(self) -> pd.Series:
+        """Returns the settled equity curve | 返回结算后的权益曲线"""
         if not hasattr(self, '_internal_data'):
             self.__call__()
         x = pd.Series({i:j.settle.total_assets() for i,j in self._internal_data.items()}).shift(-1)
         return x
 
     @property
-    def returns(self):
+    def returns(self) -> pd.Series:
+        """Returns periodic returns | 返回定期收益率"""
         return self.settle.pct_change()
 
     @property
     @lru_cache(maxsize=1)
-    def turnover(self):
+    def turnover(self) -> pd.Series:
+        """Calculates turnover curve | 计算换手率曲线"""
         if not hasattr(self, '_internal_data'):
             self.__call__()
         settle = self.settle.shift()
         trade = pd.Series({i:j.entrade._cash for i,j in self._internal_data.items() if i !=list(self._internal_data.keys())[-1] })
         x = (trade / settle).abs()
         return x
-

@@ -25,6 +25,12 @@ Module Structure
         -- Analysis: `ic`, `ir`, `trend`.
         -- Backtest: `port`, `test` (Quick group Construct & Vectorized BT).
 
+    III _cap/
+        Implements capital management and portfolio transition logic.
+        -- Core Classes: Custom `Series` and `DataFrame` with state management.
+        -- Backtesting: `Unit` for single-step trades and `Chain` for full backtests.
+        -- Conversions: Seamless transitions between `weight`, `assets`, and `share`.
+
 Core Interface Examples
 -----------------------
     I  Unified Data Fetching:
@@ -42,6 +48,14 @@ Core Interface Examples
         # Filter, calculate IC, and run quick test in one flow
         (df.f.filtered()
            .f.port())
+
+    III Portfolio Transition:
+
+        from quanta.libs._flow._cap import Chain
+        
+        # Execute a full backtest chain from target weights
+        chain = Chain(target_df, cash=1000000)
+        results = chain()
 
 ---
 
@@ -71,6 +85,12 @@ Core Interface Examples
         -- 因子分析: `ic`, `ir`, `trend` (趋势).
         -- 策略回测: `port` (分组收益), `test` (向量化快速回测).
 
+    III _cap/
+        实现资金管理与投资组合转换逻辑.
+        -- 核心类: 具有状态管理的自定义 `Series` 和 `DataFrame`.
+        -- 回测工具: 用于单步交易的 `Unit` 和用于完整回测的 `Chain`.
+        -- 转换接口: 在 `weight` (权重), `assets` (资产) 和 `share` (持股) 间无缝转换.
+
 核心接口示例
 ------------
     I  统一数据获取:
@@ -88,3 +108,11 @@ Core Interface Examples
         # 在一个流中完成过滤、计算 IC 和快速回测
         (df.f.filtered()
            .f.port())
+
+    III 投资组合转换:
+
+        from quanta.libs._flow._cap import Chain
+        
+        # 根据目标权重执行完整的向后回测链条
+        chain = Chain(target_df, cash=1000000)
+        results = chain()

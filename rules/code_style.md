@@ -16,8 +16,11 @@ This document defines the contemporary coding standards for the `quanta` project
 *   **Permission Limit**: Modifications are strictly limited to **comments (docstrings/inline)**, **formatting of function signatures (line breaks)**, and **type hints**.
 *   **Logic Integrity**: No functional logic, control flow, or algorithm implementation shall be altered under any circumstances.
 
-### 2.2 Three-Section Mirror Docstrings
-Every non-trivial function and class must implement a bilingual docstring with the following structure:
+### 2.2 Bilingual Docstrings
+Every non-trivial function and class must implement a bilingual docstring enclosed in triple quotes (`"""`).
+
+#### 2.2.1 Three-Section Mirror (Complex Functions)
+For functions with multiple parameters or complex logic, use the following structure:
 1.  **Header (`====`)**: Brief English description.
 2.  **English Section**: Detailed `Parameters` and `Returns` using NumPy-style conventions.
 3.  **Separator (`----`)**: A mirror Chinese translation of the above content.
@@ -25,7 +28,11 @@ Every non-trivial function and class must implement a bilingual docstring with t
 
 **Formatting Rules for Separators:**
 *   **Exact Horizontal Length**: The total length of separators (`====`, `----`), including leading indentation spaces, must **exactly equal 79 characters**.
-*   **Header Underlines**: The `---` lines under section headers (e.g., `Parameters`, `Returns`) must be **exactly the same length** as the characters above them.
+*   **Header Underlines**: The `---` lines under section headers (e.g., `Parameters`, `Returns`, `参数`, `返回`) must be **exactly the same length** as the characters above them.
+
+#### 2.2.2 Single-Line Mirror (Simple Functions)
+For simple getters, setters, or trivial logic, use a concise single-line format:
+`"""English description | 中文描述"""`
 
 ### 2.3 Function Signature Formatting
 *   **Argument Line Breaks**: If a function has more than 3 arguments (excluding system defaults like `self`, `cls`, `*args`, `**kwargs`), the signature must use multi-line formatting for better readability.
@@ -56,8 +63,11 @@ Every non-trivial function and class must implement a bilingual docstring with t
 *   **权限限制**: 修改仅限于**注释 (文档字符串/行内注释)**, **函数签名格式 (断行调整)** 以及**类型提示**.
 *   **逻辑完整性**: 在任何情况下均不得改动任何功能逻辑, 控制流或算法实现.
 
-### 2.2 三段镜像文档字符串
-每个非平凡的函数和类必须实现具有以下结构的双语文档字符串:
+### 2.2 双语文档字符串
+每个非平凡的函数和类必须实现用三引号 (`"""`) 包裹的双语文档字符串.
+
+#### 2.2.1 三段镜像 (复杂函数)
+对于具有多个参数或复杂逻辑的函数, 使用以下结构:
 1.  **页眉 (`====`)**: 简要英文描述.
 2.  **英文段落**: 使用 NumPy 风格规范的详细 `Parameters` 和 `Returns`.
 3.  **分隔符 (`----`)**: 上述内容的镜像中文翻译.
@@ -66,6 +76,10 @@ Every non-trivial function and class must implement a bilingual docstring with t
 **分隔符格式规则:**
 *   **精确横向长度**: 分隔符 (`====`, `----`) 的总长度(包括前导缩进空格)必须**精确等于 79 个字符**.
 *   **标题下划线**: 章节标题(如 `Parameters`, `Returns`, `参数`, `返回`)下方的 `---` 长度必须与上方的**字符宽度完全一致**.
+
+#### 2.2.2 单行镜像 (简单函数)
+对于简单的 getter, setter 或平凡逻辑, 使用简明的单行格式:
+`"""英文描述 | 中文描述"""`
 
 ### 2.3 函数签名格式化
 *   **参数断行**: 如果一个函数的参数超过 3 个(不包括 `self`, `cls`, `*args`, `**kwargs` 等系统默认参数), 必须采用多行格式书写以提高可读性.
