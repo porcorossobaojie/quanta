@@ -10,6 +10,7 @@ from functools import reduce
 from functools import lru_cache
 from typing import Optional, Union, List, Dict, Any
 
+from quanta.libs._flow._main._connect import main as meta_table, trade_days, calendar_days
 from ._connect import main as meta_table, trade_days, calendar_days
 from quanta.config import settings
 
@@ -144,8 +145,8 @@ class main():
         -----------------------------------------------------------------------
         """
         tables = self._help
-        if isinstance(columns, str) and len(columns.split('.')) > 1:
-            index = columns.split('.')
+        if isinstance(columns, str) and len(columns.split('-')) > 1:
+            index = columns.split('-')
             index = tables[tables.iloc[:, -3].str.contains(index[0]) & (tables.iloc[:, -2] == index[1])]
         else:
             columns = [columns] if isinstance(columns, str) else [i for i in columns]
@@ -403,7 +404,7 @@ class main():
         -----------------------------------------------------------------------
         """
         if not hasattr(self, '_internal_listing'):
-            df = (self(config.listing.astock_listing_date, config.listing.astock_delisting_date).clip(
+            df = (self([config.listing.astock_listing_date, config.listing.astock_delisting_date]).clip(
                 upper=pd.to_datetime(pd.Timestamp.today().date()))
                 .set_index(config.listing.astock_delisting_date, append=True)[config.listing.astock_listing_date]).unstack(0)
             df = df.reindex(pd.date_range(df.index.min(), df.index.max(), freq='d')).bfill().dropna(how='all', axis=1)

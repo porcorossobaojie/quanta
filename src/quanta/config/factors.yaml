@@ -1,0 +1,10 @@
+# get from flow.yaml -> trade_keys as keys
+#                    -> index_mapping as benchmark mapping
+
+finance_keys:
+    val_mv: val_mv
+    total_assets: 'balance-total_assets'    
+    pe: pe_ttm
+    pcf: pcf
+    pocf: pocf
+    pb: pb
