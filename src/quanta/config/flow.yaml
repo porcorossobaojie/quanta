@@ -69,7 +69,7 @@ cap:
     state_types: [signal, order, trade, settle]
     recommand_settings:
         is_adj: True
-        trade_cost: 0.0015
+        trade_cost: 0.00075
         untrade_limit: 0.01
         unit: weight
         state: signal

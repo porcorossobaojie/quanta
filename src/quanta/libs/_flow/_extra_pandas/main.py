@@ -189,7 +189,7 @@ class flow_extra():
         cash=10000,
         trade_cost=True
     ):
-        return Chain(self._obj, cash, trade_cost)()
+        return Chain(self._obj, cash, trade_cost)
 
 @pd.api.extensions.register_series_accessor(config.extra_pandas_attrname)
 class flow_extra_series():
