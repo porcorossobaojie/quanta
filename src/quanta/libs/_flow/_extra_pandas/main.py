@@ -69,10 +69,15 @@ class flow_extra():
         x = not_st(value, portfolio_type).reindex_like(self._obj).fillna(False)
         return self._obj[x]
 
-    @doc_inherit(statusable)
-    def tradestatus(self, portfolio_type: Optional[str] = None) -> pd.DataFrame:
+    @doc_inherit(enstatus)
+    def tradestatus(
+        self, 
+        portfolio_type: Optional[str] = None,
+        periods: int = 126,
+        min_periods:int = None
+    ) -> pd.DataFrame:
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
-        x = statusable(portfolio_type).reindex_like(self._obj).fillna(False)
+        x = enstatus(portfolio_type, periods, min_periods).reindex_like(self._obj).fillna(False)
         return self._obj[x]
 
     @doc_inherit(filtered)
@@ -81,10 +86,12 @@ class flow_extra():
         listing_limit: int = 126,
         drop_st: int = 1,
         tradestatus: bool = True,
-        portfolio_type: Optional[str] = None
+        portfolio_type: Optional[str] = None,
+        periods: int = 126,
+        min_periods:int = None
     ) -> pd.DataFrame:
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
-        x = filtered(listing_limit, drop_st, tradestatus, portfolio_type).reindex_like(self._obj).fillna(False)
+        x = filtered(listing_limit, drop_st, tradestatus, portfolio_type, periods, min_periods).reindex_like(self._obj).fillna(False)
         return self._obj[x]
 
     @doc_inherit(index_members)

@@ -98,7 +98,11 @@ def not_st(
 
 
 @lru_cache(maxsize=8)
-def statusable(portfolio_type: str = 'astock') -> pd.DataFrame:
+def enstatus(
+    portfolio_type: str = 'astock', 
+    periods: int = 126,
+    min_periods:int = None
+) -> pd.DataFrame:
     """
     ===========================================================================
     Checks if assets are in a tradable status (e.g., not suspended).
@@ -107,6 +111,10 @@ def statusable(portfolio_type: str = 'astock') -> pd.DataFrame:
     ----------
     portfolio_type : str
         The type of portfolio. Default is 'astock'.
+    periods : int
+        The rolling window size for status check. Default is 126.
+    min_periods : int
+        Minimum periods required in the window. Default is periods // 2.
 
     Returns
     -------
@@ -119,6 +127,10 @@ def statusable(portfolio_type: str = 'astock') -> pd.DataFrame:
     ----
     portfolio_type : str
         投资组合类型. 默认为 'astock'.
+    periods : int
+        状态检查的滚动窗口大小. 默认为 126.
+    min_periods : int
+        窗口中所需的最小周期数. 默认为 periods // 2.
 
     返回
     ----
@@ -126,8 +138,10 @@ def statusable(portfolio_type: str = 'astock') -> pd.DataFrame:
         布尔值 DataFrame, True 表示可交易状态.
     ---------------------------------------------------------------------------
     """
+    min_periods = periods // 2 if min_periods is None else min_periods
     ins = __instance__.get(portfolio_type)(config.status.tradestatus)
     ins = ~ins.astype(bool)
+    ins = ins & (ins.rolling(periods, min_periods=1).sum() > min_periods)
     return ins
 
 
@@ -136,7 +150,9 @@ def filtered(
     listing_limit: int = 126,
     drop_st: int = 1,
     tradestatus: bool = True,
-    portfolio_type: str = 'astock'
+    portfolio_type: str = 'astock',
+    periods: int = 126,
+    min_periods:int = None
 ) -> pd.DataFrame:
     """
     ===========================================================================
@@ -153,6 +169,10 @@ def filtered(
         Whether to filter by tradable status. Default is True.
     portfolio_type : str
         The type of portfolio. Default is 'astock'.
+    periods : int
+        The rolling window size for status check. Default is 126.
+    min_periods : int
+        Minimum periods required in the window. Default is periods // 2.
 
     Returns
     -------
@@ -171,6 +191,10 @@ def filtered(
         是否按交易状态过滤. 默认为 True.
     portfolio_type : str
         投资组合类型. 默认为 'astock'.
+    periods : int
+        状态检查的滚动窗口大小. 默认为 126.
+    min_periods : int
+        窗口中所需的最小周期数. 默认为 periods // 2.
 
     返回
     ----
@@ -183,7 +207,7 @@ def filtered(
         if drop_st is not None:
             dic['not_st'] = not_st(drop_st)
         if tradestatus:
-            dic['statusable'] = statusable()
+            dic['statusable'] = enstatus(periods=periods, min_periods=min_periods)
     count = len(dic)
     dic = pd.concat(dic, axis=1)
     dic = dic.groupby(dic.columns.names[1:], axis=1).sum().astype(int)
@@ -891,7 +915,7 @@ def qtest(
     sellable = ((1 - ins(low_key) / ins(avg_key)) >= limit).reindex_like(df_obj).fillna(False)
     trade_vals = ins(trade_key).reindex_like(df_obj)
     settle_vals = ins(settle_key).reindex_like(df_obj)
-    trader_status = statusable(portfolio_type).reindex_like(df_obj).fillna(False)
+    trader_status = enstatus(portfolio_type).reindex_like(df_obj).fillna(False)
 
     values = {
         'buyable': buyable.values,
