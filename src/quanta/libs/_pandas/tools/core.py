@@ -12,7 +12,7 @@ from numpy.lib.stride_tricks import as_strided
 
 from quanta.libs.utils import flatten_list
 
-__all__ = ['fillna', 'shift', 'log', 'half_life', 'array_roll']
+__all__ = ['fillna', 'shift', 'log', 'halflife', 'array_roll']
 
 
 def fillna(
@@ -168,9 +168,9 @@ def log(
     return x
 
 
-def half_life(
+def halflife(
     window: int,
-    half_life: Union[int, float]
+    halflife: Union[int]
 ) -> np.ndarray:
     """
     ===========================================================================
@@ -180,7 +180,7 @@ def half_life(
     ----------
     window : int
         The size of the window (length of the weight array).
-    half_life : Union[int, float]
+    halflife : Union[int, float]
         The decay half-life.
 
     Returns
@@ -194,7 +194,7 @@ def half_life(
     ----
     window : int
         窗口大小 (权重数组的长度).
-    half_life : Union[int, float]
+    halflife : Union[int, float]
         衰减半衰期.
 
     返回
@@ -203,13 +203,9 @@ def half_life(
         生成的权重数组.
     ---------------------------------------------------------------------------
     """
-    L, Lambda = 0.5**(1/half_life), 0.5**(1/half_life)
-    W = []
-    for i in range(window):
-        W.append(Lambda)
-        Lambda *= L
-    W = np.array(W[::-1])
-    return W
+    w = 0.5 ** (np.arange(window)[::-1] / halflife).astype('float32')
+    w = w / w.sum()
+    return w
 
 
 def array_roll(
