@@ -141,7 +141,8 @@ def enstatus(
     min_periods = periods // 2 if min_periods is None else min_periods
     ins = __instance__.get(portfolio_type)(config.status.tradestatus)
     ins = ~ins.astype(bool)
-    ins = ins & (ins.rolling(periods, min_periods=1).sum() > min_periods)
+    if periods is not None:
+        ins = ins & (ins.rolling(periods, min_periods=1).sum() > min_periods)
     return ins
 
 

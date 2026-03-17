@@ -90,7 +90,7 @@ class class_obj:
     注册到 Pandas 的静态工具类, 用于独立工具访问.
     ---------------------------------------------------------------------------
     """
-    half_life = staticmethod(half_life)
+    halflife = staticmethod(halflife)
     array_roll = staticmethod(array_roll)
 
 
