@@ -99,8 +99,8 @@ def not_st(
 
 @lru_cache(maxsize=8)
 def enstatus(
-    portfolio_type: str = 'astock', 
-    periods: int = 126,
+    portfolio_type: str = 'astock',
+    periods: int = None,
     min_periods:int = None
 ) -> pd.DataFrame:
     """
@@ -138,10 +138,10 @@ def enstatus(
         布尔值 DataFrame, True 表示可交易状态.
     ---------------------------------------------------------------------------
     """
-    min_periods = periods // 2 if min_periods is None else min_periods
     ins = __instance__.get(portfolio_type)(config.status.tradestatus)
     ins = ~ins.astype(bool)
     if periods is not None:
+        min_periods = periods // 2 if min_periods is None else min_periods
         ins = ins & (ins.rolling(periods, min_periods=1).sum() > min_periods)
     return ins
 
@@ -933,7 +933,7 @@ def qtest(
     portfolio_trade = [
         start / start.sum() * (1 - trade_cost)
     ] # 交易的资产, 1为本金,扣除交易费用
-        
+
     portfolio_change = [
         np.nan_to_num(
             portfolio_trade[0] / values['trade'][0],

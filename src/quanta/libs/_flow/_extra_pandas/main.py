@@ -71,10 +71,10 @@ class flow_extra():
 
     @doc_inherit(enstatus)
     def tradestatus(
-        self, 
-        portfolio_type: Optional[str] = None,
-        periods: int = 126,
-        min_periods:int = None
+        self,
+        periods: int = None,
+        min_periods:int = None,
+        portfolio_type: Optional[str] = None
     ) -> pd.DataFrame:
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
         x = enstatus(portfolio_type, periods, min_periods).reindex_like(self._obj).fillna(False)
@@ -87,7 +87,7 @@ class flow_extra():
         drop_st: int = 1,
         tradestatus: bool = True,
         portfolio_type: Optional[str] = None,
-        periods: int = 126,
+        periods: int = None,
         min_periods:int = None
     ) -> pd.DataFrame:
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
