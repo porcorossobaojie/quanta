@@ -6,7 +6,7 @@ Summary
         -- providing specialized financial analysis modules and functions.
         -- abstracting database connectivity to streamline data access for researchers.
         -- deep integration with JoinQuant (JQData) for professional-grade data support.
-        -- supporting industry-standard factor models (e.g., Barra - Work in Progress).
+        -- supporting industry-standard factor models (e.g., Barra - Completed Style Factors).
 
 How Install
 -----------
@@ -94,9 +94,11 @@ Why python-quanta
         For a deep dive into research interfaces and Pandas extensions, see:
         [Research Flow Layer](src/quanta/libs/_flow/README.md) --> _extra_pandas
 
-    V standard factor library (Roadmap)
-        Ongoing implementation of benchmark factors for strategy comparison:
-            -- Barra Risk Model factors, Alpha 101, etc.
+    V standard factor library (faclib)
+        Benchmark factors for risk modeling and strategy comparison:
+        -- Barra USA4 Style Factors (Completed): 
+           Size, Beta, Momentum, Residual Volatility, Liquidity, Earnings Yield, Growth, Leverage, etc.
+        -- Alpha 101 (Roadmap)
 
 Notices
 -------
@@ -113,7 +115,7 @@ Summary
         -- 提供针对金融场景优化的专业分析模块与函数.
         -- 抽象化数据库连接细节, 使研究员能够高效获取所需数据.
         -- 深度集成聚宽 (JQData) API, 提供强大的专业数据支持.
-        -- 逐步实现行业标准因子模型 (如 Barra 风险模型 - 开发中).
+        -- 支持行业标准因子模型 (如 Barra 风险模型 - 已完成风格因子).
 
 How Install
 -----------
@@ -201,9 +203,11 @@ Why python-quanta
         有关研究接口及 Pandas 扩展功能的深入说明, 请参阅:
         [研究流层详解](src/quanta/libs/_flow/README.md)  --> _main
 
-    V 标准因子库 (发展路线)
+    V 标准因子库 (faclib)
         持续集成行业标准因子以供对比与测试:
-            -- Barra 风险因子, Alpha 101 系列因子等.
+        -- Barra USA4 风格因子 (已完成): 
+           包含市值、贝塔、动量、残差波动率、流动性、盈利、成长、杠杆等 10 大风格因子.
+        -- Alpha 101 系列因子 (发展路线).
 
 Notices
 -------
