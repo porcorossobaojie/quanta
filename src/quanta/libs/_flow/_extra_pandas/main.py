@@ -93,7 +93,15 @@ class flow_extra():
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
         x = filtered(listing_limit, drop_st, tradestatus, portfolio_type, periods, min_periods).reindex_like(self._obj).fillna(False)
         return self._obj[x]
-
+    
+    @doc_inherit(trend)
+    def trend(
+        self, 
+        periods=21
+    ):
+        x = trend(self._obj, periods)
+        return x
+    
     @doc_inherit(index_members)
     def index_members(
         self,
@@ -159,7 +167,6 @@ class flow_extra():
         x = self.ic(listing_limit, drop_st, tradestatus, portfolio_type)
         return ir(x)
 
-    @lru_cache(maxsize=8)
     @doc_inherit(port)
     def port(
         self,
@@ -168,7 +175,10 @@ class flow_extra():
         tradestatus: bool = True,
         portfolio_type: Optional[str] = None
     ) -> pd.DataFrame:
-        x = port(self._obj, listing_limit, drop_st, tradestatus, portfolio_type)
+        if not hasattr(self, '_internal_port_result'):
+            x = port(self._obj, listing_limit, drop_st, tradestatus, portfolio_type)
+            self._internal_port_result = x
+        x = self._internal_port_result
         return x
 
     @lru_cache(maxsize=2)

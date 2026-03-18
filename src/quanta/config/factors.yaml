@@ -2,9 +2,14 @@
 #                    -> index_mapping as benchmark mapping
 
 finance_keys:
-    val_mv: val_mv
     total_assets: 'balance-total_assets'    
+    net_profit: 'income-net_profit'
+    oper_rev: 'income-operating_revenue'
+    long_liab: 'total_non_current_liability'
+    total_liab: 'total_liability'
+    val_mv: val_mv
     pe: pe_ttm
     pcf: pcf
     pocf: pocf
     pb: pb
+    free_turnover: 'free_turnover'
