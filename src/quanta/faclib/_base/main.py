@@ -10,8 +10,9 @@ from quanta import flow
 from quanta.config import settings
 
 
-class main(type('trade_keys', (), settings('flow').trade_keys)):
+class main():
     index_mapping = settings('flow').index_mapping
+    trade = settings('flow').trade_keys
     
     @classmethod
     @lru_cache(maxsize=16)
@@ -31,7 +32,7 @@ class main(type('trade_keys', (), settings('flow').trade_keys)):
         else:
             source = getattr(flow, code[0])
             x = source.multilize(code[1])[int(code[2]) if code[2].isdigit() else code[2]]
-            x = source(cls.returns).reindex_like(x)[x]
+            x = source(cls.trade.returns).reindex_like(x)[x]
             if weight is not None:
                 try:
                     weight = flow.astock(weight).reindex(x)[x.notnull()]

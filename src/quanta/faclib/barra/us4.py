@@ -18,7 +18,7 @@ class main(meta):
     """
     Implementation of Barra USA4 factor model. | Barra USA4 因子模型实现.
     """
-    _model_name = 'usa4'
+    _model_name = 'us4'
 
     @classmethod
     @lru_cache(maxsize=4)
@@ -73,7 +73,7 @@ class main(meta):
             计算得到的动量因子.
         -----------------------------------------------------------------------
         """
-        ret = getattr(flow, portfolio_type)(cls.returns).tools.log().astype('float32')
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).tools.log().astype('float32')
         entrade = ret.f.tradestatus().notnull()
         bench = cls.bench(bench).tools.log().astype('float32')
         bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns)[entrade].fillna(0)
@@ -131,7 +131,7 @@ class main(meta):
         -----------------------------------------------------------------------
         """
         halflife = periods // 6 if halflife is None else halflife
-        ret = getattr(flow, portfolio_type)(cls.returns).f.tradestatus()
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).f.tradestatus()
         w = pd.tools.halflife(periods, halflife)[np.newaxis, :]
         entrade = ret.f.tradestatus().notnull()
         x = (ret - ret.rolling(periods, halflife).mean()).fillna(0) ** 2
@@ -144,7 +144,7 @@ class main(meta):
     @lru_cache(maxsize=4)
     def _cmra(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
         """Calculate Cumulative Range of Adjusted Returns (CMRA) | 计算累积相对收益范围"""
-        ret = getattr(flow, portfolio_type)(cls.returns).fillna(0)
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).fillna(0)
         location = -(np.arange(0, periods, 21) + 1)
         x = ret.rolling(periods).sum().tools.log()
         df = x.rolling(periods).apply(lambda x: np.max(x[location], axis=0) - np.min(x[location], axis=0), raw=True)

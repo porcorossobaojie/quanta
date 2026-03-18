@@ -106,7 +106,7 @@ class main(meta):
         -----------------------------------------------------------------------
         """
         halflife = periods//4 if halflife is None else halflife
-        ret = getattr(flow, portfolio_type)(cls.returns).fillna(0).astype('float32')
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).fillna(0).astype('float32')
         entrade = ret.f.tradestatus().notnull()
         bench = cls.bench(bench)
         bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns)[entrade].fillna(0).astype('float32')
