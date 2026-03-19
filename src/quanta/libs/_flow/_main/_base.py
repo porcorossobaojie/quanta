@@ -403,7 +403,7 @@ class main():
             指示上市状态的布尔值 DataFrame.
         -----------------------------------------------------------------------
         """
-        if not hasattr(self, '_internal_listing'):
+        if not hasattr(self, '_internal_listing_result'):
             df = (self([config.listing.astock_listing_date, config.listing.astock_delisting_date]).clip(
                 upper=pd.to_datetime(pd.Timestamp.today().date()))
                 .set_index(config.listing.astock_delisting_date, append=True)[config.listing.astock_listing_date]).unstack(0)
@@ -411,8 +411,8 @@ class main():
             df.index = df.index + pd.Timedelta(meta_table.time_bias)
             df = df.reindex(trade_days)
             x = df[df.sub(df.index, axis=0).astype('int64') <= 0].notnull().cumsum()
-            setattr(self, '_internal_listing', x)
-        x = getattr(self, '_internal_listing')
+            setattr(self, '_internal_listing_result', x)
+        x = getattr(self, '_internal_listing_result')
         x = x >= limit
         return x
 
@@ -445,10 +445,10 @@ class main():
             指示上市状态的布尔值 DataFrame.
         -----------------------------------------------------------------------
         """
-        if not hasattr(self, '_internal_listing'):
+        if not hasattr(self, '_internal_listing_result'):
             x = self(config.listing.afund_listing_date).notnull().cumsum()
-            setattr(self, '_internal_listing', x)
-        x = getattr(self, '_internal_listing')
+            setattr(self, '_internal_listing_result', x)
+        x = getattr(self, '_internal_listing_result')
         x = x >= limit
         return x
 
@@ -483,7 +483,22 @@ class main():
         func = getattr(self, f"_{self.portfolio_type}_listing")
         df = func(limit)
         return df
-
+    
+    def code_standard(self, list_obj, source='internal'):
+        if source == 'internal':
+            x = [str(i).zfill(6) for i in list_obj]
+            columns = self.listing(0).columns
+            codes = dict(zip(columns.map(lambda x: x.split('.')[0]), columns))
+            renamed = [codes.get(i, None) for i in x]
+            if None in renamed:
+                print(f"Unstandard code existed {[i for i in x if codes.get(i, None) is None]}")
+                renamed = [codes.get(i, i) for i in x]
+        else:
+            import jqdatasdk as jq
+            x = jq.normalize_code(list(list_obj))
+        x = pd.CategoricalIndex(renamed, name=columns.name)
+        return x
+    
     @lru_cache(maxsize=1)
     def not_st(self, value: int = 1) -> pd.DataFrame:
         """

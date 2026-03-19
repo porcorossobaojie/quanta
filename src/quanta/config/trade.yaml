@@ -1,0 +1,26 @@
+pipline:
+    tonghua:
+        pingan:
+            settle:
+                dtype: xls
+                columns:
+                    code: 证券代码
+                    count: 持仓数量
+            order:
+                dtype: csv
+                columns:
+                    code: 证券代码
+                    count: 成份数量
+        guotai:
+            settle:
+                dtype: xls
+                columns: 
+                    code: 证券代码
+                    count: 股票余额
+            order:
+                dtype: csv
+                columns:
+                    code: 证券代码
+                    count: 成分数量
+                    
+    
