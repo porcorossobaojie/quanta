@@ -459,20 +459,22 @@ class Series(pd.Series):
             if not hasattr(self, '_internal_hash_code_result'):
                 self._internal_hash_code_result = post_adj.index.get_indexer(self.index)
             post_adj = post_adj.iloc[self._internal_hash_code_result].values
-            x.values[:] = self.values * post_adj
+            x.values[:] = self.values / post_adj
+        x._is_adj = True
         return x
 
     def unadj(self) -> 'Series':
         """Removes price adjustment factor | 移除价格复权因子"""
         x = self.copy()
-        if (x.unit == 'share') and not x._is_adj:
+        if (x.unit == 'share') and x._is_adj:
             post_adj =  x.__get_values__(
                 x.portfolio_type, config.post_factor, x.name
             )
             if not hasattr(self, '_internal_hash_code_result'):
                 self._internal_hash_code_result = post_adj.index.get_indexer(self.index)
             post_adj = post_adj.iloc[self._internal_hash_code_result].values
-            x.values[:] = self.values / post_adj
+            x.values[:] = self.values * post_adj
+        x._is_adj = False
         return x
 
     def entrade(self) -> 'Series':

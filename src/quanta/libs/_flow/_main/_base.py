@@ -211,13 +211,13 @@ class main():
         dic = self.__columns_to_tables__(columns)
         if len(dic) - 1:
             df = {i: getattr(self, i)(
-                j, 
+                j,
                 end=end, quarter_adj=quarter_adj, quarter_diff=quarter_diff, shift=shift, **kwargs
                 ) for i, j in dic.items()}
             df = pd.concat(df, axis=1)
         else:
             df = [getattr(self, i)(
-                j[0] if len(j) == 1 else j, 
+                j[0] if len(j) == 1 else j,
                 end=end, quarter_adj=quarter_adj, quarter_diff=quarter_diff, shift=shift, **kwargs
                 ) for i, j in dic.items()][0]
 
@@ -483,7 +483,7 @@ class main():
         func = getattr(self, f"_{self.portfolio_type}_listing")
         df = func(limit)
         return df
-    
+
     def code_standard(self, list_obj, source='internal'):
         if source == 'internal':
             x = [str(i).zfill(6) for i in list_obj]
@@ -492,13 +492,12 @@ class main():
             renamed = [codes.get(i, None) for i in x]
             if None in renamed:
                 print(f"Unstandard code existed {[i for i in x if codes.get(i, None) is None]}")
-                renamed = [codes.get(i, i) for i in x]
         else:
             import jqdatasdk as jq
             x = jq.normalize_code(list(list_obj))
         x = pd.CategoricalIndex(renamed, name=columns.name)
         return x
-    
+
     @lru_cache(maxsize=1)
     def not_st(self, value: int = 1) -> pd.DataFrame:
         """
