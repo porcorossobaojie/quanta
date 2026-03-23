@@ -20,10 +20,10 @@ class main():
         code = cls.index_mapping.get(code, code)
         code = code.split('-')
         if len(code) == 1:
-            x = flow.aindex(cls.returns)[code[0]]
+            x = flow.aindex(cls.trade.returns)[code[0]]
         elif len(code) == 2:
             x = flow.astock.multilize(code[0])[int(code[1]) if code[1].isdigit() else code[1]]
-            x = flow.astock(cls.returns).reindex(x)[x]
+            x = flow.astock(cls.trade.returns).reindex(x)[x]
             if weight is not None:
                 weight = flow.astock(weight).reindex_like(x)[x.notnull()]
                 x = (x * weight ** 0.5).sum(axis=1, min_count=1) / weight.sum(axis=1, min_count=1)
