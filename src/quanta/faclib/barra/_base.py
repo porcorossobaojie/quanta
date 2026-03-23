@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 
 from quanta import flow
-from .._base.main import main as meta
+from quanta.faclib._base.main import main as meta
+#from .._base.main import main as meta
 from quanta.config import settings
 config = settings('factors')
 
@@ -30,7 +31,10 @@ class main(meta):
     @lru_cache(maxsize=1)
     def bm(cls) -> pd.DataFrame:
         """Calculate the book-to-market factor | 计算账面市值比因子"""
-        x = flow.astock(cls.finance.pb) ** -1
+        #x = flow.astock(cls.finance.pb) ** -1
+        total_assets = flow.astock.finance(cls.finance.total_assets, shift=2)
+        mv = flow.astock(cls.finance.val_mv)
+        x = (total_assets / mv / 1e8).stats.neutral(fac=cls.size()).resid
         return x
 
     @classmethod
