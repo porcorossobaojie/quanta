@@ -180,6 +180,10 @@ class flow_extra():
             self._internal_port_result = x
         x = self._internal_port_result
         return x
+    
+    @doc_inherit(corr)
+    def corr(self, others=None):
+        return corr(self._obj, others)
 
     @lru_cache(maxsize=2)
     @doc_inherit(qtest)

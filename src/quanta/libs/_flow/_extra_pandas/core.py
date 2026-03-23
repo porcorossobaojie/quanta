@@ -830,6 +830,11 @@ def ir(
     ir_val = x.mean() / x.std()
     return ir_val
 
+def corr(df_obj, other_obj=None):
+    if other_obj is None:
+        return df_obj.corrwith(df_obj.shift(), axis=1).describe()
+    else:
+        return df_obj.corrwith(other_obj, axis=1).describe()
 
 def qtest(
     df_obj: pd.DataFrame,

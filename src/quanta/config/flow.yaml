@@ -58,8 +58,16 @@ trade_keys: &public_keys
     close_adj: close_adj
     preclose: preclose
     preclose_adj: preclose_adj
+    open: open
     tradestatus: tradestatus
     post_factor: post_factor
+    amount: amount
+    volume: volume
+    turnover: free_turnover
+    trade_dt: trade_dt
+    astock_code: astock_code
+    afund_code: afund_code
+    aindex_code: aindex_code
 
 cap:
     <<: *public_keys
