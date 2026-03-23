@@ -66,7 +66,7 @@ class main:
             rank = rank[~rank.f.info('tradestatus').astype('bool') & (rank.f.info('close') < rank.f.info('high_limit'))]
         if low_limit:
             rank = rank[~rank.f.info('tradestatus').astype('bool') & (rank.f.info('close') > rank.f.info('low_limit'))]
-        rank = rank[rank.index.difference(self.hold().index)].nsmallest(self.account._portfolio_count - self.hold.shape[0])
+        rank = rank[rank.index.difference(self.hold().index)].nsmallest(self.account._portfolio_count - self.hold().shape[0])
         return rank
 
     @lru_cache(maxsize=4)    
@@ -85,8 +85,8 @@ class main:
         return df
         
     def signal(self):
-        x = self.balance['filter']
-        x = pd.f.Series(x, name=self.settle.name)
+        x = self.rebalance()['filter']
+        x = pd.f.Series(x, name=self.settle().name, unit='share', is_adj=False)
         return x
             
         
