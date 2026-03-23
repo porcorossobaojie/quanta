@@ -242,6 +242,15 @@ class main(meta):
         )
         return x
     
+    @classmethod    
+    def neutral(
+        cls, 
+        df, 
+        factors_name=['size', 'non_size', 'beta', 'bm', 'earning', 'momentum']
+    ):
+        factors = {i:getattr(cls,i)() for i in factors_name}
+        x = df.stats.neutral(**factors).resid
+        return x
     
         
         
