@@ -89,6 +89,73 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=4)
+    def momentum2(
+        cls,
+        long_periods: int = 504,
+        short_periods: int = 21,
+        halflife: int = 126,
+        bench: str = 'full',
+        portfolio_type: str = 'astock'
+    ) -> pd.DataFrame:
+        """
+        =======================================================================
+        Calculate the momentum factor.
+
+        Parameters
+        ----------
+        long_periods : int
+            The long-term lookback period.
+        short_periods : int
+            The short-term gap period.
+        halflife : int
+            The halflife for exponential weighting.
+        bench : str
+            The benchmark for relative return calculation.
+        portfolio_type : str
+            The portfolio type.
+
+        Returns
+        -------
+        pd.DataFrame
+            The calculated momentum factor.
+        -----------------------------------------------------------------------
+        计算动量因子.
+
+        参数
+        ----
+        long_periods : int
+            长期回看窗口.
+        short_periods : int
+            短期空窗期.
+        halflife : int
+            指数加权的半衰期.
+        bench : str
+            计算超额收益使用的基准.
+        portfolio_type : str
+            组合类型.
+
+        返回
+        ----
+        pd.DataFrame
+            计算得到的动量因子.
+        -----------------------------------------------------------------------
+        """
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).stats.neutral(fac1=cls.size(), fac2=cls.bm()).resid.tools.log().astype('float32')
+        entrade = ret.f.tradestatus().notnull()
+        bench = cls.bench(bench).tools.log().astype('float32')
+        bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns)[entrade].fillna(0)
+        ret = ret - bench.shift(21)
+        w = pd.tools.halflife(long_periods+short_periods, halflife)[short_periods:][np.newaxis, :]
+
+        ret_mom = ret.rolling(long_periods).apply(lambda x: w @ x, raw=True)
+        w_mom = entrade.rolling(long_periods).apply(lambda x: w @ x, raw=True)
+        bench_mom = bench.rolling(long_periods).apply(lambda x: w @ x, raw=True)
+
+        x = ((ret_mom) / w_mom)
+        x = x.f.tradestatus(long_periods, halflife)
+        return x
+    @classmethod
+    @lru_cache(maxsize=4)
     def _dastd(
         cls,
         periods: int = 252,
