@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 
 from quanta import flow
-from .._base.main import main as meta
+from quanta.faclib._base.main import main as meta
+#from .._base.main import main as meta
 from quanta.config import settings
 config = settings('factors')
 
@@ -122,7 +123,39 @@ class main(meta):
         resid = resid / roll.w
         df = pd.concat({i:j.f.tradestatus(periods=periods, min_periods=halflife) for i,j in {'alpha':alpha, 'beta':beta, 'resid':resid}.items()}, axis=1)
         return df
+    
+    @classmethod
+    @lru_cache(maxsize=8)
+    def _beta2(
+        cls,
+        periods: int = 252,
+        halflife: int = None,
+        bench: str = 'full',
+        portfolio_type: str = 'astock'
+    ) -> pd.DataFrame:
 
+        halflife = periods//4 if halflife is None else halflife
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).fillna(0).astype('float32')
+        entrade = ret.f.tradestatus().notnull()
+        bench = cls.bench(bench)
+        bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns)[entrade].fillna(0).astype('float32')
+        w = pd.tools.halflife(periods, halflife).astype('float32')
+
+        y_vals = pd.tools.array_roll(ret.values, periods)
+        y_mean = np.einsum('twk, w -> tk', y_vals, w)
+        x_vals = pd.tools.array_roll(bench.iloc[:, [0]].values, periods)[:, :, 0]
+        x_mean = np.einsum('tw, w -> t', x_vals, w)[:, np.newaxis]
+        x_vals = x_vals - x_mean
+        y_vals = y_vals - y_mean[:, np.newaxis, :]
+        txt = np.einsum('tw, w -> t', x_vals**2, w)[:, np.newaxis]
+        beta = np.einsum('tw,w,twk->tk', x_vals, w, y_vals) / txt
+        beta = pd.DataFrame(beta, columns=ret.columns, index=ret.index[periods-1:])
+        alpha = y_mean - beta * x_mean
+        b = beta.values[:, np.newaxis, :]
+        x = pd.tools.array_roll(bench.iloc[:, [0]].values, periods)[:, :, 0][:, :, np.newaxis]
+        y_hat = alpha.values[:, np.newaxis, :] + (b * x)
+        
+        
     @classmethod
     def beta(
         cls,
