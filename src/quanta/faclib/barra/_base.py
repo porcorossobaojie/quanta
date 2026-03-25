@@ -156,7 +156,11 @@ class main(meta):
         alpha = y_mean - beta * x_mean
         b = beta.values[:, np.newaxis, :]
         x = pd.tools.array_roll(bench.iloc[:, [0]].values, periods)[:, :, 0][:, :, np.newaxis]
-        y_hat = alpha.values[:, np.newaxis, :] + (b * x)
+        y_vals = alpha.values[:, np.newaxis, :] + (b * x) - y_vals
+        y_vals = np.sum(y_vals ** 2, axis=1) ** 0.5
+        resid = pd.DataFrame(y_vals, columns=ret.columns, index=ret.index[periods-1:])
+        df = pd.concat({i:j.f.tradestatus(periods=periods, min_periods=halflife) for i,j in {'alpha':alpha, 'beta':beta, 'resid':resid}.items()}, axis=1)
+        return df
         
         
     @classmethod
@@ -206,4 +210,4 @@ class main(meta):
             计算得到的贝塔因子.
         -----------------------------------------------------------------------
         """
-        return cls._beta(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type).beta
+        return cls._beta2(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type).beta
