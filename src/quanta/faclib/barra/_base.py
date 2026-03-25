@@ -5,6 +5,7 @@ Created on Fri Mar 13 13:31:33 2026
 @author: Porco Rosso
 """
 from functools import lru_cache
+import numexpr as ne
 import numpy as np
 import pandas as pd
 
@@ -155,9 +156,10 @@ class main(meta):
         beta = pd.DataFrame(beta, columns=ret.columns, index=ret.index[periods-1:])
         alpha = y_mean - beta * x_mean
         b = beta.values[:, np.newaxis, :]
+        a = alpha.values[:, np.newaxis, :]
         x = pd.tools.array_roll(bench.iloc[:, [0]].values, periods)[:, :, 0][:, :, np.newaxis]
-        y_vals = alpha.values[:, np.newaxis, :] + (b * x) - y_vals
-        y_vals = np.sum(y_vals ** 2, axis=1) ** 0.5
+        y_vals = ne.evaluate('(a + b * x - y_vals) ** 2', out=y_vals)
+        y_vals = np.mean(y_vals, axis=1) ** 0.5
         resid = pd.DataFrame(y_vals, columns=ret.columns, index=ret.index[periods-1:])
         df = pd.concat({i:j.f.tradestatus(periods=periods, min_periods=halflife) for i,j in {'alpha':alpha, 'beta':beta, 'resid':resid}.items()}, axis=1)
         return df
