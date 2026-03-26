@@ -27,7 +27,8 @@ extra_pandas_attrname: 'f'
 listing:
     astock_listing_date: list_date
     astock_delisting_date: delist_date
-    afund_listing_date: shares
+    afund_listing_date: start_date
+    afund_delisting_date: end_date
     astock_list:
         table: astockstatus
         column: name
@@ -68,6 +69,7 @@ trade_keys: &public_keys
     astock_code: astock_code
     afund_code: afund_code
     aindex_code: aindex_code
+    afund_shares: shares
 
 cap:
     <<: *public_keys

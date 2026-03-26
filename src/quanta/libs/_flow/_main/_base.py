@@ -11,7 +11,7 @@ from functools import lru_cache
 from typing import Optional, Union, List, Dict, Any
 
 from quanta.libs._flow._main._connect import main as meta_table, trade_days, calendar_days
-from ._connect import main as meta_table, trade_days, calendar_days
+#from ._connect import main as meta_table, trade_days, calendar_days
 from quanta.config import settings
 
 table_info = settings('data').public_keys.recommand_settings
@@ -445,10 +445,7 @@ class main():
             指示上市状态的布尔值 DataFrame.
         -----------------------------------------------------------------------
         """
-        if not hasattr(self, '_internal_listing_result'):
-            x = self(config.listing.afund_listing_date).notnull().cumsum()
-            setattr(self, '_internal_listing_result', x)
-        x = getattr(self, '_internal_listing_result')
+        x =  self._traced_index()['be_list']
         x = x >= limit
         return x
 
@@ -540,7 +537,48 @@ class main():
         df = df < value
         return df
 
-    @lru_cache(maxsize=1)
+    @lru_cache(maxsize=2)
+    def _traced_index(self, column: str = 'traced_index_name') -> pd.DataFrame:
+        """
+        =======================================================================
+        Fetches and aligns index tracking information.
+
+        Parameters
+        ----------
+        column : str
+            The column name representing the traced index.
+            Default is 'traced_index_name'.
+
+        Returns
+        -------
+        pd.DataFrame
+            Aligned index tracking data.
+        -----------------------------------------------------------------------
+        获取并对齐指数跟踪信息.
+
+        参数
+        ----
+        column : str
+            表示跟踪指数的列名. 默认为 'traced_index_name'.
+
+        返回
+        ----
+        pd.DataFrame
+            对齐后的指数跟踪数据.
+        -----------------------------------------------------------------------
+        """
+        df = self([config.listing.afund_listing_date, config.listing.afund_delisting_date, column])
+        df[[config.listing.afund_listing_date, config.listing.afund_delisting_date]] = df[[config.listing.afund_listing_date, config.listing.afund_delisting_date]].fillna(pd.to_datetime(pd.Timestamp.today().date()))
+        df = df.set_index(config.listing.afund_delisting_date, append=True).unstack(0)
+        df = df.reindex(pd.date_range(df.index.min(), df.index.max(), freq='d')).bfill().dropna(how='all', axis=1)
+        df.index = df.index + pd.Timedelta(meta_table.time_bias)
+        df = df.reindex(trade_days)
+        be_list = df[config.listing.afund_listing_date].loc[meta_table.start_date:]
+        be_list = be_list[be_list.sub(be_list.index, axis=0).astype('int64') <= 0].notnull().cumsum().sort_index(axis=1)
+        traced_index = df[column].loc[meta_table.start_date:][be_list > 0].sort_index(axis=1)
+        traced_index.columns.name = column
+        return {'be_list': be_list, 'traced_index':traced_index}
+        
     def traced_index(self, column: str = 'traced_index_name') -> pd.DataFrame:
         """
         =======================================================================
@@ -570,9 +608,4 @@ class main():
             对齐后的指数跟踪数据.
         -----------------------------------------------------------------------
         """
-        df = self('end_date', column)
-        df['end_date'] = (pd.to_datetime(df['end_date']) + meta_table.time_bias).fillna(trade_days[-1]).dropna()
-        x = df.reset_index().drop_duplicates(keep='first', subset=df.index.name).dropna()
-        x = x.pivot(index='end_date', columns=df.index.name, values=column).reindex(trade_days)
-        x = x.loc[meta_table.start_date:].bfill()
-        return x
+        return self._traced_index(column)['traced_index']

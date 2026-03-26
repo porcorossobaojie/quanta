@@ -683,9 +683,11 @@ try:
             pd.Timestamp.today() - pd.Timedelta(4, 'h') - main.time_bias
         )
     ) + main.time_bias
+    trade_days.name = columns_info.trade_dt
 except Exception:
     trade_days = pd.to_datetime(
         sorted(
             main(table='astockeodprices').__read__(columns=main.trade_dt).iloc[:, 0].unique()
-        )
+        ),
+        name = columns_info.trade_dt
     )

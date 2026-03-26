@@ -144,7 +144,7 @@ class flow_extra():
     ) -> pd.DataFrame:
         return info(self._obj, column, portfolio_type)
 
-    @lru_cache(maxsize=64)
+    @lru_cache(maxsize=2)
     @doc_inherit(ic)
     def ic(
         self,
@@ -155,7 +155,7 @@ class flow_extra():
     ) -> pd.Series:
         return ic(self._obj, listing_limit, drop_st, tradestatus, portfolio_type)
 
-    @lru_cache(maxsize=64)
+    @lru_cache(maxsize=2)
     @doc_inherit(ir)
     def ir(
         self,
@@ -166,7 +166,8 @@ class flow_extra():
     ) -> pd.Series:
         x = self.ic(listing_limit, drop_st, tradestatus, portfolio_type)
         return ir(x)
-
+    
+    @lru_cache(maxsize=1)
     @doc_inherit(port)
     def port(
         self,
