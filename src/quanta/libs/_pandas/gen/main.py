@@ -87,7 +87,7 @@ class main():
     @doc_inherit(roll_weight)
     def roll_weight(
         self,
-        weight_array, 
-        fix_na=True
-    ):
+        weight_array: Union[List, np.ndarray, pd.Series],
+        fix_na: bool = True
+    ) -> pd.DataFrame:
         return roll_weight(self._obj, weight_array, fix_na)

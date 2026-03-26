@@ -24,15 +24,30 @@ class main(meta):
     @classmethod
     @lru_cache(maxsize=1)
     def size(cls) -> pd.DataFrame:
-        """Calculate the size factor | 计算市值因子"""
+        """Calculate the size factor (log market cap) | 计算市值因子 (对数市值)"""
         x = (flow.astock(cls.finance.val_mv) * 1e8).tools.log()
         return x
 
     @classmethod
     @lru_cache(maxsize=1)
     def bm(cls) -> pd.DataFrame:
-        """Calculate the book-to-market factor | 计算账面市值比因子"""
-        #x = flow.astock(cls.finance.pb) ** -1
+        """
+        =======================================================================
+        Calculate the book-to-market factor, neutralized against size.
+
+        Returns
+        -------
+        pd.DataFrame
+            The residuals of book-to-market ratio against the size factor.
+        -----------------------------------------------------------------------
+        计算账面市值比因子, 并针对市值进行中性化处理.
+
+        返回
+        ----
+        pd.DataFrame
+            账面市值比相对于市值因子的残差.
+        -----------------------------------------------------------------------
+        """
         total_assets = flow.astock.finance(cls.finance.total_assets, shift=2)
         mv = flow.astock(cls.finance.val_mv)
         x = (total_assets / mv / 1e8).stats.neutral(fac=cls.size()).resid
@@ -43,14 +58,15 @@ class main(meta):
     def non_size(cls) -> pd.DataFrame:
         """
         =======================================================================
-        Calculate the non-linear size factor.
+        Calculate the non-linear size factor by taking the residuals of
+        size^3 against size.
 
         Returns
         -------
         pd.DataFrame
             The calculated non-linear size factor.
         -----------------------------------------------------------------------
-        计算非线性市值因子.
+        通过计算市值三次方相对于市值的残差来计算非线性市值因子.
 
         返回
         ----
@@ -73,7 +89,8 @@ class main(meta):
     ) -> pd.DataFrame:
         """
         =======================================================================
-        Calculate the beta-related metrics using weighted OLS.
+        Calculate the beta-related metrics using weighted OLS with rolling
+        apply (standard approach).
 
         Parameters
         ----------
@@ -91,7 +108,7 @@ class main(meta):
         pd.DataFrame
             A MultiIndex DataFrame containing alpha, beta, and resid.
         -----------------------------------------------------------------------
-        使用加权最小二乘法计算贝塔相关指标.
+        使用滚动应用的标准加权最小二乘法计算贝塔相关指标.
 
         参数
         ----
@@ -137,7 +154,46 @@ class main(meta):
         bench: str = 'full',
         portfolio_type: str = 'astock'
     ) -> pd.DataFrame:
+        """
+        =======================================================================
+        Vectorized high-performance calculation of beta-related metrics using
+        einsum and array rolling.
 
+        Parameters
+        ----------
+        periods : int
+            The lookback period.
+        halflife : int, optional
+            The halflife for decay.
+        bench : str
+            The benchmark name.
+        portfolio_type : str
+            The portfolio type.
+
+        Returns
+        -------
+        pd.DataFrame
+            A MultiIndex DataFrame containing alpha, beta, and resid.
+        -----------------------------------------------------------------------
+        使用 einsum 和数组滚动进行贝塔相关指标的向量化高性能计算.
+
+        参数
+        ----
+        periods : int
+            回看窗口.
+        halflife : int, 可选
+            半衰期.
+        bench : str
+            基准名称.
+        portfolio_type : str
+            组合类型.
+
+        返回
+        ----
+        pd.DataFrame
+            包含 alpha, beta 和 resid 的多重索引数据框.
+        -----------------------------------------------------------------------
+        """
         halflife = periods//4 if halflife is None else halflife
         ret = getattr(flow, portfolio_type)(cls.trade.returns).fillna(0).astype('float32')
         entrade = ret.f.tradestatus().notnull()

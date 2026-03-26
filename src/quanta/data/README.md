@@ -1,75 +1,78 @@
-# Data Management
+# Data Acquisition & Preprocessing (data)
 
 Summary
 -------
-    This directory serves as the core data engine for the `quanta` framework. 
-    It manages the entire ETL (Extract, Transform, Load) lifecycle, 
-    synchronizing professional financial data from remote providers to local 
-    analytical databases (DuckDB/MySQL).
+    The `data` module manages the entire lifecycle of financial data within 
+    the `quanta` framework, from ingestion and standardization to 
+    persistence in the database. It is primarily built around the 
+    JoinQuant (JQData) ecosystem, providing automated pipelines for 
+    fetching market data, financial statements, and factor metadata.
 
-    Currently, the module is deeply integrated with JoinQuant (JQData).
+    The module ensures that raw data from various sources is transformed 
+    into a consistent, high-quality format suitable for quantitative analysis.
 
-Module Structure
-----------------
-    The `data` module is organized by provider and update logic:
-
-    I  joinquant/
-        The primary data source provider.
-        -- meta: Base classes and common standardization logic.
-        -- id_table: Incremental update logic based on unique IDs (e.g., 
-           Financial Statements, Corporate Actions).
-        -- dt_table: Time-series update logic based on trade dates (e.g., 
-           EOD Prices, Valuation Indicators).
-
-Core Interface
+Key Components
 --------------
-    The simplest way to maintain your local database is through the 
-    top-level `daily` function:
+    I   Data Sources (`joinquant/`)
+        -- `dt_table/`: Handles time-series and trade-date related tables 
+            (e.g., price data, index weights, industry classifications).
+        -- `id_table/`: Manages static or infrequently updated data 
+            organized by security ID (e.g., IPO information).
+        -- `meta/`: Base meta-class providing standardized hooks for 
+            data transformation, table management, and update logic.
 
-        import quanta.data as data
-        
-        # Synchronize all configured tables
-        data.daily()
+    II  Standardization Hooks
+        -- Implements specific "standardization" methods for different data 
+            types (e.g., `__data_standard_aindexweights__`) to handle 
+            vendor-specific eccentricities like time biases or unit 
+            conversions.
 
-    This function automatically:
-        1. Authenticates with JQData using your local credentials.
-        2. Scans local tables to find the last updated record.
-        3. Fetches missing data, standardizes it, and appends it locally.
+    III Automation Pipeline
+        -- `pipeline()`: The core method for extracting, cleaning, and 
+            augmenting data in a single flow.
+        -- `daily()`: Automated daily update mechanism that performs 
+            incremental or full refreshes based on table-specific rules.
+
+Engineering Standards
+---------------------
+    - **Schema Awareness**: Data ingestion is strictly driven by the schema 
+        definitions in the configuration files (`config/data.yaml`).
+    - **Persistence**: Fully integrated with the `libs.db` module for 
+        high-performance storage.
+    - **Type Safety**: Enforces strict data type standards during the 
+        transformation phase to ensure database integrity.
 
 ---
 
-# 数据管理 (中文版)
+# 数据获取与预处理 (data)
 
 概要
 ----
-    本目录是 `quanta` 框架的核心数据引擎. 它管理完整的 ETL (抽取, 转换, 
-    加载) 生命周期, 将专业金融数据从远程供应商同步至本地分析型数据库 
-    (DuckDB/MySQL).
+    `data` 模块管理 `quanta` 框架内财务数据的整个生命周期, 从摄取和标准
+    化到数据库中的持久化. 它主要基于 JoinQuant (JQData) 生态系统构建, 
+    为获取行情数据, 财务报表和因子元数据提供自动化流水线.
 
-    目前, 该模块深度集成了聚宽 (JoinQuant/JQData) 数据源.
+    该模块确保将来自各种来源的原始数据转换为适合量化分析的一致, 高质量
+    格式.
 
-模块结构
+核心组件
 --------
-    `data` 模块按供应商和更新逻辑进行组织:
+    I   数据源 (`joinquant/`)
+        -- `dt_table/`: 处理时间序列和交易日期相关的表 (如价格数据, 
+            指数权重, 行业分类).
+        -- `id_table/`: 管理按证券 ID 组织的静态或不常更新的数据 
+            (如 IPO 信息).
+        -- `meta/`: 基础元类, 为数据变换, 表管理和更新逻辑提供标准
+            化钩子.
 
-    I  joinquant/
-        主要数据供应商.
-        -- meta: 基础类及通用标准化逻辑.
-        -- id_table: 基于唯一 ID 的增量更新逻辑 (如: 财务报表, 
-           分红送股).
-        -- dt_table: 基于交易日期的序列更新逻辑 (如: 日末行情, 
-           估值指标).
+    II  标准化钩子
+        -- 为不同数据类型实现特定的“标准化”方法 (例如 
+            `__data_standard_aindexweights__`), 以处理供应商特定的
+            偏差, 如时间偏移或单位转换.
 
-核心接口
+    III 自动化流水线
+        -- `pipeline()`: 在单个流中提取, 清洗和增强数据的核心方法.
+        -- `daily()`: 自动化的每日更新机制, 根据表特定规则执行增量或
+            全量刷新.
+
 --------
-    维护本地数据库最简单的方法是使用顶层的 `daily` 函数:
-
-        import quanta.data as data
-        
-        # 同步所有配置的表格
-        data.daily()
-
-    该函数会自动执行以下操作:
-        1. 使用本地凭据通过 JQData 身份验证.
-        2. 扫描本地表以找到最后一条更新记录.
-        3. 获取缺失数据, 进行标准化处理并追加至本地.

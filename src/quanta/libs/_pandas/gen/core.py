@@ -390,10 +390,47 @@ def part_cut(
 
 
 def roll_weight(
-    df_obj,
-    weight_array,
-    fix_na=True):
+    df_obj: pd.DataFrame,
+    weight_array: Union[List, np.ndarray, pd.Series],
+    fix_na: bool = True
+) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Calculates a rolling weighted average of a DataFrame using a specified
+    weight array.
 
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        The input DataFrame.
+    weight_array : Union[List, np.ndarray, pd.Series]
+        The array of weights to be applied to the rolling window.
+    fix_na : bool
+        Whether to adjust weights to account for missing values in the window.
+        Default is True.
+
+    Returns
+    -------
+    pd.DataFrame
+        The rolling weighted average DataFrame.
+    ---------------------------------------------------------------------------
+    使用指定的权重数组计算 DataFrame 的滚动加权平均值.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        输入 DataFrame.
+    weight_array : Union[List, np.ndarray, pd.Series]
+        要应用于滚动窗口的权重数组.
+    fix_na : bool
+        是否调整权重以考虑窗口中的缺失值. 默认为 True.
+
+    返回
+    ----
+    pd.DataFrame
+        滚动加权平均后的 DataFrame.
+    ---------------------------------------------------------------------------
+    """
     window = len(weight_array)
     weight_array = np.array(weight_array)
     if fix_na:

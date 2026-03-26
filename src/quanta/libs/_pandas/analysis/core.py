@@ -127,40 +127,37 @@ def sharpe(
 def effective(df_obj: pd.DataFrame) -> pd.Series:
     """
     ===========================================================================
-    Calculates the 'effective' indicator, typically used after generating group
-    returns via `_pandas.gen.group().gen.portfolio()`.
+    Calculates the 'effective' indicator, typically used for group returns
+    to evaluate factor linearity.
 
-    If a factor is effective, the returns across its groups should exhibit
-    strong linearity. This indicator quantifies this by summing the
-    sign-preserved squared differences of returns across ranked groups:
-    effective_i = (rank.diff() ** 2 * np.sign(rank.diff())).sum()
+    This indicator quantifies factor quality by summing the sign-preserved
+    squared differences of returns across ranked groups. Higher values
+    indicate stronger monotonic relationships across factor bins.
 
     Parameters
     ----------
     df_obj : pd.DataFrame
-        The input group returns data.
+        The input DataFrame containing group returns (columns are groups).
 
     Returns
     -------
     pd.Series
-        The effective scores; higher values indicate better factor linearity.
+        The calculated effective scores for each period.
     ---------------------------------------------------------------------------
-    计算 'effective' 指标, 在一个因子基于_pandas.gen.group().gen.portfolio()之后.
-    可以获得其每组收益率,若因子是有效的,则其各个分组之间的收益率也会呈很好的线性性,通
-    过对这个分组收益率按分组排名取差分,根据差分的符号,以平方加权获得effective指标:
-    for i in DataFrame.index:
-        effective_i = (rank.diff() ** 2 * np.sign(rank.diff())).sum()
-                  
+    计算 'effective' 指标, 通常用于评估分组收益率的因子线性性.
+
+    该指标通过对排名分组之间的收益率差值进行符号保留的平方加权求和来量化因子质
+    量. 较高的数值表示因子分箱之间具有更强的单调关系.
 
     参数
     ----
     df_obj : pd.DataFrame
-        输入数据.
+        包含分组收益率的输入 DataFrame (列为各组别).
 
     返回
     ----
     pd.Series
-        effective值,越大越好.
+        每个周期计算得到的 effective 分数.
     ---------------------------------------------------------------------------
     """
     x = df_obj.diff(axis=1)

@@ -1,93 +1,81 @@
-# Database Abstraction Layer
+# Database Engine (db)
 
 Summary
 -------
-    The `db` module provides a high-level, engine-agnostic abstraction layer 
-    for database operations. It ensures that the rest of the `quanta` 
-    framework can interact with different storage backends (e.g., DuckDB, 
-    MySQL) using a unified set of internal protocols.
+    The `db` module is the core persistence layer of the `quanta` framework. 
+    It provides a unified interface for interacting with different database 
+    engines, primarily DuckDB (for local, high-performance analytical storage) 
+    and MySQL (for centralized, multi-user access).
 
-    The architecture is built on dynamic dispatch and attribute-driven 
-    configuration.
+    The module utilizes a facade pattern, where the `main` class dynamically 
+    inherits from the configured engine implementation.
 
-Module Structure
-----------------
-    The database layer is organized into three main components:
+Key Components
+--------------
+    I   Engine Facade (`main.py`)
+        -- Automatically selects the appropriate engine (DuckDB or MySQL) 
+            based on global settings.
+        -- Provides a consistent API for reading, writing, and managing tables.
 
-    I   _engines/
-        Contains specific driver implementations.
-        -- meta.py: The foundation class providing parameter merging (MRO 
-           analysis), timing decorators, and instance state management.
-        -- DuckDB.py: Optimized for local analytical workloads.
-        -- MySQL.py: Optimized for production-grade persistent storage.
+    II  Engine Implementations (`_engines/`)
+        -- `DuckDB.py`: Specialized implementation for DuckDB, optimized for 
+            fast analytical queries and local `.duckdb` files.
+        -- `MySQL.py`: Implementation for MySQL/MariaDB, supporting indexing, 
+            partitioning, and remote connections via SQLAlchemy/pymysql.
+        -- `meta.py`: Base class defining the mandatory interface and 
+            utility methods (like parameter merging and timing decorators).
 
-    II  _data_type_standard/
-        Manages the translation matrix between Pandas/NumPy types and 
-        database-specific SQL types, ensuring cross-engine integrity.
+    III Data Type Standardization (`_data_type_standard/`)
+        -- Ensures consistent mapping between Python/Pandas types and 
+            database-specific SQL types across different engines.
 
-    III main.py (Facade)
-        The primary entry point that automatically selects the active engine 
-        based on `libs.yaml` settings.
-
-Internal Protocols
-------------------
-    All engines implement a standardized set of internal methods:
-
-    -- `__read__`: Generic data retrieval with built-in timing.
-    -- `__write__`: Optimized batch writing for DataFrames.
-    -- `__create_table__`: Schema-aware table initialization with partitioning 
-       support (MySQL).
-    -- `__table_exist__`: Existence check across different schemas.
-
-Maintenance
------------
-    To add a new engine:
-        1. Inherit from `_engines.meta.main`.
-        2. Implement the standard internal protocol methods.
-        3. Register the engine mapping in `libs.yaml` and `db/main.py`.
+Core API
+--------
+    -- `read()`: Executes SQL queries and returns a Pandas DataFrame. Supports 
+        automatic parameterization and performance timing.
+    -- `write()`: Persists a DataFrame to a table. Handles table creation, 
+        existence checks, and data type mapping.
+    -- `command()`: Executes raw SQL commands.
+    -- `table_exist()`: Checks for the existence of a specific table in the 
+        schema.
+    -- `create_table()` / `drop_table()`: DDL operations for table management.
 
 ---
 
-# 数据库抽象层 (中文版)
+# 数据库引擎 (db)
 
 概要
 ----
-    `db` 模块为数据库操作提供了一个高级的、与引擎无关的抽象层. 它确保 
-    `quanta` 框架的其他部分可以使用一套统一的内部协议与不同的存储后端 
-    (如 DuckDB, MySQL) 进行交互.
+    `db` 模块是 `quanta` 框架的核心持久层. 它为与不同数据库引擎交互提供
+    了统一接口, 主要包括 DuckDB (用于本地, 高性能分析存储) 和 MySQL 
+    (用于中心化, 多用户访问).
 
-    该架构基于动态分派和属性驱动配置构建.
+    该模块采用外观模式, `main` 类根据配置设置动态继承相应的引擎实现.
 
-模块结构
+核心组件
 --------
-    数据库层由三个主要部分组成:
+    I   引擎外观 (`main.py`)
+        -- 根据全局设置自动选择合适的引擎 (DuckDB 或 MySQL).
+        -- 提供一致的 API 用于读取, 写入和管理表.
 
-    I   _engines/
-        包含具体的驱动实现.
-        -- meta.py: 基础类, 提供参数合并 (MRO 分析)、计时装饰器及
-           实例状态管理.
-        -- DuckDB.py: 针对本地分析型任务进行了优化.
-        -- MySQL.py: 针对生产级持久化存储进行了优化.
+    II  引擎实现 (`_engines/`)
+        -- `DuckDB.py`: 针对 DuckDB 的专用实现, 针对快速分析查询和本地 
+            `.duckdb` 文件进行了优化.
+        -- `MySQL.py`: 针对 MySQL/MariaDB 的实现, 支持通过 SQLAlchemy/
+            pymysql 进行索引, 分区和远程连接.
+        -- `meta.py`: 基类, 定义了强制性接口和实用方法 (如参数合并和计时
+            装饰器).
 
-    II  _data_type_standard/
-        管理 Pandas/NumPy 类型与数据库特定 SQL 类型之间的转换矩阵, 
-        确保跨引擎的数据完整性.
+    III 数据类型标准化 (`_data_type_standard/`)
+        -- 确保在不同引擎之间, Python/Pandas 类型与特定数据库的 SQL 类型
+            具有一致的映射.
 
-    III main.py (门面)
-        主要入口点, 根据 `libs.yaml` 设置自动选择活动的引擎.
-
-内部协议
+核心 API
 --------
-    所有引擎均实现了一套标准化的内部方法:
-
-    -- `__read__`: 具有内置计时功能的通用数据检索.
-    -- `__write__`: 针对 DataFrame 优化的批量写入.
-    -- `__create_table__`: 感知模式的表初始化, 支持分区 (MySQL).
-    -- `__table_exist__`: 跨不同模式的表存在性检查.
-
-维护指南
---------
-    添加新引擎的步骤:
-        1. 继承自 `_engines.meta.main`.
-        2. 实现标准的内部协议方法.
-        3. 在 `libs.yaml` 和 `db/main.py` 中注册引擎映射.
+    -- `read()`: 执行 SQL 查询并返回 Pandas DataFrame. 支持自动参数化
+        和性能计时.
+    -- `write()`: 将 DataFrame 持久化到表中. 处理表创建, 存在性检查和
+        数据类型映射.
+    -- `command()`: 执行原始 SQL 命令.
+    -- `table_exist()`: 检查模式中是否存在指定表.
+    -- `create_table()` / `drop_table()`: 用于表管理的 DDL 操作.
