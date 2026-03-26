@@ -11,7 +11,7 @@ from typing import Optional, Dict, List, Union
 
 from quanta.libs._pandas.tools.core import fillna as fillna_func
 
-__all__ = ['group', 'weight', 'portfolio', 'cut', 'part_cut']
+__all__ = ['group', 'weight', 'portfolio', 'cut', 'part_cut', 'roll_weight']
 
 
 def group(
@@ -387,3 +387,25 @@ def part_cut(
         obj = x if obj is None else (obj.shift(fill_value=False) | x)
         df_obj = df_obj[~obj]
     return obj
+
+
+def roll_weight(
+    df_obj,
+    weight_array,
+    fix_na=True):
+
+    window = len(weight_array)
+    weight_array = np.array(weight_array)
+    if fix_na:
+        x = df_obj.fillna(0).rolling(window).apply(lambda x: weight_array @ x, raw=True)
+        reweight = df_obj.notnull().rolling(window).apply(lambda x: weight_array @ x, raw=True)
+        x = x / reweight
+    else:
+        x = df_obj.rolling(window).apply(lambda x: weight_array @ x, raw=True)
+    return x
+        
+    
+        
+    
+    
+    

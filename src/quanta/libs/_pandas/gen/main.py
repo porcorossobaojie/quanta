@@ -83,3 +83,11 @@ class main():
         part: int = 5
     ) -> pd.DataFrame:
         return part_cut(self._obj, left, right, rng_left, rng_right, pct, ascending, part)
+
+    @doc_inherit(roll_weight)
+    def roll_weight(
+        self,
+        weight_array, 
+        fix_na=True
+    ):
+        return roll_weight(self._obj, weight_array, fix_na)
