@@ -605,7 +605,7 @@ def merge(
     factors_dict = {i: (j.stats.standard() if standard else j) for i, j in enumerate(factors)}
     ins = __instance__[portfolio_type]
     for i, j in factors_dict.items():
-        parameters = ins(config.returns).stats.neutral(fac=j.shift()).params.fac
+        parameters = ins(config.trade_keys.returns).stats.neutral(fac=j.shift()).params.fac
         parameters = parameter_standard(parameters).rolling(5).mean()
         factors_dict[i] = factors_dict[i].mul(parameters, axis=0)
     factors_merged = pd.concat(factors_dict, axis=1).groupby(factors[0].columns.name, axis=1).mean()
@@ -713,6 +713,7 @@ def trend(
 
 def ic(
     df_obj: pd.DataFrame,
+    shift = 1,
     listing_limit: int = 126,
     drop_st: int = 1,
     tradestatus: bool = True,
@@ -726,6 +727,8 @@ def ic(
     ----------
     df_obj : pd.DataFrame
         The factor values.
+    shift : int
+        shift of returns
     listing_limit : int
         Minimum listing duration. Default is 126.
     drop_st : int
@@ -746,6 +749,8 @@ def ic(
     ----
     df_obj : pd.DataFrame
         因子值.
+    shift : int
+        和滞后n期的returns做ic
     listing_limit : int
         最小上市时长. 默认为 126.
     drop_st : int
@@ -765,7 +770,7 @@ def ic(
     filter_df = filtered(listing_limit, drop_st, tradestatus, portfolio_type).reindex_like(df_obj).fillna(False)
     df_obj = df_obj[filter_df]
     ret = __instance__[portfolio_type](config.trade_keys.returns)
-    x = df_obj.shift().corrwith(ret, axis=1)
+    x = df_obj.shift(shift).corrwith(ret, axis=1)
     return x
 
 

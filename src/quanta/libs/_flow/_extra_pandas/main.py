@@ -80,6 +80,7 @@ class flow_extra():
         x = enstatus(portfolio_type, periods, min_periods).reindex_like(self._obj).fillna(False)
         return self._obj[x]
 
+    @lru_cache(maxsize=2)
     @doc_inherit(filtered)
     def filtered(
         self,
@@ -101,7 +102,8 @@ class flow_extra():
     ):
         x = trend(self._obj, periods)
         return x
-    
+
+    @lru_cache(maxsize=2)
     @doc_inherit(index_members)
     def index_members(
         self,
@@ -112,6 +114,7 @@ class flow_extra():
         x = ~x if invert else x
         return self._obj[x]
 
+    @lru_cache(maxsize=2)
     @doc_inherit(label)
     def label(
         self,
@@ -148,12 +151,13 @@ class flow_extra():
     @doc_inherit(ic)
     def ic(
         self,
+        shift = 1,
         listing_limit: int = 126,
         drop_st: int = 1,
         tradestatus: bool = True,
         portfolio_type: Optional[str] = None
     ) -> pd.Series:
-        return ic(self._obj, listing_limit, drop_st, tradestatus, portfolio_type)
+        return ic(self._obj, shift, listing_limit, drop_st, tradestatus, portfolio_type)
 
     @lru_cache(maxsize=2)
     @doc_inherit(ir)

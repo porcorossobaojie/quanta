@@ -22,7 +22,7 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=4)
-    def momentum(
+    def momentum_classic(
         cls,
         long_periods: int = 504,
         short_periods: int = 21,
@@ -89,7 +89,7 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=4)
-    def momentum2(
+    def momentum(
         cls,
         long_periods: int = 504,
         short_periods: int = 21,
@@ -151,9 +151,10 @@ class main(meta):
         w_mom = entrade.rolling(long_periods).apply(lambda x: w @ x, raw=True)
         bench_mom = bench.rolling(long_periods).apply(lambda x: w @ x, raw=True)
 
-        x = ((ret_mom) / w_mom)
+        x = (ret_mom / w_mom) - bench_mom.shift(21)
         x = x.f.tradestatus(long_periods, halflife)
         return x
+    
     @classmethod
     @lru_cache(maxsize=4)
     def _dastd(
