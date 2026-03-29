@@ -179,7 +179,7 @@ class Unit:
     def set_target(self, v: Union[Series, pd.Series]) -> None:
         """Sets the target weights | 设置目标权重"""
         roll = self.roll()
-        x = Series(v, state='settle', unit='weight').weight().share(roll.total_assets())
+        x = Series(v.astype(float), state='settle', unit='weight').weight().share(roll.total_assets())
         self._target = x
 
     def __call__(self, new_target: Union[Series, pd.Series]) -> 'Unit':

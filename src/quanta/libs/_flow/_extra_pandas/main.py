@@ -80,7 +80,6 @@ class flow_extra():
         x = enstatus(portfolio_type, periods, min_periods).reindex_like(self._obj).fillna(False)
         return self._obj[x]
 
-    @lru_cache(maxsize=2)
     @doc_inherit(filtered)
     def filtered(
         self,
@@ -94,10 +93,10 @@ class flow_extra():
         portfolio_type = self._obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
         x = filtered(listing_limit, drop_st, tradestatus, portfolio_type, periods, min_periods).reindex_like(self._obj).fillna(False)
         return self._obj[x]
-    
+
     @doc_inherit(trend)
     def trend(
-        self, 
+        self,
         periods=21
     ):
         x = trend(self._obj, periods)
@@ -114,7 +113,6 @@ class flow_extra():
         x = ~x if invert else x
         return self._obj[x]
 
-    @lru_cache(maxsize=2)
     @doc_inherit(label)
     def label(
         self,
@@ -147,7 +145,6 @@ class flow_extra():
     ) -> pd.DataFrame:
         return info(self._obj, column, portfolio_type)
 
-    @lru_cache(maxsize=2)
     @doc_inherit(ic)
     def ic(
         self,
@@ -159,7 +156,6 @@ class flow_extra():
     ) -> pd.Series:
         return ic(self._obj, shift, listing_limit, drop_st, tradestatus, portfolio_type)
 
-    @lru_cache(maxsize=2)
     @doc_inherit(ir)
     def ir(
         self,
@@ -170,8 +166,7 @@ class flow_extra():
     ) -> pd.Series:
         x = self.ic(listing_limit, drop_st, tradestatus, portfolio_type)
         return ir(x)
-    
-    @lru_cache(maxsize=1)
+
     @doc_inherit(port)
     def port(
         self,
@@ -185,7 +180,7 @@ class flow_extra():
             self._internal_port_result = x
         x = self._internal_port_result
         return x
-    
+
     @doc_inherit(corr)
     def corr(self, others=None):
         return corr(self._obj, others)
