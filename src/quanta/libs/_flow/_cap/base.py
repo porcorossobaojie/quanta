@@ -129,8 +129,8 @@ class Series(pd.Series):
                 pd.to_datetime(other.name) if other.name else pd.Timestamp.min
             )
             index = self.index.union(other.index)
-            x = self.reindex(index, fill_value=0).astype('float64')
-            other = other.reindex(index, fill_value=0).astype('float64')
+            x = self.reindex(index).fillna(0).astype('float64')
+            other = other.reindex(index).fillna(0).astype('float64')
             if getattr(other, 'unit', self.unit) != self.unit:
                 raise ValueError('<WARNING>: portoflio unit isnot match...')
             x = super(Series, x).__add__(other).astype('float64')
@@ -152,8 +152,8 @@ class Series(pd.Series):
                 pd.to_datetime(other.name) if other.name else pd.Timestamp.min
             )
             index = self.index.union(other.index)
-            x = self.reindex(index, fill_value=0).astype('float64')
-            other = other.reindex(index, fill_value=0).astype('float64')
+            x = self.reindex(index).fillna(0).astype('float64')
+            other = other.reindex(index).fillna(0).astype('float64')
             if getattr(other, 'unit', self.unit) != self.unit:
                 raise ValueError('<WARNING>: portoflio unit isnot match...')
             x = super(Series, x).__sub__(other).astype('float64')
