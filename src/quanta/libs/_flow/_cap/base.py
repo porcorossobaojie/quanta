@@ -156,7 +156,7 @@ class Series(pd.Series):
             other = other.reindex(index, fill_value=0).astype('float64')
             if getattr(other, 'unit', self.unit) != self.unit:
                 raise ValueError('<WARNING>: portoflio unit isnot match...')
-            x = super(Series, x).__sub__(other)
+            x = super(Series, x).__sub__(other).astype('float64')
             x.name = new_name
             x.cash = x.cash - getattr(other, 'cash', 0)
         else:

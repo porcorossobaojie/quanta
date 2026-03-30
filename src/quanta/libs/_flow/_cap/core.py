@@ -200,19 +200,19 @@ class Unit:
         dic = {}
         if actual:
             try:
-                x = round(self.entrade.assets().abs().sum() / self.settle.total_assets(), 3)
+                x = round(self.entrade.assets().abs().sum() / self.settle.total_assets(), 5)
             except:
                 x = 0
             dic['actual'] = x
         if theory:
             try:
-                x = round(self.trade.assets().abs().sum() / self.settle.total_assets(), 3)
+                x = round(self.trade.assets().abs().sum() / self.settle.total_assets(), 5)
             except:
                 x = 0
             dic['theory'] = x
         if order:
             try:
-                x = round(self.order.assets().abs().sum() / self.settle.total_assets(), 3)
+                x = round(self.order.assets().abs().sum() / self.settle.total_assets(), 5)
             except:
                 x = 0
             dic['order'] = x
@@ -228,19 +228,19 @@ class Unit:
         dic = {}
         if actual:
             try:
-                x = round(self.roll().total_assets() / self.settle.total_assets() - 1, 3)
+                x = round(self.roll().total_assets() / self.settle.total_assets() - 1, 5)
             except:
                 x = 0
             dic['actual'] = x
         if theory:
             try:
-                x = round(((self.settle + self.trade).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 3)
+                x = round(((self.settle + self.trade).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 5)
             except:
                 x = 0
             dic['theory'] = x
         if order:
             try:
-                x = round(((self.settle + self.order).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 3)
+                x = round(((self.settle + self.order).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 5)
             except:
                 x = 0
             dic['order'] = x
@@ -304,10 +304,11 @@ class Chain:
         dic[unit_obj.settle.name] = unit_obj
         for i,j in self._obj.iloc[1:].iterrows():
             if i.month != unit_obj.settle.name.month:
-                print(unit_obj.settle.name, round(unit_obj.roll().total_assets(), 4))
+                print(unit_obj.settle.name, round(unit_obj.settle.total_assets(), 4))
             unit_obj = unit_obj(j)
-            dic[i] = unit_obj
+            dic[unit_obj.settle.name] = unit_obj
             self._internal_data = dic
+        print(unit_obj.settle.name, round(unit_obj.settle.total_assets(), 4))
         return dic
 
     @property
