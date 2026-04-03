@@ -77,77 +77,10 @@ class main(meta):
         df = cls.size()
         df = (df ** 3).stats.neutral(me=df, weight= (df ** 0.5).values).resid.tools.log().stats.standard()
         return df
-
-    @classmethod
-    @lru_cache(maxsize=8)
-    def _beta(
-        cls,
-        periods: int = 252,
-        halflife: int = None,
-        bench: str = 'full',
-        portfolio_type: str = 'astock'
-    ) -> pd.DataFrame:
-        """
-        =======================================================================
-        Calculate the beta-related metrics using weighted OLS with rolling
-        apply (standard approach).
-
-        Parameters
-        ----------
-        periods : int
-            The lookback period for calculation.
-        halflife : int, optional
-            The halflife for exponential weighting.
-        bench : str
-            The benchmark name to use.
-        portfolio_type : str
-            The type of portfolio (e.g., 'astock').
-
-        Returns
-        -------
-        pd.DataFrame
-            A MultiIndex DataFrame containing alpha, beta, and resid.
-        -----------------------------------------------------------------------
-        使用滚动应用的标准加权最小二乘法计算贝塔相关指标.
-
-        参数
-        ----
-        periods : int
-            计算使用的回看窗口.
-        halflife : int, 可选
-            指数加权的半衰期.
-        bench : str
-            使用的基准名称.
-        portfolio_type : str
-            组合类型 (例如 'astock').
-
-        返回
-        ----
-        pd.DataFrame
-            包含 alpha, beta 和 resid 的多重索引数据框.
-        -----------------------------------------------------------------------
-        """
-        halflife = periods//4 if halflife is None else halflife
-        ret = getattr(flow, portfolio_type)(cls.trade.returns).fillna(0).astype('float32')
-        entrade = ret.f.tradestatus().notnull()
-        bench = cls.bench(bench)
-        bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns)[entrade].fillna(0).astype('float32')
-        w = pd.tools.halflife(periods, halflife)[np.newaxis, :].astype('float32')
-
-        roll = pd.concat({'ret':ret, 'w':entrade, 'bench':bench}, axis=1).rolling(periods).apply(lambda x: w @ x, raw=True)
-        y = (ret - roll.ret /roll.w)
-        x = (bench - roll.bench / roll.w)
-        beta = (x * y).rolling(periods).apply(lambda x: w @ x, raw=True) / (x * x).rolling(periods).apply(lambda x: w @ x, raw=True)
-        alpha = roll.ret / roll.w - beta * roll.bench / roll.w
-        resid = (ret - alpha.bfill() - beta.bfill() * bench) ** 2
-        resid = resid.rolling(periods).apply(lambda x: w @ x, raw=True)
-        resid = resid / roll.w
-        df = pd.concat({i:j.f.tradestatus(periods=periods, min_periods=halflife) for i,j in {'alpha':alpha, 'beta':beta, 'resid':resid}.items()}, axis=1)
-        return df
     
     @classmethod
     @lru_cache(maxsize=8)
-    def _beta2(
+    def _beta(
         cls,
         periods: int = 252,
         halflife: int = None,
@@ -218,8 +151,7 @@ class main(meta):
         y_vals = np.mean(y_vals, axis=1) ** 0.5
         resid = pd.DataFrame(y_vals, columns=ret.columns, index=ret.index[periods-1:])
         df = pd.concat({i:j.f.tradestatus(periods=periods, min_periods=halflife) for i,j in {'alpha':alpha, 'beta':beta, 'resid':resid}.items()}, axis=1)
-        return df
-        
+        return df       
         
     @classmethod
     def beta(
@@ -268,4 +200,4 @@ class main(meta):
             计算得到的贝塔因子.
         -----------------------------------------------------------------------
         """
-        return cls._beta2(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type).beta
+        return cls._beta(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type).beta
