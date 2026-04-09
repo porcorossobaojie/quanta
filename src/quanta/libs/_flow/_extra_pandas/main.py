@@ -187,24 +187,6 @@ class flow_extra():
 
     @lru_cache(maxsize=2)
     @doc_inherit(qtest)
-    def test(
-        self,
-        shift: int = 0,
-        high: Optional[str] = None,
-        low: Optional[str] = None,
-        avgprice: Optional[str] = None,
-        trade_price: Optional[str] = None,
-        settle_price: Optional[str] = None,
-        limit: float = 0.01,
-        trade_cost: float = 0.0015,
-        portfolio_type: Optional[str] = None
-    ) -> Any:
-        df = self._obj if shift == 0 else self._obj.shift(shift).dropna(how='all')
-        obj = qtest(df, high, low, avgprice, trade_price, settle_price, limit, trade_cost, portfolio_type)
-        return obj
-
-    @lru_cache(maxsize=2)
-    @doc_inherit(qtest)
     def chain(
         self,
         cash=10000,

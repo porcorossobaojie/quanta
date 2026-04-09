@@ -1005,3 +1005,55 @@ def qtest(
             assets = portfolio_settle
             shares = portfolio_hold
     return back_test
+
+class test:
+    trade_price = config.trade_keys.avgprice_adj
+    settle_pirce = config.trade_keys.close_adj
+    compare_price = config.trade_keys.avgprice
+    high = config.trade_keys.high_limit
+    low = config.trade_keys.low_limit
+    limit = 0.01
+    cost = 0.00075
+    
+    def __init__(
+        self,
+        df,
+    ):
+        df = df.astype('float')
+        df = df[df > 0].dropna(how='all', axis=1)
+        df = df.div(df.sum(axis=1), axis=0)
+        self._internal_data = df
+    
+    @lru_cache(maxsize=1)
+    def _low_limit(self, limit):
+        x = 1 - self._internal_data.f.info(self.low) / self._internal_data.f.info(self.compare_price) > limit
+        return x
+    @property
+    def low_limit(self):
+        return self._low_limit(self.limit)
+    
+    @lru_cache(maxsize=1)
+    def _high_limit(self, limit):
+        x = self._internal_data.f.info(self.high) / self._internal_data.f.info(self.compare_price) - 1 > limit
+        return x
+    @property
+    def high_limit(self):
+        return self._high_limit(self.limit)
+                
+    def sell(self):
+        df = self._internal_data.copy()
+        df = df.div(df.sum(axis=1), axis=0)
+        
+        
+        
+        
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
