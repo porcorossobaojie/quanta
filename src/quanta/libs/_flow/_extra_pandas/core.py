@@ -7,6 +7,7 @@ Created on Fri Feb 20 15:40:15 2026
 
 import numpy as np
 import pandas as pd
+from dataclasses import dataclass, make_dataclass
 from functools import lru_cache
 from typing import Optional, Union, List, Dict, Any, Tuple
 from quanta.libs._flow._main import __instance__
@@ -1008,7 +1009,7 @@ def qtest(
 
 class test:
     trade_price = config.trade_keys.avgprice_adj
-    settle_pirce = config.trade_keys.close_adj
+    settle_price = config.trade_keys.close_adj
     compare_price = config.trade_keys.avgprice
     high = config.trade_keys.high_limit
     low = config.trade_keys.low_limit
@@ -1018,15 +1019,16 @@ class test:
     def __init__(
         self,
         df,
+        shift = 1
     ):
-        df = df.astype('float')
-        df = df[df > 0].dropna(how='all', axis=1)
+        df = df.astype('float').shift(shift)
+        df = df[df > 0].dropna(how='all', axis=1).dropna(how='all', axis=0)
         df = df.div(df.sum(axis=1), axis=0)
-        self._internal_data = df
+        self._internal_data = df.fillna(0)
     
     @lru_cache(maxsize=1)
     def _low_limit(self, limit):
-        x = 1 - self._internal_data.f.info(self.low) / self._internal_data.f.info(self.compare_price) > limit
+        x = 1 - self._internal_data.f.info(self.low) / self._internal_data.f.info(self.compare_price) < limit
         return x
     @property
     def low_limit(self):
@@ -1034,19 +1036,127 @@ class test:
     
     @lru_cache(maxsize=1)
     def _high_limit(self, limit):
-        x = self._internal_data.f.info(self.high) / self._internal_data.f.info(self.compare_price) - 1 > limit
+        x = self._internal_data.f.info(self.high) / self._internal_data.f.info(self.compare_price) - 1 < limit
         return x
     @property
     def high_limit(self):
         return self._high_limit(self.limit)
-                
-    def sell(self):
-        df = self._internal_data.copy()
-        df = df.div(df.sum(axis=1), axis=0)
+    
+    @property            
+    @lru_cache(maxsize=1)
+    def entrade(self):
+        df = self._internal_data
+        values = df.values
+        high = self.high_limit.values
+        low = self.low_limit.values
+        lst = np.zeros_like(values)
+        lst[0] = np.where(~high[0], values[0], 0)
+
+        for i in range(1, values.shape[0]):
+            diff = values[i] - lst[i-1]
+            lst[i] = np.where(
+                ((diff > 0) & (~high[i])) | ((diff < 0) & (~low[i])),
+                values[i],
+                lst[i-1]
+            )
+        x = pd.DataFrame(lst, index=df.index, columns=df.columns)
+        return x
         
+    @property
+    @lru_cache(maxsize=1)
+    def trade_difference(self):
+        x = self._internal_data - self.entrade
+        x = x[x != 0].dropna(how='all', axis=1).dropna(how='all', axis=0)
+        return x
+    
+    @property
+    @lru_cache(maxsize=1)
+    def unbuy(self):
+        x = self.trade_difference
+        x = x[x > 0].dropna(how='all', axis=1).dropna(how='all', axis=0)
+        return x
+            
+    @property
+    @lru_cache(maxsize=1)
+    def unsell(self):
+        x = self.trade_difference
+        x = x[x < 0].dropna(how='all', axis=1).dropna(how='all', axis=0)
+        return x            
+            
+    def action_returns(self, df):
+        buy_actions = df[(df.shift() == 0) & df > 0].notnull()
+        buy_ret = (buy_actions.f.info(self.trade_price) / buy_actions.f.info(self.settle_price))[buy_actions] - 1
+        sell_actions =  df[(df.shift(-1) == 0) & df > 0].notnull()
+        sell_ret = ( sell_actions.f.info(self.settle_price).shift() / sell_actions.f.info(self.trade_price))[sell_actions] - 1
+        return type('returns', (), {'buy':buy_ret, 'sell':sell_ret})
+    
+    def real_returns(self, df):
+        action_returns = self.action_returns(df)
+        real_returns = action_returns.buy.fillna(action_returns.sell).fillna(df.f.info(config.trade_keys.returns))
+        real_returns = real_returns[df > 0]
+        return real_returns
+    
+    def summary(self, rebalance=True):
+        thoery_returns = (self._internal_data * self._internal_data.f.info(config.trade_keys.returns)).sum(axis=1)
+        thoery_turnover = self._internal_data.diff().fillna(self._internal_data).abs().sum(axis=1)
+        thoery_cost = thoery_turnover * self.cost
         
+        entrade = self.entrade
+        if rebalance:
+            entrade = entrade.div(entrade.sum(axis=1), axis=0)
+        real_returns = (entrade * self.real_returns(entrade)).sum(axis=1)
+        real_turnover = entrade.diff().fillna(entrade).abs().sum(axis=1)
+        real_cost = real_turnover * self.cost
         
+        dic = {
+            'returns':{
+                'thoery': {
+                    'pure': thoery_returns,
+                    'cost':thoery_cost,
+                    'final': thoery_returns - thoery_cost
+                },
+                'real': {
+                    'pure': real_returns,
+                    'cost': real_cost,
+                    'final': real_returns - real_cost,
+                    'detail': self.real_returns(self.entrade)
+                },
+                'action': self.action_returns(self.entrade)
+            },
+            'turnvoer':{
+                'thoery': thoery_turnover,
+                'real': real_turnover
+            },
+            'order':{
+                'thoery': self._internal_data,
+                'real': self.entrade,
+                'difference': self.trade_difference,
+                'unbuy': self.unbuy,
+                'unsell': self.unsell
+            }
+        }
+        def dict_to_dataclass(dic: Dict, name: str = "Root"):
+            """
+            动态将包含 DataFrame 的字典转换为 dataclass 对象
+            """
+            fields = []
+            field_values = {}
+            for key, value in dic.items():
+                if isinstance(value, dict):
+                    # 递归处理嵌套字典
+                    sub_obj = dict_to_dataclass(value, name=key.capitalize())
+                    fields.append((key, type(sub_obj)))
+                    field_values[key] = sub_obj
+                else:
+                    # 自动识别类型：如果是 DataFrame，会自动标注为 pd.DataFrame
+                    fields.append((key, type(value)))
+                    field_values[key] = value
         
+            # 动态创建类
+            dynamic_cls = make_dataclass(name, fields)
+            return dynamic_cls(**field_values)
+        
+        return dict_to_dataclass(dic)
         
     
     
