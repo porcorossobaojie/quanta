@@ -6,8 +6,9 @@ Created on Wed Feb  4 13:58:29 2026
 """
 
 from typing import Dict, List, Any, Type
+from dataclasses import dataclass, make_dataclass
 
-__all__ = ['filter_class_attrs', 'filter_parents_class_attrs', 'merge_dicts', 'flatten_list']
+__all__ = ['filter_class_attrs', 'filter_parents_class_attrs', 'merge_dicts', 'flatten_list', 'dict_to_dataclass']
 
 
 def filter_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
@@ -177,3 +178,25 @@ def flatten_list(lst: List[Any]) -> List[Any]:
     return sum(
         (flatten_list(i) if isinstance(i, list) else [i] for i in lst), []
     )
+
+def dict_to_dataclass(dic: Dict, name: str = "Root"):
+    """
+    动态将包含 DataFrame 的字典转换为 dataclass 对象
+    """
+    fields = []
+    field_values = {}
+    for key, value in dic.items():
+        if isinstance(value, dict):
+            # 递归处理嵌套字典
+            sub_obj = dict_to_dataclass(value, name=key.capitalize())
+            fields.append((key, type(sub_obj)))
+            field_values[key] = sub_obj
+        else:
+            # 自动识别类型：如果是 DataFrame，会自动标注为 pd.DataFrame
+            fields.append((key, type(value)))
+            field_values[key] = value
+
+    # 动态创建类
+    dynamic_cls = make_dataclass(name, fields)
+    return dynamic_cls(**field_values)
+

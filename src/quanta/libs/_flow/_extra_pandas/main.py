@@ -186,13 +186,22 @@ class flow_extra():
         return corr(self._obj, others)
 
     @lru_cache(maxsize=2)
-    @doc_inherit(qtest)
+    @doc_inherit(Chain)
     def chain(
         self,
         cash=10000,
         trade_cost=True
     ):
         return Chain(self._obj, cash, trade_cost)
+
+    @lru_cache(maxsize=2)
+    @doc_inherit(Chain)
+    def test(
+        self,
+        shift = 1
+    ):
+        return test(self._obj, shift)
+
 
 @pd.api.extensions.register_series_accessor(config.extra_pandas_attrname)
 class flow_extra_series():
