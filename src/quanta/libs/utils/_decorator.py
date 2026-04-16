@@ -9,7 +9,7 @@ from typing import Optional, Dict, Any, List, Tuple
 from functools import wraps
 import time
 
-__all__ = ['timing_decorator', 'doc_inherit']
+__all__ = ['timing_decorator', 'doc_inherit', 'lru_cache']
 
 
 def doc_inherit(source_func: Any):
@@ -114,5 +114,27 @@ def timing_decorator(
                 return result
             else:
                 return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def lru_cache(maxsize=4):
+    def decorator(func):
+        # 闭包内的缓存字典：Key 为 (cls, args, kwargs)
+        _cache = {}
+        
+        @wraps(func)
+        def wrapper(cls, *args, **kwargs):
+            # 关键点：将 cls 本身作为 Key 的一部分
+            key = (cls, args, tuple(sorted(kwargs.items())))
+            
+            if key not in _cache:
+                # 简单的 LRU 清理逻辑
+                if len(_cache) >= maxsize:
+                    _cache.pop(next(iter(_cache)))
+                
+                # 执行真正的计算
+                _cache[key] = func(cls, *args, **kwargs)
+                
+            return _cache[key]
         return wrapper
     return decorator

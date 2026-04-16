@@ -48,7 +48,7 @@ class main(meta):
             账面市值比相对于市值因子的残差.
         -----------------------------------------------------------------------
         """
-        total_assets = flow.astock.finance(cls.finance.total_assets, shift=2)
+        total_assets = flow.astock.finance(cls.finance.total_assets, shift=4)
         mv = flow.astock(cls.finance.val_mv)
         x = (total_assets / mv / 1e8).stats.neutral(fac=cls.size()).resid
         return x

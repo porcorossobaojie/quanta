@@ -7,7 +7,7 @@ Created on Fri Mar 20 11:36:01 2026
 
 import numpy as np
 import pandas as pd
-from functools import lru_cache
+from quanta.libs.utils import lru_cache
 
 from quanta import flow, faclib
 from quanta.config import settings
