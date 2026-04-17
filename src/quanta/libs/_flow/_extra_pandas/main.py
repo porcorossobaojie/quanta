@@ -228,3 +228,11 @@ class flow_extra_series():
     @doc_inherit(day_shift)
     def day_shift(self, shift: int = 1, copy=True) -> pd.Series:
         return day_shift(self._obj, shift, copy)
+    
+    @doc_inherit(day_shift)
+    def ic_predict(self,
+        windows = (5,10,15,21,42,63),
+        diff = (1),
+        periods = 42        
+    ):
+        return day_shift(self._obj, windows, diff, periods)

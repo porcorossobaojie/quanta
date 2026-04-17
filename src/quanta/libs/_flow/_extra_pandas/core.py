@@ -774,8 +774,32 @@ def ic(
     ret = __instance__[portfolio_type](config.trade_keys.returns)
     x = df_obj.shift(shift).corrwith(ret, axis=1)
     return x
-
-
+        
+def ic_predict(
+    Series,
+    windows = (5,10,15,21,42,63),
+    diff = (1,),
+    periods = 42        
+):
+    val = {w:pd.tools.array_roll(Series.values.astype('float32')[:, np.newaxis], w) for w in windows}
+    val = {i.__str__(): np.einsum('w, twk -> t', pd.tools.halflife(i, i//4), j) for i,j in val.items()}
+    for d in diff:
+        x = Series.diff(d)
+        temp_val = {w:pd.tools.array_roll(x.values.astype('float32')[:, np.newaxis], w) for w in windows}
+        temp_val = {f"{i}_{d}": np.einsum('w, twk -> t', pd.tools.halflife(int(i), int(i)//4), j) for i,j in temp_val.items()}
+        val = val | temp_val
+    val = np.array([np.pad(i, (Series.shape[0]-i.shape[0], 0), mode='constant', constant_values=np.nan) for i in val.values()]).T
+    val = np.insert(val, 0, np.ones_like(Series.values), axis=1)
+    val = np.insert(val, 0, Series.shift(-1).values.astype('float32'), axis=1)
+    val = pd.tools.array_roll(val, periods)
+    from quanta.libs._pandas.stats.core import _lstsq
+    x = _lstsq(val)[0]
+    resid = val[:, :, 0] - np.einsum('tk, twk -> tw', x, val[:, :, 1:])
+    r = 1 - resid.var(axis=1) / val[:, :, 0].var(axis=1)
+    y_pred =  (x[:-1, :] * val[1:, -1, 1:]).sum(axis=1)
+    df = pd.DataFrame(np.array([y_pred, r[:-1]]), columns = Series.index[-y_pred.shape[0]:], index=['p', 'r']).T
+    return df
+    
 def ir(
     df_obj: Union[pd.DataFrame, pd.Series],
     periods: int = 126,
