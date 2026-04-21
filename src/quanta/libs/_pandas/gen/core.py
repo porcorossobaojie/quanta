@@ -11,7 +11,7 @@ from typing import Optional, Dict, List, Union
 
 from quanta.libs._pandas.tools.core import fillna as fillna_func
 
-__all__ = ['group', 'weight', 'portfolio', 'cut', '_cut', 'roll_weight']
+__all__ = ['group', 'weight', 'portfolio', 'cut', 'roll_weight']
 
 
 def group(
@@ -307,23 +307,6 @@ def cut(
         lst.append(hold.values)
     lst = pd.DataFrame(np.vstack(lst), index=df_obj.index, columns=df_obj.columns)
     return lst
-
-def _cut(df_obj, count, max_count):
-    x = df_obj.dropna(how='all')
-    vals = x.values
-    rank = x.rank(axis=1, ascending=False).values
-
-    array = np.zeros_like(vals)
-
-    array[0] = np.where(rank[0] <= count, vals[0], array[0])
-
-    for i in range(1, array.shape[0]):
-        array[i] = np.where((rank[i] < 300), array[i-1], 0)
-        real_cut = count - (array[i] > 0).sum()
-        if real_cut > 0:
-            array[i] = np.where(rank[i] <= real_cut, vals[i], array[i])
-    result = pd.DataFrame(array, index=x.index, columns=x.columns)
-    return result > 0
 
 def roll_weight(
     df_obj: pd.DataFrame,
