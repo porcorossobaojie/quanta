@@ -11,7 +11,7 @@ from typing import Optional, Dict, List, Union
 
 from quanta.libs._pandas.tools.core import fillna as fillna_func
 
-__all__ = ['group', 'weight', 'portfolio', 'cut', 'part_cut', 'roll_weight']
+__all__ = ['group', 'weight', 'portfolio', 'cut', '_cut', 'roll_weight']
 
 
 def group(
@@ -308,86 +308,22 @@ def cut(
     lst = pd.DataFrame(np.vstack(lst), index=df_obj.index, columns=df_obj.columns)
     return lst
 
+def _cut(df_obj, count, max_count):
+    x = df_obj.dropna(how='all')
+    vals = x.values
+    rank = x.rank(axis=1, ascending=False).values
 
-def part_cut(
-    df_obj: pd.DataFrame,
-    left: Union[int, float],
-    right: Union[int, float],
-    rng_left: Union[int, float],
-    rng_right: Union[int, float],
-    pct: bool = True,
-    ascending: bool = False,
-    part: int = 5
-) -> pd.DataFrame:
-    """
-    ===========================================================================
-    Performs a phased cut operation by dividing the DataFrame into parts
-    to spread turnover.
+    array = np.zeros_like(vals)
 
-    Parameters
-    ----------
-    df_obj : pd.DataFrame
-        The input DataFrame.
-    left : Union[int, float]
-        The lower bound of the target rank range.
-    right : Union[int, float]
-        The upper bound of the target rank range.
-    rng_left : Union[int, float]
-        The buffer range on the left for hysteresis.
-    rng_right : Union[int, float]
-        The buffer range on the right for hysteresis.
-    pct : bool
-        Whether ranks are calculated as percentages. Default is True.
-    ascending : bool
-        The sort order for ranking. Default is False.
-    part : int
-        The number of parts to divide the data into. Default is 5.
+    array[0] = np.where(rank[0] <= count, vals[0], array[0])
 
-    Returns
-    -------
-    pd.DataFrame
-        A boolean DataFrame indicating selected assets across all parts.
-    ---------------------------------------------------------------------------
-    通过将 DataFrame 分成多个部分来执行分阶段切片操作, 以分散换手率.
-
-    参数
-    ----
-    df_obj : pd.DataFrame
-        输入 DataFrame.
-    left : Union[int, float]
-        目标排名范围的下界.
-    right : Union[int, float]
-        目标排名范围的上界.
-    rng_left : Union[int, float]
-        左侧迟滞缓冲范围.
-    rng_right : Union[int, float]
-        右侧迟滞缓冲范围.
-    pct : bool
-        排名是否以百分比计算. 默认为 True.
-    ascending : bool
-        排名的排序顺序. 默认为 False.
-    part : int
-        将数据分成的部分数量. 默认为 5.
-
-    返回
-    ----
-    pd.DataFrame
-        指示所有部分中所选资产的布尔值 DataFrame.
-    ---------------------------------------------------------------------------
-    """
-    ranger = range(0, df_obj.shape[0], part)
-    rangers = {i: np.array(ranger) + i for i in range(part)}
-    rangers = {i: j[j < df_obj.shape[0]] for i, j in rangers.items()}
-    right_adj = right // part
-    df_obj = df_obj.copy()
-    obj = None
-    for i, j in rangers.items():
-        x = cut(df_obj.iloc[j], left, right_adj, rng_left, rng_right, pct, ascending)
-        x = x.reindex(df_obj.index).ffill(limit=part-1)
-        obj = x if obj is None else (obj.shift(fill_value=False) | x)
-        df_obj = df_obj[~obj]
-    return obj
-
+    for i in range(1, array.shape[0]):
+        array[i] = np.where((rank[i] < 300), array[i-1], 0)
+        real_cut = count - (array[i] > 0).sum()
+        if real_cut > 0:
+            array[i] = np.where(rank[i] <= real_cut, vals[i], array[i])
+    result = pd.DataFrame(array, index=x.index, columns=x.columns)
+    return result > 0
 
 def roll_weight(
     df_obj: pd.DataFrame,

@@ -58,31 +58,14 @@ class main():
         fillna: bool = True
     ) -> pd.DataFrame:
         return portfolio(self._obj, returns=returns, weight=weight, shift=shift, roll=roll, fillna=fillna)
-
-    @doc_inherit(cut)
+    
+    @doc_inherit(_cut)
     def cut(
         self,
-        right: Union[int, float],
-        rng_right: Union[int, float] = 0,
-        left: Union[int, float] = 0,
-        rng_left: Union[int, float] = 0,
-        pct: bool = False,
-        ascending: bool = False
+        count,
+        max_count
     ) -> pd.DataFrame:
-        return cut(self._obj, left, right, rng_left, rng_right, pct, ascending)
-
-    @doc_inherit(part_cut)
-    def part_cut(
-        self,
-        right: Union[int, float],
-        rng_right: Union[int, float] = 0,
-        left: Union[int, float] = 0,
-        rng_left: Union[int, float] = 0,
-        pct: bool = False,
-        ascending: bool = False,
-        part: int = 5
-    ) -> pd.DataFrame:
-        return part_cut(self._obj, left, right, rng_left, rng_right, pct, ascending, part)
+        return _cut(self._obj, count, max_count)
 
     @doc_inherit(roll_weight)
     def roll_weight(
