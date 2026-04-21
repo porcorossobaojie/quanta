@@ -616,6 +616,7 @@ def merge(
 
 def port(
     df_obj: pd.DataFrame,
+    ret = None,
     listing_limit: int = 126,
     drop_st: int = 1,
     tradestatus: bool = True,
@@ -665,9 +666,10 @@ def port(
     ---------------------------------------------------------------------------
     """
     portfolio_type = df_obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
-    filter_df = filtered(listing_limit, drop_st, tradestatus, portfolio_type).reindex_like(df_obj).fillna(False)
-    df_obj = df_obj[filter_df]
-    ret = __instance__[portfolio_type](config.trade_keys.returns)
+    if ret is None:
+        ret = __instance__[portfolio_type](config.trade_keys.returns)
+        filter_df = filtered(listing_limit, drop_st, tradestatus, portfolio_type).reindex_like(df_obj).fillna(False)
+        df_obj = df_obj[filter_df]
     x = df_obj.gen.group().gen.portfolio(ret).loc['2017':]
     return x
 

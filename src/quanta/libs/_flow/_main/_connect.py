@@ -247,7 +247,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
         """
         if not hasattr(self, '_internal_data'):
             if self.trade_dt in self.filter_key or self.ann_dt in self.filter_key:
-                filter_value = self.start_date if self.filter_key == self.trade_dt else self.start_date + pd.offsets.YearEnd(-4)
+                filter_value = self.start_date if self.filter_key == self.trade_dt else self.start_date + pd.offsets.YearEnd(-9)
                 where = f"{self.filter_key} >='{filter_value}'"
             else:
                 where = kwargs.get('where', None)

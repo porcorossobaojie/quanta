@@ -170,13 +170,14 @@ class flow_extra():
     @doc_inherit(port)
     def port(
         self,
+        ret = None,
         listing_limit: int = 126,
         drop_st: int = 1,
         tradestatus: bool = True,
         portfolio_type: Optional[str] = None
     ) -> pd.DataFrame:
         if not hasattr(self, '_internal_port_result'):
-            x = port(self._obj, listing_limit, drop_st, tradestatus, portfolio_type)
+            x = port(self._obj, ret, listing_limit, drop_st, tradestatus, portfolio_type)
             self._internal_port_result = x
         x = self._internal_port_result
         return x
