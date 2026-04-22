@@ -15,7 +15,7 @@ from typing import Optional, Union, Tuple, List, Dict, Any, Callable
 
 from quanta.libs.utils import flatten_list
 
-__all__ = ['standard', 'OLS', 'const', 'neutral']
+__all__ = ['standard', 'OLS', 'const', 'neutral', 'expose']
 
 
 def standard(
@@ -609,3 +609,52 @@ def neutral(
         r = np.nan
         adj_r = np.nan
     return NeutralObj(params=parameters, resid=resid_df, t=t_df, p=p_df, r=r, adj_r=adj_r)
+
+
+def _expose(y, expose_values, *xs, limit=0.05, max_iters=2):
+    _xs = {i:j for i,j in enumerate(xs)} if isinstance(xs, (list, tuple)) else {0:xs}
+    def expose_1dim(y, x, v):
+        y = y.stats.neutral(fac=x).resid
+        y_std = y.std(axis=1)
+        beta = (y_std * v) / (x.std(axis=1) * (1 - v ** 2))
+        hat = y + x.mul(beta, axis=0)
+        return hat
+    if len(_xs.keys()) == 1:
+        df = expose_1dim(y, _xs[0], expose_values)
+    else:
+        df = y.stats.neutral(**{i.__str__():j for i,j in _xs.items()}).resid
+        itered = 0
+        len_xs = len(_xs.keys())
+        while (itered < max_iters) and len_xs:
+            for i,j in _xs.items():
+                df = expose_1dim(df, j, expose_values[i])
+            check = {i:df.corrwith(j, axis=1).mean() for i,j in enumerate(xs)}
+            check = [i for i,j in check.items() if np.abs(j - expose_values[i]) > limit]
+            _xs = {i:xs[i] for i in check}
+            len_xs = len(_xs.keys())
+            itered += 1
+            print(f"optmize itered: {itered}, needed optmize count: {len_xs}")
+        for i,j in enumerate(xs):
+            value = round(df.corrwith(j, axis=1).mean(), 4)
+            print(f"x{i}: expose_value: {expose_values[i]} optmized: {value}")
+    return df
+
+def expose(df_obj, *xs, limit=0.05, max_iter=2):
+    df_neu = df_obj.stats.neutral(**{i.__str__():j[0] for i,j in enumerate(xs)}).resid
+    def expose_1dim(y, x, v):
+        y_std = y.std(axis=1)
+        beta = (y_std * v) / (x.std(axis=1) * (1 - v ** 2))
+        hat = y + x.mul(beta, axis=0)
+        return hat
+    itered = 0
+    _xs = xs
+    while (itered <= max_iter) or len(_xs):
+        for i in _xs:
+            df_neu = expose_1dim(df_neu, i[0], i[1])
+        check = {i:np.abs(df_neu.corrwith(j[0], axis=1).mean()-j[1]) for i,j in enumerate(xs)}
+        _xs = {i:_xs[i] for i,j in check.items() if j > limit}
+        itered += 1
+    for i,j in enumerate(xs):
+        print(f"factor_{i+1}: expose -> {round(df_neu.corrwith(j[0], axis=1).mean(), 4)} with hope {j[1]}")
+    return df_neu
+    

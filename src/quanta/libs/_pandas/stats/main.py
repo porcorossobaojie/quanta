@@ -75,8 +75,11 @@ class main():
         **key_dfs: pd.DataFrame
     ) -> Any:
         return neutral(self._obj, const=const, neu_axis=neu_axis, periods=periods, flatten=flatten, w=weight, resid=resid, **key_dfs)
-
-
+    
+    @doc_inherit(neutral)
+    def expose(self, *xs, limit=0.05, max_iter=2):
+        return expose(self._obj, *xs, limit, max_iter)
+    
 @pd.api.extensions.register_series_accessor(MODULE_DIR)
 class main():
     """
