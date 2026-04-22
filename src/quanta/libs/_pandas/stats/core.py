@@ -642,19 +642,20 @@ def _expose(y, expose_values, *xs, limit=0.05, max_iters=2):
 def expose(df_obj, *xs, limit=0.05, max_iter=2):
     df_neu = df_obj.stats.neutral(**{i.__str__():j[0] for i,j in enumerate(xs)}).resid
     def expose_1dim(y, x, v):
+        y = y.stats.neutral(fac=x).resid
         y_std = y.std(axis=1)
         beta = (y_std * v) / (x.std(axis=1) * (1 - v ** 2))
         hat = y + x.mul(beta, axis=0)
         return hat
     itered = 0
     _xs = xs
-    while (itered <= max_iter) or len(_xs):
+    while (itered <= max_iter) and len(_xs):
         for i in _xs:
             df_neu = expose_1dim(df_neu, i[0], i[1])
-        check = {i:np.abs(df_neu.corrwith(j[0], axis=1).mean()-j[1]) for i,j in enumerate(xs)}
-        _xs = {i:_xs[i] for i,j in check.items() if j > limit}
+        check = {i:np.abs(df_neu.corrwith(j[0], axis=1).mean()-j[1]) for i,j in enumerate(_xs)}
+        _xs = [_xs[i] for i,j in check.items() if j > limit]
         itered += 1
     for i,j in enumerate(xs):
         print(f"factor_{i+1}: expose -> {round(df_neu.corrwith(j[0], axis=1).mean(), 4)} with hope {j[1]}")
     return df_neu
-    
+
