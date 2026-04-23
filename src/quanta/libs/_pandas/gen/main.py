@@ -70,6 +70,10 @@ class main():
         ascending: bool = False
     ) -> pd.DataFrame:
         return cut(self._obj, left, right, rng_left, rng_right, pct, ascending)
+    
+    @doc_inherit(d_cut)
+    def d_cut(self, count, max_count, delay=1):
+        return d_cut(self._obj, count, max_count, delay)
 
     @doc_inherit(roll_weight)
     def roll_weight(

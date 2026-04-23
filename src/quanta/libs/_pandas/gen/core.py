@@ -11,7 +11,7 @@ from typing import Optional, Dict, List, Union
 
 from quanta.libs._pandas.tools.core import fillna as fillna_func
 
-__all__ = ['group', 'weight', 'portfolio', 'cut', 'roll_weight']
+__all__ = ['group', 'weight', 'portfolio', 'cut', 'roll_weight', 'd_cut']
 
 
 def group(
@@ -307,6 +307,43 @@ def cut(
         lst.append(hold.values)
     lst = pd.DataFrame(np.vstack(lst), index=df_obj.index, columns=df_obj.columns)
     return lst
+
+def d_cut(df_obj, count, max_count, delay):
+    val = df_obj.values.copy()
+    result = np.zeros_like(val)
+    mask = ~np.isnan(val[0])
+    masked_val = val[0][mask]
+    ranks = (-masked_val).argsort().argsort() + 1
+    result[0, mask] = np.where(ranks <= count, ranks, 0)
+    for i in range(1, val.shape[0]):
+        arr = val[i]
+        hold = result[i-1]
+        must_hold = (result[:i][-delay:] > 0).sum(axis=0)
+        must_hold = (must_hold >=1) & (must_hold < delay)
+        mask = ~np.isnan(arr)
+        rank = (-arr[mask]).argsort().argsort() + 1        
+        result[i, mask] = np.where(
+            (
+                must_hold[mask] |
+                (rank <= count + max_count)
+            ),
+            hold[mask],
+            0
+        )
+        change_count = count - (result[i] > 0).sum()
+        if change_count > 0:
+            mask2 = (~np.isnan(arr)) & (result[i] <= 0)
+            rank2 = (-arr[mask2]).argsort().argsort() + 1        
+            result[i, mask2] = np.where(
+                (rank2 <= change_count),
+                rank2,
+                result[i, mask2]
+            )
+        result[i, mask] = np.where(result[i, mask] > 0, rank, 0)
+    result = pd.DataFrame(result, index=df_obj.index, columns=df_obj.columns)        
+    return result    
+        
+    
 
 def roll_weight(
     df_obj: pd.DataFrame,
