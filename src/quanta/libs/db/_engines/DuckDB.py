@@ -48,7 +48,9 @@ class main(meta, type('', (), config.recommand_settings)):
             一个 DuckDB 数据库连接对象.
         -----------------------------------------------------------------------
         """
-        database = f"{cls.path}/{cls.database}.duckdb"
+        path = kwargs.get('path', cls.path)
+        database = kwargs.get('database', cls.database)
+        database = f"{path}/{database}.duckdb"
         x = duckdb.connect(database=database, read_only=kwargs.get('read_only', False))
         x.execute("SET wal_autocheckpoint='2GB';")
         return x

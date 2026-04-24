@@ -448,6 +448,14 @@ class main():
         x =  self._traced_index()['be_list']
         x = x >= limit
         return x
+    
+    @lru_cache(maxsize=8)
+    def _aindex_listing(self, limit: int = 126) -> pd.DataFrame:
+        x = self(config.trade_keys.returns)
+        x = x.notnull().cumsum()
+        x = x >= limit
+        return x
+    
 
     def listing(self, limit: int = 126) -> pd.DataFrame:
         """
