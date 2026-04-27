@@ -22,7 +22,6 @@ class main(meta):
     finance = config.finance_keys
 
     @classmethod
-    @lru_cache(maxsize=1)
     def size(cls) -> pd.DataFrame:
         """Calculate the size factor (log market cap) | 计算市值因子 (对数市值)"""
         x = (flow.astock(cls.finance.val_mv) * 1e8).tools.log()
@@ -77,7 +76,7 @@ class main(meta):
         df = cls.size()
         df = (df ** 3).stats.neutral(me=df, weight= (df ** 0.5).values).resid.tools.log().stats.standard()
         return df
-    
+
     @classmethod
     @lru_cache(maxsize=8)
     def _beta(
@@ -133,11 +132,11 @@ class main(meta):
         bench = cls.bench(bench)
         bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns)
         w = pd.tools.halflife(periods, halflife).astype('float32')
-        
+
         y_vals = pd.tools.array_roll(ret.values.astype('float32'), periods)
         x_vals = pd.tools.array_roll(bench.values.astype('float32'), periods)
         bools =  pd.tools.array_roll(entrade.values.astype('float32'), periods)
-        
+
         chunksize = 500
         alphas = np.zeros_like(ret.values)
         betas = np.zeros_like(ret.values)
@@ -156,20 +155,20 @@ class main(meta):
             var_x = E_xx - E_x**2
             res_var = var_y - (beta**2) * var_x
             betas[i + periods-1: i+periods-1 + chunksize] = beta
-            alphas[i + periods-1: i+periods-1 + chunksize] = alpha  
-            resids[i + periods-1: i+periods-1 + chunksize] = res_var ** 0.5  
+            alphas[i + periods-1: i+periods-1 + chunksize] = alpha
+            resids[i + periods-1: i+periods-1 + chunksize] = res_var ** 0.5
         alpha = pd.DataFrame(alphas, index=ret.index, columns=ret.columns).f.tradestatus().replace(0, np.nan)
         beta = pd.DataFrame(betas, index=ret.index, columns=ret.columns).f.tradestatus().replace(0, np.nan)
         resid = pd.DataFrame(resids, index=ret.index, columns=ret.columns).f.tradestatus().replace(0, np.nan)
         df = pd.concat({i:j.f.tradestatus(periods=periods, min_periods=halflife) for i,j in {'alpha':alpha, 'beta':beta, 'resid':resid}.items()}, axis=1)
         return df
 
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
 
         y_vals = pd.tools.array_roll(ret.values, periods)
         y_mean = np.einsum('twk, w -> tk', y_vals, w)
@@ -188,8 +187,8 @@ class main(meta):
         y_vals = np.mean(y_vals, axis=1) ** 0.5
         resid = pd.DataFrame(y_vals, columns=ret.columns, index=ret.index[periods-1:])
         df = pd.concat({i:j.f.tradestatus(periods=periods, min_periods=halflife) for i,j in {'alpha':alpha, 'beta':beta, 'resid':resid}.items()}, axis=1)
-        return df       
-        
+        return df
+
     @classmethod
     def beta(
         cls,
