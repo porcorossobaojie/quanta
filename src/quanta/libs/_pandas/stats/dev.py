@@ -4,7 +4,9 @@ Created on Wed Feb  4 22:29:21 2026
 
 @author: Porco Rosso
 """
-
+import os
+os.environ['NUMBA_DISABLE_JIT'] = '0'
+os.environ['NUMBA_NUM_THREADS'] = '20'
 import numpy as np
 import pandas as pd
 from numpy.lib.stride_tricks import as_strided
@@ -219,74 +221,26 @@ def const(
     return pd.get_dummies(df_obj, prefix=prefix, prefix_sep=sep, columns=columns)
 
 @njit(parallel=True)
-def fast_wls_w1d(data_3d, weights):
-    data_3d = data_3d.copy()
-    weights = weights.copy()
+def fast_wls_w3d(data_3d, weights):
     n_slices = data_3d.shape[0]
     k_samples = data_3d.shape[2]
     n_cols = data_3d.shape[1]
     betas = np.full((n_slices, k_samples - 1), np.nan)
+    multi_ws = (weights.shape[2] > 1)
     for i in prange(n_slices):
         slice_data = data_3d[i]
         valid_mask = np.ones(n_cols, dtype=np.bool_)
         for r in range(k_samples):
             valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
         if np.sum(valid_mask) > (2 * (k_samples - 1)): # 确保样本量足够
-            y = slice_data[valid_mask, 0]
-            X = slice_data[valid_mask, 1:] # 包含常数项列和x列
-            w_sub = weights[i, valid_mask, :]
-            sqrt_w = np.sqrt(w_sub)
-            y_star = y * sqrt_w[:, 0]
-            X_star = X * sqrt_w[:, 1:]
-            betas[i] = np.linalg.lstsq(X_star, y_star)[0]
-    return betas
-
-@njit(parallel=True)
-def fast_wls_w2d(data_3d, weights):
-    data_3d = data_3d.copy()
-    weights = weights.copy()
-    n_slices = data_3d.shape[0]
-    k_samples = data_3d.shape[2]
-    n_cols = data_3d.shape[1]
-    betas = np.full((n_slices, k_samples - 1), np.nan)
-    for i in prange(n_slices):
-        slice_data = data_3d[i]
-        valid_mask = np.ones(n_cols, dtype=np.bool_)
-        for r in range(k_samples):
-            valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
-        if np.sum(valid_mask) > (2 * (k_samples - 1)): # 确保样本量足够
-            y = slice_data[valid_mask, 0]
-            X = slice_data[valid_mask, 1:] # 包含常数项列和x列
             w_sub = weights[i, valid_mask]
             sqrt_w = np.sqrt(w_sub)
-            y_star = y * sqrt_w
-            X_star = X * sqrt_w[:, np.newaxis]
-            betas[i] = np.linalg.lstsq(X_star, y_star)[0]
-    return betas
-
-@njit(parallel=True)
-def fast_wls_w3d(data_3d, weights):
-    data_3d = data_3d.copy()
-    weights = weights.copy()
-    n_slices = data_3d.shape[0]
-    k_samples = data_3d.shape[2]
-    n_cols = data_3d.shape[1]
-    betas = np.full((n_slices, k_samples - 1), np.nan)
-    for i in prange(n_slices):
-        slice_data = data_3d[i]
-        valid_mask = np.ones(n_cols, dtype=np.bool_)
-        for r in range(k_samples):
-            valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
-        if np.sum(valid_mask) > (2 * (k_samples - 1)): # 确保样本量足够
-            y = slice_data[valid_mask, 0]
-            X = slice_data[valid_mask, 1:] # 包含常数项列和x列
-            w_sub = weights[i][valid_mask]
-            y_sub = y[valid_mask]
-            X_sub = X[valid_mask]
-            sqrt_w = np.sqrt(w_sub)
-            y_star = y_sub * sqrt_w[:, 0]
-            X_star = X_sub * sqrt_w[:, 1:]
-            betas[i] = np.linalg.lstsq(X_star, y_star)[0]
+            y = slice_data[valid_mask, 0] * sqrt_w[:, 0]
+            if multi_ws:
+                x = slice_data[valid_mask, 1:] * sqrt_w[:, 1:]
+            else:
+                x = slice_data[valid_mask, 1:] * sqrt_w
+            betas[i] = np.linalg.solve(x.T @ x, x.T @ y)
     return betas
 
 @njit(parallel=True)
@@ -303,8 +257,8 @@ def fast_ols_3d(data_3d, weights):
             valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
         if np.sum(valid_mask) > (2 * (k_samples - 1)): # 确保样本量足够
             y = slice_data[valid_mask, 0]
-            X = slice_data[valid_mask, 1:] # 包含常数项列和x列
-            betas[i] = np.linalg.lstsq(X, y)[0]
+            x = slice_data[valid_mask, 1:] # 包含常数项列和x列
+            betas[i] =np.linalg.solve(x.T @ x, x.T @ y)
     return betas
 
 def neutral(
@@ -313,69 +267,70 @@ def neutral(
     const: bool = True,
     neu_axis: int = 1,
     periods: Optional[int] = None,
-    flatten: bool = False,
     w: Optional[np.ndarray] = None,
     resid: bool = True,
     **key_factors: pd.DataFrame
 ) -> Any:
     # 数据对齐
     raw = (
-        {'__y__': df_obj} | 
-        ({'const': pd.DataFrame().reindex_like(df_obj).fillna(1)} if const else {}) | 
-        {str(i):j.reindex_like(df_obj) for i,j in enumerate(factors)} | 
+        {'__y__': df_obj} |
+        ({'const': pd.DataFrame().reindex_like(df_obj).fillna(1)} if const else {}) |
+        {str(i):j.reindex_like(df_obj) for i,j in enumerate(factors)} |
         {i:j.reindex_like(df_obj) for i,j in key_factors.items()}
     )
     # 权重对齐
     if isinstance(w, pd.DataFrame):
-        w = w.reindex_like(df_obj).fillna(0).values
+        w = w.reindex_like(df_obj).fillna(0).values[np.newaxis, :, :]
     else:
-        w = np.array(w) if w is not None else w
+        if w is not None:
+            if w.ndim == 1:
+                w = np.array(w)[np.newaxis, :, np.newaxis]
+            elif w.ndim == 2:
+                w = np.array(w)[np.newaxis, :, :]
+
+
     vals = np.array([i.values for i in raw.values()])
-    
+
     # 根据neu_axis及逆行转置
     w_trans = (w is not None and w.ndim >= 2)
     trans_dic = {
-        (0, 3): [2, 1, 0], 
+        (0, 3): [2, 1, 0],
         (1, 3): [1, 2, 0],
-        (0, 2): [1, 0],
-        (1, 2): [0, 1],
     }
     vals = vals.transpose(*trans_dic.get((neu_axis, vals.ndim)))
-    w = w.transpose(*trans_dic.get((neu_axis, w.ndim))) if w_trans else w
-    
+    w = w.transpose(*trans_dic.get((neu_axis, w.ndim)))
+
     # 根据权重情况决定调用函数
     func_dic = {
-        None: fast_ols_3d, 
-        1:fast_wls_w1d, 
-        2: fast_wls_w2d, 
+        None: fast_ols_3d,
         3:fast_wls_w3d
     }
     func = func_dic.get(w if w is None else w.ndim, fast_ols_3d)
-    
+
+    params = np.full((vals.shape[0], vals.shape[1], vals.shape[2]-1), np.nan)
     if periods is not None:
         for p in range(periods, vals.shape[1]):
             temp_vals = vals[:, p-periods:p, :]
-            if w_trans:
-                temp_w = w[:, p-periods:p]
-            elif w is None or w.shape[0] == periods:
-                temp_w = w
-            
-                
-                
-            
-    
-    
-    
-    
-    
-        
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+            temp_w = w[:, p-periods:p, :] if w is not None else w
+            params[:, p, :] = func(temp_vals, temp_w)
+            print(p)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
