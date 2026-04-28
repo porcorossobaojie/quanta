@@ -5,7 +5,6 @@ Created on Wed Feb  4 22:29:21 2026
 @author: Porco Rosso
 """
 
-
 import numpy as np
 import pandas as pd
 from numpy.lib.stride_tricks import as_strided
@@ -220,39 +219,92 @@ def const(
     return pd.get_dummies(df_obj, prefix=prefix, prefix_sep=sep, columns=columns)
 
 @njit(parallel=True)
-def fast_wls_3d(data_3d, weights):
+def fast_wls_w1d(data_3d, weights):
+    data_3d = data_3d.copy()
+    weights = weights.copy()
     n_slices = data_3d.shape[0]
-    betas = np.full((n_slices, data_3d.shape[-1]), np.nan)
-    w_is_3d = (weights.ndim == 3)
-
+    k_samples = data_3d.shape[2]
+    n_cols = data_3d.shape[1]
+    betas = np.full((n_slices, k_samples - 1), np.nan)
     for i in prange(n_slices):
         slice_data = data_3d[i]
-        valid_mask = np.ones(k_samples, dtype=np.bool_)
+        valid_mask = np.ones(n_cols, dtype=np.bool_)
         for r in range(k_samples):
-            for c in range(n_cols):
-                if np.isnan(slice_data[r, c]):
-                    valid_mask[r] = False
-                    break
-        if np.sum(mask) > 2 * (data_3d.shape[-1] - 1): # 确保样本量足够
+            valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
+        if np.sum(valid_mask) > (2 * (k_samples - 1)): # 确保样本量足够
             y = slice_data[valid_mask, 0]
             X = slice_data[valid_mask, 1:] # 包含常数项列和x列
-            if w_is_3d:
-                w_sub = weights[i][valid_mask]
-            else:
-                w_sub = weights[valid_mask]
+            w_sub = weights[i, valid_mask, :]
+            sqrt_w = np.sqrt(w_sub)
+            y_star = y * sqrt_w[:, 0]
+            X_star = X * sqrt_w[:, 1:]
+            betas[i] = np.linalg.lstsq(X_star, y_star)[0]
+    return betas
+
+@njit(parallel=True)
+def fast_wls_w2d(data_3d, weights):
+    data_3d = data_3d.copy()
+    weights = weights.copy()
+    n_slices = data_3d.shape[0]
+    k_samples = data_3d.shape[2]
+    n_cols = data_3d.shape[1]
+    betas = np.full((n_slices, k_samples - 1), np.nan)
+    for i in prange(n_slices):
+        slice_data = data_3d[i]
+        valid_mask = np.ones(n_cols, dtype=np.bool_)
+        for r in range(k_samples):
+            valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
+        if np.sum(valid_mask) > (2 * (k_samples - 1)): # 确保样本量足够
+            y = slice_data[valid_mask, 0]
+            X = slice_data[valid_mask, 1:] # 包含常数项列和x列
+            w_sub = weights[i, valid_mask]
+            sqrt_w = np.sqrt(w_sub)
+            y_star = y * sqrt_w
+            X_star = X * sqrt_w[:, np.newaxis]
+            betas[i] = np.linalg.lstsq(X_star, y_star)[0]
+    return betas
+
+@njit(parallel=True)
+def fast_wls_w3d(data_3d, weights):
+    data_3d = data_3d.copy()
+    weights = weights.copy()
+    n_slices = data_3d.shape[0]
+    k_samples = data_3d.shape[2]
+    n_cols = data_3d.shape[1]
+    betas = np.full((n_slices, k_samples - 1), np.nan)
+    for i in prange(n_slices):
+        slice_data = data_3d[i]
+        valid_mask = np.ones(n_cols, dtype=np.bool_)
+        for r in range(k_samples):
+            valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
+        if np.sum(valid_mask) > (2 * (k_samples - 1)): # 确保样本量足够
+            y = slice_data[valid_mask, 0]
+            X = slice_data[valid_mask, 1:] # 包含常数项列和x列
+            w_sub = weights[i][valid_mask]
             y_sub = y[valid_mask]
             X_sub = X[valid_mask]
             sqrt_w = np.sqrt(w_sub)
-            if w_is_3d:
-                y_star = y_sub * sqrt_w[:, 0]
-                X_star = X_sub * sqrt_w[:, 1:]
-            else:
-                y_star = y_sub * sqrt_w
-                X_star = np.empty_like(X_sub)
-                for col in range(X_sub.shape[1]):
-                    X_star[:, col] = X_sub[:, col] * sqrt_w
-
+            y_star = y_sub * sqrt_w[:, 0]
+            X_star = X_sub * sqrt_w[:, 1:]
             betas[i] = np.linalg.lstsq(X_star, y_star)[0]
+    return betas
+
+@njit(parallel=True)
+def fast_ols_3d(data_3d, weights):
+    data_3d = data_3d.copy()
+    n_slices = data_3d.shape[0]
+    k_samples = data_3d.shape[2]
+    n_cols = data_3d.shape[1]
+    betas = np.full((n_slices, k_samples - 1), np.nan)
+    for i in prange(n_slices):
+        slice_data = data_3d[i]
+        valid_mask = np.ones(n_cols, dtype=np.bool_)
+        for r in range(k_samples):
+            valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
+        if np.sum(valid_mask) > (2 * (k_samples - 1)): # 确保样本量足够
+            y = slice_data[valid_mask, 0]
+            X = slice_data[valid_mask, 1:] # 包含常数项列和x列
+            betas[i] = np.linalg.lstsq(X, y)[0]
     return betas
 
 def neutral(
@@ -266,13 +318,64 @@ def neutral(
     resid: bool = True,
     **key_factors: pd.DataFrame
 ) -> Any:
-    pass
-    array_3d = {'__y__': df_obj} |({} in not const else {'const': pd.DataFrame().reindex_like())}|{str(i):j.reindex_like(df_obj) for i,j in enumerate(dfs)} |
-
-
-
-
-
-
-
-
+    # 数据对齐
+    raw = (
+        {'__y__': df_obj} | 
+        ({'const': pd.DataFrame().reindex_like(df_obj).fillna(1)} if const else {}) | 
+        {str(i):j.reindex_like(df_obj) for i,j in enumerate(factors)} | 
+        {i:j.reindex_like(df_obj) for i,j in key_factors.items()}
+    )
+    # 权重对齐
+    if isinstance(w, pd.DataFrame):
+        w = w.reindex_like(df_obj).fillna(0).values
+    else:
+        w = np.array(w) if w is not None else w
+    vals = np.array([i.values for i in raw.values()])
+    
+    # 根据neu_axis及逆行转置
+    w_trans = (w is not None and w.ndim >= 2)
+    trans_dic = {
+        (0, 3): [2, 1, 0], 
+        (1, 3): [1, 2, 0],
+        (0, 2): [1, 0],
+        (1, 2): [0, 1],
+    }
+    vals = vals.transpose(*trans_dic.get((neu_axis, vals.ndim)))
+    w = w.transpose(*trans_dic.get((neu_axis, w.ndim))) if w_trans else w
+    
+    # 根据权重情况决定调用函数
+    func_dic = {
+        None: fast_ols_3d, 
+        1:fast_wls_w1d, 
+        2: fast_wls_w2d, 
+        3:fast_wls_w3d
+    }
+    func = func_dic.get(w if w is None else w.ndim, fast_ols_3d)
+    
+    if periods is not None:
+        for p in range(periods, vals.shape[1]):
+            temp_vals = vals[:, p-periods:p, :]
+            if w_trans:
+                temp_w = w[:, p-periods:p]
+            elif w is None or w.shape[0] == periods:
+                temp_w = w
+            
+                
+                
+            
+    
+    
+    
+    
+    
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
