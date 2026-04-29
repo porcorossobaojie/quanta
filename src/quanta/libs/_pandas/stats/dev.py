@@ -5,8 +5,9 @@ Created on Wed Feb  4 22:29:21 2026
 @author: Porco Rosso
 """
 import os
-os.environ['NUMBA_DISABLE_JIT'] = '0'
+os.environ.pop('NUMBA_DISABLE_JIT', None)
 os.environ['NUMBA_NUM_THREADS'] = '20'
+os.environ['NUMBA_THREADING_LAYER'] = 'tbb'
 import numpy as np
 import pandas as pd
 from numpy.lib.stride_tricks import as_strided
@@ -15,8 +16,11 @@ import scipy as sp
 import statsmodels.api as sm
 from typing import Optional, Union, Tuple, List, Dict, Any, Callable
 
-from quanta.libs.utils import flatten_list
+from quanta.libs.utils import dict_to_dataclass
+import numba
 from numba import njit, prange
+
+__all__ = ['standard', 'OLS', 'const', 'neutral', 'expose']
 
 def standard(
     df_obj: Union[pd.Series, pd.DataFrame],
@@ -226,20 +230,26 @@ def fast_wls_w3d(data_3d, weights):
     k_samples = data_3d.shape[2]
     n_cols = data_3d.shape[1]
     betas = np.full((n_slices, k_samples - 1), np.nan)
-    multi_ws = (weights.shape[2] > 1)
+    multi_w1 = (weights.shape[0] > 1)
+    multi_w2 = (weights.shape[2] > 1)
     for i in prange(n_slices):
         slice_data = data_3d[i]
         valid_mask = np.ones(n_cols, dtype=np.bool_)
         for r in range(k_samples):
             valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
-        if np.sum(valid_mask) > (2 * (k_samples - 1)): # 确保样本量足够
-            w_sub = weights[i, valid_mask]
+        if np.sum(valid_mask) > (2 * (k_samples - 1)):
+            if multi_w1:
+                w_sub = weights[i, valid_mask]
+            else:
+                w_sub = weights[0, valid_mask]
             sqrt_w = np.sqrt(w_sub)
             y = slice_data[valid_mask, 0] * sqrt_w[:, 0]
-            if multi_ws:
+            if multi_w2:
                 x = slice_data[valid_mask, 1:] * sqrt_w[:, 1:]
             else:
-                x = slice_data[valid_mask, 1:] * sqrt_w
+                x = slice_data[valid_mask, 1:]
+                for col in range(x.shape[1]):
+                    x[:, col] = x[:, col] * sqrt_w[:, 0]
             betas[i] = np.linalg.solve(x.T @ x, x.T @ y)
     return betas
 
@@ -268,7 +278,7 @@ def neutral(
     neu_axis: int = 1,
     periods: Optional[int] = None,
     w: Optional[np.ndarray] = None,
-    resid: bool = True,
+    resid: bool = False,
     **key_factors: pd.DataFrame
 ) -> Any:
     # 数据对齐
@@ -287,18 +297,15 @@ def neutral(
                 w = np.array(w)[np.newaxis, :, np.newaxis]
             elif w.ndim == 2:
                 w = np.array(w)[np.newaxis, :, :]
-
-
     vals = np.array([i.values for i in raw.values()])
 
     # 根据neu_axis及逆行转置
-    w_trans = (w is not None and w.ndim >= 2)
     trans_dic = {
         (0, 3): [2, 1, 0],
         (1, 3): [1, 2, 0],
     }
     vals = vals.transpose(*trans_dic.get((neu_axis, vals.ndim)))
-    w = w.transpose(*trans_dic.get((neu_axis, w.ndim)))
+    w = w.transpose(*trans_dic.get((neu_axis, w.ndim))) if w is not None else w
 
     # 根据权重情况决定调用函数
     func_dic = {
@@ -306,20 +313,70 @@ def neutral(
         3:fast_wls_w3d
     }
     func = func_dic.get(w if w is None else w.ndim, fast_ols_3d)
+    labels = {
+        0: {'index': df_obj.columns, 'columns':df_obj.index},
+        1: {'index': df_obj.index, 'columns':df_obj.columns},
+    }
 
-    params = np.full((vals.shape[0], vals.shape[1], vals.shape[2]-1), np.nan)
     if periods is not None:
+        params = np.full((vals.shape[0], vals.shape[1], vals.shape[2]-1), np.nan)
         for p in range(periods, vals.shape[1]):
-            temp_vals = vals[:, p-periods:p, :]
-            temp_w = w[:, p-periods:p, :] if w is not None else w
-            params[:, p, :] = func(temp_vals, temp_w)
-            print(p)
+            data_3d = vals[:, p-periods:p, :]
+            weights = w[:, p-periods:p, :] if (w is not None and w.shape[1] != periods) else w
+            params[:, p, :] = func(data_3d, weights)
+        if resid:
+            resids = np.full((vals.shape[0], vals.shape[1], periods), np. nan,dtype='float32')
+            for p in range(periods, vals.shape[1]):
+                resids[:, p, :] = data_3d[:, :, 0] - np.einsum("rtk, rk -> rt", data_3d[:, :, 1:], params[:, p, :])
+        params = pd.concat({j: pd.DataFrame(params[:, :, i], index=df_obj.index, columns=df_obj.columns) for i,j in enumerate(list(raw.keys())[1:])}, axis=1)
+    else:
+        params = func(vals, w)
+        if resid:
+            resids = vals[:, :, 0] - np.einsum("rtk, rk -> rt", vals[:, :, 1:], params)
+            resids = pd.DataFrame(resids, index=labels[neu_axis]['index'], columns=labels[neu_axis]['columns'])
+        params = pd.DataFrame(params, index=labels[neu_axis]['index'], columns=list(raw.keys())[1:])
+
+    result = dict_to_dataclass({'params':params, 'resid': resids if resid else None})
+    return result
+
+def expose(df_obj, *xs, limit=0.05, max_iter=2):
+    df_neu = df_obj.stats.neutral(**{i.__str__():j[0] for i,j in enumerate(xs)}).resid
+    def expose_1dim(y, x, v):
+        y = y.stats.neutral(fac=x).resid
+        y_std = y.std(axis=1)
+        beta = (y_std * v) / (x.std(axis=1) * (1 - v ** 2))
+        hat = y + x.mul(beta, axis=0)
+        return hat
+    itered = 0
+    _xs = xs
+    while (itered <= max_iter) and len(_xs):
+        for i in _xs:
+            df_neu = expose_1dim(df_neu, i[0], i[1])
+        check = {i:np.abs(df_neu.corrwith(j[0], axis=1).mean()-j[1]) for i,j in enumerate(_xs)}
+        _xs = [_xs[i] for i,j in check.items() if j > limit]
+        itered += 1
+    for i,j in enumerate(xs):
+        print(f"factor_{i+1}: expose -> {round(df_neu.corrwith(j[0], axis=1).mean(), 4)} with hope {j[1]}")
+    return df_neu
 
 
 
 
-
-
+'''
+import quanta
+from quanta import flow
+df_obj = flow.astock('ret')
+factors = [flow.astock('val_mv')]
+key_factors = {'amount':flow.astock('free_turnover')}
+const: bool = True
+neu_axis: int = 1
+periods: Optional[int] = 252
+w: Optional[np.ndarray] = None
+resid: bool = True
+w = quanta.faclib.barra.us4.size()
+#w = pd.tools.halflife(252, 63)
+p = periods
+'''
 
 
 

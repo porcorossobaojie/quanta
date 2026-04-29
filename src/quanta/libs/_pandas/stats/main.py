@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from typing import Optional, Union, Tuple, List, Dict, Any, Callable
 from .core import *
+from .dev import neutral
 from quanta.libs.utils._decorator import doc_inherit
 
 MODULE_DIR = __name__.split('.')[-2]
@@ -66,15 +67,16 @@ class main():
     @doc_inherit(neutral)
     def neutral(
         self,
+        *factors,
         const: bool = True,
         neu_axis: int = 1,
         periods: Optional[int] = None,
-        flatten: bool = False,
         weight: Optional[np.ndarray] = None,
-        resid: bool = True,
-        **key_dfs: pd.DataFrame
+        resid: bool = False,
+        **key_factors: pd.DataFrame
     ) -> Any:
-        return neutral(self._obj, const=const, neu_axis=neu_axis, periods=periods, flatten=flatten, w=weight, resid=resid, **key_dfs)
+        return neutral(self._obj, *factors, const=const, neu_axis=neu_axis, periods=periods, w=weight, resid=resid, **key_factors)
+        # return neutral(self._obj, const=const, neu_axis=neu_axis, periods=periods, flatten=False, w=weight, resid=resid, **key_dfs)
 
     @doc_inherit(neutral)
     def expose(self, *xs, limit=0.05, max_iter=2):
