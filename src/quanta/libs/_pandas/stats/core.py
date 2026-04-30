@@ -338,7 +338,7 @@ def neutral(
 
     if periods is not None:
         params = np.full((vals.shape[0], vals.shape[1], vals.shape[2]-1), np.nan, dtype=dtype)
-        for p in range(periods, vals.shape[0]):
+        for p in range(periods, vals.shape[0] + 1):
             data_3d = vals[p-periods:p, :, :]
             weights = w[p-periods:p, :, :] if (w is not None and w.shape[0] != periods) else w
             params[p-1, :, :] = func(data_3d, weights)
