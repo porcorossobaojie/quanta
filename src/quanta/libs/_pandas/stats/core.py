@@ -1,22 +1,27 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Feb  4 22:29:36 2026
+Created on Wed Feb  4 22:29:21 2026
 
 @author: Porco Rosso
 """
-
+import os
+os.environ.pop('NUMBA_DISABLE_JIT', None)
+os.environ['NUMBA_NUM_THREADS'] = f'{os.cpu_count()}'
+os.environ['NUMBA_THREADING_LAYER'] = 'tbb'
 import numpy as np
+import pandas as pd
 from numpy.lib.stride_tricks import as_strided
 from functools import partial
 import scipy as sp
-import pandas as pd
 import statsmodels.api as sm
 from typing import Optional, Union, Tuple, List, Dict, Any, Callable
 
-from quanta.libs.utils import flatten_list
+from quanta.libs.utils import dict_to_dataclass
+import numba
+from numba import njit, prange
+from numpy.lib.stride_tricks import sliding_window_view
 
 __all__ = ['standard', 'OLS', 'const', 'neutral', 'expose']
-
 
 def standard(
     df_obj: Union[pd.Series, pd.DataFrame],
@@ -79,7 +84,6 @@ def standard(
     else:
         y = df_obj
     return y
-
 
 def OLS(
     df_obj: pd.DataFrame,
@@ -221,423 +225,153 @@ def const(
     """
     return pd.get_dummies(df_obj, prefix=prefix, prefix_sep=sep, columns=columns)
 
+@njit(parallel=True, cache=True, nopython=True)
+def fast_wls_w3d(data_3d, weights):
+    n_cols = data_3d.shape[0]
+    n_slices = data_3d.shape[1]
+    k_samples = data_3d.shape[2]
+    betas = np.full((n_slices, k_samples - 1), np.nan)
+    multi_w1 = (weights.shape[1] > 1)
+    multi_w2 = (weights.shape[2] > 1)
+    for i in prange(n_slices):
+        slice_data = data_3d[:, i, :]
+        valid_mask = np.ones(n_cols, dtype=np.bool_)
+        for r in range(k_samples):
+            valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
+        if np.sum(valid_mask) > (2 * (k_samples - 1)):
+            if multi_w1:
+                w_sub = weights[valid_mask, i]
+            else:
+                w_sub = weights[valid_mask, 0]
+            sqrt_w = np.sqrt(w_sub)
+            y = slice_data[valid_mask, 0] * sqrt_w[:, 0]
+            if multi_w2:
+                x = slice_data[valid_mask, 1:] * sqrt_w[:, 1:]
+            else:
+                x = slice_data[valid_mask, 1:]
+                for col in range(x.shape[1]):
+                    x[:, col] = x[:, col] * sqrt_w[:, 0]
+            betas[i] = np.linalg.solve(x.T @ x, x.T @ y)
+    return betas
 
-def _array_3D(
-    target_df: pd.DataFrame,
-    const: bool = True,
-    **kwargs: pd.DataFrame
-) -> Any:
-    """
-    ===========================================================================
-    Converts DataFrames into a structured 3D NumPy array for efficient
-    regression analysis.
+@njit(parallel=True, cache=True, nopython=True)
+def fast_ols_3d(data_3d, weights):
+    n_cols = data_3d.shape[0]
+    n_slices = data_3d.shape[1]
+    k_samples = data_3d.shape[2]
+    betas = np.full((n_slices, k_samples - 1), np.nan)
+    for i in prange(n_slices):
+        slice_data = data_3d[:, i, :]
+        valid_mask = np.ones(n_cols, dtype=np.bool_)
+        for r in range(k_samples):
+            valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
+        if np.sum(valid_mask) > (2 * (k_samples - 1)):
+            y = slice_data[valid_mask, 0]
+            x = slice_data[valid_mask, 1:]
+            betas[i] =np.linalg.solve(x.T @ x, x.T @ y)
+    return betas
 
-    Parameters
-    ----------
-    target_df : pd.DataFrame
-        The dependent variable DataFrame.
-    const : bool
-        If True, adds a constant term array. Default is True.
-    **kwargs : pd.DataFrame
-        Additional independent variable DataFrames.
-
-    Returns
-    -------
-    Any
-        A custom object containing the 3D values and metadata.
-    ---------------------------------------------------------------------------
-    将 DataFrame 转换为结构化 3D NumPy 数组, 用于高效的回归分析.
-
-    参数
-    ----
-    target_df : pd.DataFrame
-        因变量 DataFrame.
-    const : bool
-        如果为 True, 则添加常数项数组. 默认为 True.
-    **kwargs : pd.DataFrame
-        附加自变量 DataFrame.
-
-    返回
-    ----
-    Any
-        包含 3D 数值和元数据的自定义对象.
-    ---------------------------------------------------------------------------
-    """
-    target_df = target_df.sort_index(axis=1).sort_index()
-    dic = (
-        {'target': target_df.values}
-        | ({'const': np.ones_like(target_df)} if const else {})
-        | {i: j.reindex_like(target_df).values for i, j in kwargs.items()}
-    )
-    x = type('array_3D',
-             (),
-             {'index': target_df.index,
-              'columns': target_df.columns,
-              'labels': list(dic.keys()),
-              'values': np.array(list(dic.values())).transpose(1, 2, 0)
-              }
-    )
-    return x
-
-
-def _array_roll(
-    array_3D: np.ndarray,
-    periods: int,
-    flatten: bool = False
-) -> np.ndarray:
-    """
-    ===========================================================================
-    Creates a rolling window view of a 3D NumPy array using stride tricks.
-
-    Parameters
-    ----------
-    array_3D : np.ndarray
-        The input 3D NumPy array.
-    periods : int
-        The rolling window size.
-    flatten : bool
-        If True, flattens the rolling windows into a 2D-like view.
-        Default is False.
-
-    Returns
-    -------
-    np.ndarray
-        The windowed array view.
-    ---------------------------------------------------------------------------
-    使用步长技巧创建 3D NumPy 数组的滚动窗口视图.
-
-    参数
-    ----
-    array_3D : np.ndarray
-        输入的 3D NumPy 数组.
-    periods : int
-        滚动窗口大小.
-    flatten : bool
-        如果为 True, 则将滚动窗口展平为类 2D 视图. 默认为 False.
-
-    返回
-    ----
-    np.ndarray
-        分窗后的数组视图.
-    ---------------------------------------------------------------------------
-    """
-    axis = 0
-    new_shape = list(array_3D.shape)
-    new_shape[axis] = [periods, new_shape[axis] - periods + 1, ]
-    new_shape = tuple(flatten_list(new_shape))
-
-    new_strides = list(array_3D.strides)
-    new_strides[axis] = [array_3D.strides[axis], array_3D.strides[axis]]
-    new_strides = tuple(flatten_list(new_strides))
-
-    window = as_strided(array_3D, shape=new_shape, strides=new_strides)
-    window = window.transpose(1, 0, 2, 3)
-    if flatten:
-        window = window.reshape(window.shape[0], -1, window.shape[-1])
-    return window
-
-
-def __lstsq(
-    array_2D: np.ndarray,
-    w: Optional[np.ndarray] = None
-) -> Tuple[np.ndarray, np.ndarray, float]:
-    """
-    ===========================================================================
-    Internal helper performing least squares regression on a 2D data slice.
-
-    Parameters
-    ----------
-    array_2D : np.ndarray
-        2D array slice (rows, features).
-    w : Optional[np.ndarray]
-        Weights for weighted least squares. Default is None.
-
-    Returns
-    -------
-    Tuple[np.ndarray, np.ndarray, float]
-        Tuple of (parameters, t-values, valid observation count).
-    ---------------------------------------------------------------------------
-    内部辅助函数, 对 2D 数据切片执行最小二乘回归.
-
-    参数
-    ----
-    array_2D : np.ndarray
-        2D 数据切片 (行, 特征).
-    w : Optional[np.ndarray]
-        加权最小二乘的权重. 默认为 None.
-
-    返回
-    ----
-    Tuple[np.ndarray, np.ndarray, float]
-        (参数, t值, 有效观测数) 元组.
-    ---------------------------------------------------------------------------
-    """
-    not_nan = ~np.isnan(array_2D).any(axis=1)
-    matrix = array_2D[not_nan, :]
-
-    if w is not None:
-        w = w[not_nan]
-
-    y = matrix[:, 0]
-
-    # Check for sufficient data points for regression
-    if (matrix.shape[0] > matrix.shape[1] * 2) and matrix.shape[0] > 2:
-        x = matrix[:, 1:]
-        xT = x.T
-        p = x.shape[0]
-        if w is None:
-            se = sp.linalg.pinv(xT.dot(x))
-            t = np.diag(se) ** 0.5
-            params = se.dot(xT).dot(y)
-        else:
-            se = sp.linalg.pinv((xT * w).dot(x))
-            t = np.diag(se) ** 0.5
-            params = se.dot(xT * w).dot(y)
-    else:
-        params = np.array([np.nan] * (matrix.shape[1] - 1))
-        t = np.array([np.nan] * (matrix.shape[1] - 1))
-        p = np.nan
-    return params, t, p
-
-
-def _lstsq(
-    array_3D: np.ndarray,
-    neu_axis: int = 1,
-    w: Optional[np.ndarray] = None
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    ===========================================================================
-    Vectorized application of least squares regression across a 3D array.
-
-    Parameters
-    ----------
-    array_3D : np.ndarray
-        The input 3D data array.
-    neu_axis : int
-        The axis along which to perform regression. Default is 1.
-    w : Optional[np.ndarray]
-        Weights for weighted least squares. Default is None.
-
-    Returns
-    -------
-    Tuple[np.ndarray, np.ndarray, np.ndarray]
-        Aggregated parameters, t-values, and counts.
-    ---------------------------------------------------------------------------
-    在 3D 数组上向量化应用最小二乘回归.
-
-    参数
-    ----
-    array_3D : np.ndarray
-        输入 3D 数据数组.
-    neu_axis : int
-        执行回归的轴. 默认为 1.
-    w : Optional[np.ndarray]
-        加权最小二乘的权重. 默认为 None.
-
-    返回
-    ----
-    Tuple[np.ndarray, np.ndarray, np.ndarray]
-        汇总的参数, t值和计数.
-    ---------------------------------------------------------------------------
-    """
-    array_3D = array_3D.transpose(1, 0, 2) if neu_axis == 0 else array_3D
-
-    if w is not None and array_3D.shape[:2] == w.shape:
-        x = list(map(__lstsq, array_3D, w))
-    else:
-        partial_func = partial(__lstsq, w=w)
-        x = list(map(partial_func, array_3D))
-    params, t, p = zip(*x)
-    return np.array(params), np.array(t), np.array(p)
-
-
+@njit(parallel=True, cache=True, nopython=True, fastmath=True)
+def fast_std(arr):
+    n_rows, n_cols, n_depth = arr.shape
+    result = np.full((n_rows, n_cols), np.nan, dtype=arr.dtype)
+    for i in prange(n_rows):
+        for j in range(n_cols):
+            sum_sq = 0.0
+            count = 0
+            # 单次遍历，只累加非 NaN 的平方
+            for k in range(n_depth):
+                val = arr[i, j, k]
+                if not np.isnan(val):
+                    sum_sq += val * val
+                    count += 1
+            if count > 1:
+                result[i, j] = np.sqrt(sum_sq / count)
+    return result                      
+        
 def neutral(
     df_obj: pd.DataFrame,
     const: bool = True,
     neu_axis: int = 1,
     periods: Optional[int] = None,
-    flatten: bool = False,
     w: Optional[np.ndarray] = None,
-    resid: bool = True,
-    t: bool = True,
-    **key_dfs: pd.DataFrame
+    resid: bool = False,
+    dtype = None,
+    **key_factors: pd.DataFrame
 ) -> Any:
-    """
-    ===========================================================================
-    Performs factor neutralization using multi-variate linear regression,
-    optionally in rolling windows.
+    # 数据对齐
+    dtype = 'float32' if periods is not None else ('float64' if dtype is None else dtype)
+    raw = (
+        {'__y__': df_obj} |
+        ({'const': pd.DataFrame().reindex_like(df_obj).fillna(1)} if const else {}) |
+        {i:j.reindex_like(df_obj) for i,j in key_factors.items()}
+    )
+    # 权重调整成3d并对齐(jit传入的数组的维度必须一致,不能一个3d一个1d)
+    if isinstance(w, pd.DataFrame):
+        w = w.reindex_like(df_obj).fillna(0).values[:, :, np.new_axis].astype(dtype)
+    else:
+        if w is not None:
+            if w.ndim == 1:
+                w = np.array(w)[np.newaxis, :, np.newaxis] if neu_axis==0 else np.array(w)[np.newaxis, np.newaxis, :].astype(dtype)
+            elif w.ndim == 2:
+                w = np.array(w)[np.newaxis, :, :].astype(dtype)
+    vals = np.array([i.values for i in raw.values()], dtype=dtype)
 
-    Parameters
-    ----------
-    df_obj : pd.DataFrame
-        The target factor DataFrame to be neutralized.
-    const : bool
-        If True, includes a constant term. Default is True.
-    neu_axis : int
-        Axis for neutralization: 0 (cross-sectional per column), 1 (per row).
-        Default is 1.
-    periods : Optional[int]
-        Rolling window size. Default is None (full data).
-    flatten : bool
-        If True, flattens rolling window data for regression.
-        Default is False.
-    w : Optional[np.ndarray]
-        Weights for weighted regression. Default is None.
-    resid : bool
-        If True, returns residuals in the result object. Default is True.
-    t : bool
-        If True, returns t-values in the result object. Default is True.
-    **key_dfs : pd.DataFrame
-        Factors to neutralize against.
+    # 根据neu_axis及逆行转置
+    trans_dic = {
+        (0, 3): [1, 2, 0],
+        (1, 3): [2, 1, 0],
+    }
+    vals = vals.transpose(*trans_dic.get((neu_axis, vals.ndim)))
+    w = w.transpose(*trans_dic.get((neu_axis, w.ndim))) if w is not None else w
 
-    Returns
-    -------
-    NeutralObj
-        Custom result object with parameters, residuals, and statistics.
-    ---------------------------------------------------------------------------
-    使用多元线性回归执行因子中性化, 可选择在滚动窗口内进行.
-
-    参数
-    ----
-    df_obj : pd.DataFrame
-        要中性化的目标因子 DataFrame.
-    const : bool
-        如果为 True, 则包含常数项. 默认为 True.
-    neu_axis : int
-        中性化轴: 0 (每列横截面), 1 (每行). 默认为 1.
-    periods : Optional[int]
-        滚动窗口大小. 默认为 None (全数据).
-    flatten : bool
-        如果为 True, 则展平滚动窗口数据以进行回归. 默认为 False.
-    w : Optional[np.ndarray]
-        加权回归的权重. 默认为 None.
-    resid : bool
-        如果为 True, 则在结果对象中返回残差. 默认为 True.
-    t : bool
-        如果为 True, 则在结果对象中返回 t值. 默认为 True.
-    **key_dfs : pd.DataFrame
-        用于中性化的因子.
-
-    返回
-    ----
-    NeutralObj
-        包含参数, 残差和统计信息的自定义结果对象.
-    ---------------------------------------------------------------------------
-    """
-    data_obj = _array_3D(df_obj, const, **key_dfs)
-    values = data_obj.values
+    # 根据权重情况决定调用函数
+    func_dic = {
+        None: fast_ols_3d,
+        3:fast_wls_w3d
+    }
+    func = func_dic.get(w if w is None else w.ndim, fast_ols_3d)
+    labels = {
+        1: {'index': df_obj.columns, 'columns':df_obj.index},
+        0: {'index': df_obj.index, 'columns':df_obj.columns},
+    }
 
     if periods is not None:
-        values = _array_roll(values, periods, flatten)
-        if len(values.shape) == 4:
-            if neu_axis == 0:
-                values = values.transpose(0, 2, 1, 3)
-                index = pd.MultiIndex.from_product([data_obj.index[periods - 1:], data_obj.columns], names=[df_obj.index.name, df_obj.columns.name])
-            else:
-                index = pd.MultiIndex.from_product([data_obj.index[periods - 1:], range(periods)], names=[df_obj.index.name, 'PERIOD'])
-            values = values.reshape(values.shape[0] * values.shape[1], values.shape[2], values.shape[3])
-        else:
-            index = data_obj.index[periods - 1:]
+        params = np.full((vals.shape[0], vals.shape[1], vals.shape[2]-1), np.nan, dtype=dtype)
+        for p in range(periods, vals.shape[0]):
+            data_3d = vals[p-periods:p, :, :]
+            weights = w[p-periods:p, :, :] if (w is not None and w.shape[0] != periods) else w
+            params[p-1, :, :] = func(data_3d, weights)
+        if resid:
+            resids = (
+                sliding_window_view(vals[:, :, 0], window_shape=periods, axis=0) - 
+                np.einsum(
+                    "rckw, rck -> rcw", 
+                    sliding_window_view(vals[:, :, 1:], window_shape=periods, axis=0), params[periods-1:], optimize=True)
+                )
+            resids = resids.transpose(1, 0, 2) if neu_axis == 1 else resids
+            resids = dict_to_dataclass({'index': df_obj.index[-resids.shape[0]:], 'columns': df_obj.columns[-resids.shape[1]:], 'values': resids, 'std': fast_std}, name='resid')
+        params = {
+            j: pd.DataFrame(
+                params[:, :, i], 
+                index=labels[neu_axis]['index'], 
+                columns=labels[neu_axis]['columns']
+            )
+            for i,j in enumerate(list(raw.keys())[1:])
+            }
+        if neu_axis == 1:
+            params = {i:j.T for i,j in params.items()}
+        params = pd.concat(params, axis=1)
     else:
-        if neu_axis == 0:
-            index = data_obj.columns
-            columns = data_obj.index
-            values = values.transpose(1, 0, 2)
-        else:
-            index = data_obj.index
-            columns = data_obj.columns
+        params = func(vals, w)
+        if resid:
+            vals = vals.transpose(1, 0, 2) if neu_axis == 1 else vals
+            resids = vals[:, :, 0] - (np.einsum("rck, rk -> rc", vals[:, :, 1:], params) if neu_axis == 1 else np.einsum("rck, ck -> rc", vals[:, :, 1:], params))
+            resids = pd.DataFrame(resids, index=df_obj.index, columns=df_obj.columns)
+        params = pd.DataFrame(params, index=df_obj.axes[int(not bool(neu_axis))], columns=list(raw.keys())[1:])
 
-    parameters, t_values, p = _lstsq(values, w=w)
-    parameters = pd.DataFrame(parameters, index=index, columns=data_obj.labels[1:])
-    t_df = pd.DataFrame(t_values, index=index, columns=data_obj.labels[1:])
-    p_df = pd.Series(p, index=index, name='VAR_COUNT')
-
-    class NeutralObj:
-        def __init__(self, params, resid, t, p, r, adj_r):
-            self.params = params
-            self.resid = resid
-            self.t = t
-            self.var_count = p
-            self.rsquared = r
-            self.rsquared_adj = adj_r
-
-        @property
-        def p(self):
-            df = pd.DataFrame(sp.stats.t.sf(self.t.abs(), self.var_count) * 2, index=self.t.index, columns=self.t.columns)
-            return df
-
-        def predict(self, const=True, **kdfs):
-            dic = {i: j.mul(self.params[i], axis=0) for i, j in kdfs.items()}
-            dic = pd.concat(dic, axis=1)
-            n_levels = list(range(1, dic.columns.nlevels))
-            dic = dic.groupby(level=n_levels, axis=1).sum(min_count=1)
-            if const:
-                dic = dic.add(self.params['const'], axis=0)
-            return dic
-
-    _resid = False
-    if t:
-        _resid = True
-
-    if resid or _resid:
-        if periods is None:
-            resid_values = values[:, :, 0] - np.sum((values[:, :, 1:] * parameters.values[:, np.newaxis, :]), axis=-1)
-            resid_df = pd.DataFrame(resid_values, index=index, columns=columns)
-        else:
-            resid_values = values[:, :, 0].astype(np.float16) - np.sum((values[:, :, 1:].astype(np.float16) * parameters.values[:, np.newaxis, :].astype(np.float16)), axis=-1)
-            resid_df = pd.DataFrame(resid_values, index=index)
-        r = (1 - resid_df.var(axis=1) / np.nanvar(values[:, :, 0], axis=1)).rename('r')
-        adj_r = 1 - (1 - r) * (p_df - 1).values / (p_df - len(key_dfs)).rename('adj_r')
-    else:
-        resid_df = np.nan
-        r = np.nan
-        adj_r = np.nan
-
-    if t:
-        s = (
-            (resid_df**2).sum(axis=1, min_count=1)
-            /
-            (resid_df.notnull().sum(axis=1) - len(key_dfs) - const)
-        ) ** 0.5
-        s = t_df.mul(s, axis=0)
-        t_df = parameters / s
-    else:
-        t_df = np.nan
-
-    if not resid:
-        resid_df = np.nan
-        r = np.nan
-        adj_r = np.nan
-    return NeutralObj(params=parameters, resid=resid_df, t=t_df, p=p_df, r=r, adj_r=adj_r)
-
-
-def _expose(y, expose_values, *xs, limit=0.05, max_iters=2):
-    _xs = {i:j for i,j in enumerate(xs)} if isinstance(xs, (list, tuple)) else {0:xs}
-    def expose_1dim(y, x, v):
-        y = y.stats.neutral(fac=x).resid
-        y_std = y.std(axis=1)
-        beta = (y_std * v) / (x.std(axis=1) * (1 - v ** 2))
-        hat = y + x.mul(beta, axis=0)
-        return hat
-    if len(_xs.keys()) == 1:
-        df = expose_1dim(y, _xs[0], expose_values)
-    else:
-        df = y.stats.neutral(**{i.__str__():j for i,j in _xs.items()}).resid
-        itered = 0
-        len_xs = len(_xs.keys())
-        while (itered < max_iters) and len_xs:
-            for i,j in _xs.items():
-                df = expose_1dim(df, j, expose_values[i])
-            check = {i:df.corrwith(j, axis=1).mean() for i,j in enumerate(xs)}
-            check = [i for i,j in check.items() if np.abs(j - expose_values[i]) > limit]
-            _xs = {i:xs[i] for i in check}
-            len_xs = len(_xs.keys())
-            itered += 1
-            print(f"optmize itered: {itered}, needed optmize count: {len_xs}")
-        for i,j in enumerate(xs):
-            value = round(df.corrwith(j, axis=1).mean(), 4)
-            print(f"x{i}: expose_value: {expose_values[i]} optmized: {value}")
-    return df
+    result = dict_to_dataclass({'params':params, 'resid': resids if resid else None}, name='Neutral')
+    return result
 
 def expose(df_obj, *xs, limit=0.05, max_iter=2):
     df_neu = df_obj.stats.neutral(**{i.__str__():j[0] for i,j in enumerate(xs)}).resid
@@ -656,6 +390,25 @@ def expose(df_obj, *xs, limit=0.05, max_iter=2):
         _xs = [_xs[i] for i,j in check.items() if j > limit]
         itered += 1
     for i,j in enumerate(xs):
-        print(f"factor_{i+1}: expose -> {round(df_neu.corrwith(j[0], axis=1).mean(), 4)} with hope {j[1]}")
+        print(f"factor_{i+1}: expose -> <{round(df_neu.corrwith(j[0], axis=1).mean(), 4)}> with hope <{j[1]}>")
     return df_neu
 
+
+
+
+'''
+import quanta
+from quanta import flow
+df_obj = flow.astock('ret')
+key_factors = {'amount':flow.astock('free_turnover')}
+const: bool = True
+neu_axis: int = 0
+periods: Optional[int] = 252
+#w: Optional[np.ndarray] = None
+resid: bool = True
+#w = quanta.faclib.barra.us4.size()
+w = pd.tools.halflife(252, 63)
+p = periods
+dtype=None
+g1 = df_obj.stats.neutral(amount=flow.astock('free_turnover'), w=w, neu_axis=0, periods=252)
+'''

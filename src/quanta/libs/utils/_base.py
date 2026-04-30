@@ -5,6 +5,8 @@ Created on Wed Feb  4 13:58:29 2026
 @author: Porco Rosso
 """
 
+from pprint import pformat
+import pandas as pd
 from typing import Dict, List, Any, Type
 from dataclasses import dataclass, make_dataclass
 
@@ -195,8 +197,26 @@ def dict_to_dataclass(dic: Dict, name: str = "Root"):
             # 自动识别类型：如果是 DataFrame，会自动标注为 pd.DataFrame
             fields.append((key, type(value)))
             field_values[key] = value
-
+    
+    def custom_repr(self):
+    # 1. 构造一个只包含 key 的嵌套字典结构
+        def get_structure(d):
+            structure = {}
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    # 递归获取子层级的结构
+                    structure[k] = get_structure(v)
+                elif isinstance(v, pd.DataFrame):
+                    # DataFrame 显示其形状，避免打印大量数据
+                    structure[k] = f"<DataFrame shape={v.shape}>"
+                else:
+                    # 普通值显示其类型
+                    structure[k] = type(v).__name__
+            return structure
+        structure_str = pformat(get_structure(field_values), width=60, sort_dicts=False)
+        return f"{name}:\n{structure_str}"
+    
     # 动态创建类
     dynamic_cls = make_dataclass(name, fields)
+    setattr(dynamic_cls, "__repr__", custom_repr)
     return dynamic_cls(**field_values)
-

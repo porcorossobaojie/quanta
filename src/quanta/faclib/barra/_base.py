@@ -127,65 +127,20 @@ class main(meta):
         -----------------------------------------------------------------------
         """
         halflife = periods//4 if halflife is None else halflife
-        ret = getattr(flow, portfolio_type)(cls.trade.returns).fillna(0).astype('float32')
-        entrade = ret.f.tradestatus().notnull()
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).astype('float32').f.tradestatus()
         bench = cls.bench(bench)
         bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns)
         w = pd.tools.halflife(periods, halflife).astype('float32')
-
-        y_vals = pd.tools.array_roll(ret.values.astype('float32'), periods)
-        x_vals = pd.tools.array_roll(bench.values.astype('float32'), periods)
-        bools =  pd.tools.array_roll(entrade.values.astype('float32'), periods)
-
-        chunksize = 500
-        alphas = np.zeros_like(ret.values)
-        betas = np.zeros_like(ret.values)
-        resids = np.zeros_like(ret.values)
-        for i in range(0, y_vals.shape[0], chunksize):
-            tw = w[np.newaxis, :, np.newaxis] * bools[i: i + chunksize]
-            sw = np.einsum('w, twk -> tk', w,  bools[i: i + chunksize])
-            E_y = np.einsum('twk, twk -> tk', tw, y_vals[i: i + chunksize]) / sw
-            E_x = np.einsum('twk, twk -> tk', tw, x_vals[i: i + chunksize]) / sw
-            E_xy = np.einsum('twk, twk, twk -> tk', tw, y_vals[i: i + chunksize], x_vals[i: i + chunksize]) / sw
-            E_xx = np.einsum('twk, twk, twk -> tk', tw, x_vals[i: i + chunksize], x_vals[i: i + chunksize]) / sw
-            beta = (E_xy - E_x * E_y) / (E_xx - E_x**2)
-            alpha = E_y - beta * E_x
-            E_yy = np.einsum('twk, twk, twk -> tk', tw, y_vals[i: i + chunksize],  y_vals[i: i + chunksize]) / sw
-            var_y = E_yy - E_y**2
-            var_x = E_xx - E_x**2
-            res_var = var_y - (beta**2) * var_x
-            betas[i + periods-1: i+periods-1 + chunksize] = beta
-            alphas[i + periods-1: i+periods-1 + chunksize] = alpha
-            resids[i + periods-1: i+periods-1 + chunksize] = res_var ** 0.5
-        alpha = pd.DataFrame(alphas, index=ret.index, columns=ret.columns).f.tradestatus().replace(0, np.nan)
-        beta = pd.DataFrame(betas, index=ret.index, columns=ret.columns).f.tradestatus().replace(0, np.nan)
-        resid = pd.DataFrame(resids, index=ret.index, columns=ret.columns).f.tradestatus().replace(0, np.nan)
-        df = pd.concat({i:j.f.tradestatus(periods=periods, min_periods=halflife) for i,j in {'alpha':alpha, 'beta':beta, 'resid':resid}.items()}, axis=1)
-        return df
-
-
-
-
-
-
-
-
-        y_vals = pd.tools.array_roll(ret.values, periods)
-        y_mean = np.einsum('twk, w -> tk', y_vals, w)
-        x_vals = pd.tools.array_roll(bench.iloc[:, [0]].values, periods)[:, :, 0]
-        x_mean = np.einsum('tw, w -> t', x_vals, w)[:, np.newaxis]
-        x_vals = x_vals - x_mean
-        y_vals = y_vals - y_mean[:, np.newaxis, :]
-        txt = np.einsum('tw, w -> t', x_vals**2, w)[:, np.newaxis]
-        beta = np.einsum('tw,w,twk->tk', x_vals, w, y_vals) / txt
-        beta = pd.DataFrame(beta, columns=ret.columns, index=ret.index[periods-1:])
-        alpha = y_mean - beta * x_mean
-        b = beta.values[:, np.newaxis, :]
-        a = alpha.values[:, np.newaxis, :]
-        x = pd.tools.array_roll(bench.iloc[:, [0]].values, periods)[:, :, 0][:, :, np.newaxis]
-        y_vals = ne.evaluate('(a + b * x - y_vals) ** 2', out=y_vals)
-        y_vals = np.mean(y_vals, axis=1) ** 0.5
-        resid = pd.DataFrame(y_vals, columns=ret.columns, index=ret.index[periods-1:])
+        beta = ret.stats.neutral(beta=bench, neu_axis=0, w=w, periods=periods)
+        alpha, beta, resid = (
+            beta.params.const, 
+            beta.params.beta, 
+            pd.DataFrame(
+                beta.resid.std(beta.resid.values),
+                index = beta.resid.index,
+                columns = beta.resid.columns
+            )
+        )
         df = pd.concat({i:j.f.tradestatus(periods=periods, min_periods=halflife) for i,j in {'alpha':alpha, 'beta':beta, 'resid':resid}.items()}, axis=1)
         return df
 
