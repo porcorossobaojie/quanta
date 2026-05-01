@@ -236,8 +236,13 @@ def fast_wls_w3d(data_3d, weights):
     for i in prange(n_slices):
         slice_data = data_3d[:, i, :]
         valid_mask = np.ones(n_cols, dtype=np.bool_)
-        for r in range(k_samples):
-            valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
+        for c in range(n_cols):
+            for k in range(k_samples):
+                if np.isnan(slice_data[c, k]):
+                    valid_mask[c] = False
+                    break
+
+
         if np.sum(valid_mask) > (2 * (k_samples - 1)):
             if multi_w1:
                 w_sub = weights[valid_mask, i]
@@ -263,12 +268,15 @@ def fast_ols_3d(data_3d, weights):
     for i in prange(n_slices):
         slice_data = data_3d[:, i, :]
         valid_mask = np.ones(n_cols, dtype=np.bool_)
-        for r in range(k_samples):
-            valid_mask = valid_mask & ~np.isnan(slice_data[:, r])
+        for c in range(n_cols):
+            for k in range(k_samples):
+                if np.isnan(slice_data[c, k]):
+                    valid_mask[c] = False
+                    break
         if np.sum(valid_mask) > (2 * (k_samples - 1)):
             y = slice_data[valid_mask, 0]
             x = slice_data[valid_mask, 1:]
-            betas[i] =np.linalg.solve(x.T @ x, x.T @ y)
+            betas[i] = np.linalg.solve(x.T @ x, x.T @ y)
     return betas
 
 @njit(parallel=True, cache=True, nopython=True, fastmath=True)
@@ -287,8 +295,28 @@ def fast_std(arr):
                     count += 1
             if count > 1:
                 result[i, j] = np.sqrt(sum_sq / count)
-    return result                      
-        
+    return result
+
+def fast_wls(data_3d, weights):
+    def core_func(data_2d, w):
+        not_nan = ~np.isnan(data_2d).any(axis=1)
+        m = data_2d[not_nan, :]
+        if m.shape[0] > m.shape[1] * 2:
+            if w is not None:
+                w = w[not_nan, :] if w.ndim == 2 else w[not_nan][:, np.newaxis]
+                m = m * w
+            x = np.linalg.solve(m[:, 1:].T @ m[:, 1:], m[:, 1:].T @ m[:, 0])
+        else:
+            x = np.array([np.nan] * (m.shape[1] - 1))
+        return x
+    if weights is not None and data_3d.shape[:2] == weights.shape[:2]:
+        x = list(map(core_func, data_3d, weights))
+    else:
+        partial_func = partial(core_func, w=weights)
+        x = list(map(partial_func, data_3d))
+    params = np.array(x)
+    return params
+
 def neutral(
     df_obj: pd.DataFrame,
     const: bool = True,
@@ -308,35 +336,38 @@ def neutral(
     )
     # 权重调整成3d并对齐(jit传入的数组的维度必须一致,不能一个3d一个1d)
     if isinstance(w, pd.DataFrame):
-        w = w.reindex_like(df_obj).fillna(0).values[:, :, np.new_axis].astype(dtype)
+        w = w.reindex_like(df_obj).fillna(0).values[np.newaxis, :, :].astype(dtype)
     else:
         if w is not None:
             if w.ndim == 1:
                 w = np.array(w)[np.newaxis, :, np.newaxis] if neu_axis==0 else np.array(w)[np.newaxis, np.newaxis, :].astype(dtype)
             elif w.ndim == 2:
                 w = np.array(w)[np.newaxis, :, :].astype(dtype)
-    vals = np.array([i.values for i in raw.values()], dtype=dtype)
 
     # 根据neu_axis及逆行转置
     trans_dic = {
-        (0, 3): [1, 2, 0],
-        (1, 3): [2, 1, 0],
+        (0, 3, 0): [1, 2, 0],
+        (1, 3, 0): [2, 1, 0],
+        (0, 3, 1): [2, 1, 0],
+        (1, 3, 1): [1, 2, 0],
     }
-    vals = vals.transpose(*trans_dic.get((neu_axis, vals.ndim)))
-    w = w.transpose(*trans_dic.get((neu_axis, w.ndim))) if w is not None else w
+    vals = np.array([i.values for i in raw.values()], dtype=dtype)
+    vals = vals.transpose(*trans_dic.get((neu_axis, vals.ndim, periods is None)))
+    w = w.transpose(*trans_dic.get((neu_axis, w.ndim, periods is None))) if w is not None else w
 
     # 根据权重情况决定调用函数
-    func_dic = {
-        None: fast_ols_3d,
-        3:fast_wls_w3d
-    }
-    func = func_dic.get(w if w is None else w.ndim, fast_ols_3d)
+
     labels = {
         1: {'index': df_obj.columns, 'columns':df_obj.index},
         0: {'index': df_obj.index, 'columns':df_obj.columns},
     }
 
     if periods is not None:
+        func_dic = {
+            None: fast_ols_3d,
+            3:fast_wls_w3d
+        }
+        func = func_dic.get(w if w is None else w.ndim, fast_ols_3d)
         params = np.full((vals.shape[0], vals.shape[1], vals.shape[2]-1), np.nan, dtype=dtype)
         for p in range(periods, vals.shape[0] + 1):
             data_3d = vals[p-periods:p, :, :]
@@ -344,17 +375,17 @@ def neutral(
             params[p-1, :, :] = func(data_3d, weights)
         if resid:
             resids = (
-                sliding_window_view(vals[:, :, 0], window_shape=periods, axis=0) - 
+                sliding_window_view(vals[:, :, 0], window_shape=periods, axis=0) -
                 np.einsum(
-                    "rckw, rck -> rcw", 
+                    "rckw, rck -> rcw",
                     sliding_window_view(vals[:, :, 1:], window_shape=periods, axis=0), params[periods-1:], optimize=True)
                 )
             resids = resids.transpose(1, 0, 2) if neu_axis == 1 else resids
             resids = dict_to_dataclass({'index': df_obj.index[-resids.shape[0]:], 'columns': df_obj.columns[-resids.shape[1]:], 'values': resids, 'std': fast_std}, name='resid')
         params = {
             j: pd.DataFrame(
-                params[:, :, i], 
-                index=labels[neu_axis]['index'], 
+                params[:, :, i],
+                index=labels[neu_axis]['index'],
                 columns=labels[neu_axis]['columns']
             )
             for i,j in enumerate(list(raw.keys())[1:])
@@ -363,10 +394,10 @@ def neutral(
             params = {i:j.T for i,j in params.items()}
         params = pd.concat(params, axis=1)
     else:
-        params = func(vals, w)
+        params = fast_wls(vals, w)
         if resid:
-            vals = vals.transpose(1, 0, 2) if neu_axis == 1 else vals
-            resids = vals[:, :, 0] - (np.einsum("rck, rk -> rc", vals[:, :, 1:], params) if neu_axis == 1 else np.einsum("rck, ck -> rc", vals[:, :, 1:], params))
+            resids = vals[:, :, 0] - np.einsum("rck, rk -> rc", vals[:, :, 1:], params)
+            resids = resids if neu_axis == 1 else resids.T
             resids = pd.DataFrame(resids, index=df_obj.index, columns=df_obj.columns)
         params = pd.DataFrame(params, index=df_obj.axes[int(not bool(neu_axis))], columns=list(raw.keys())[1:])
 
