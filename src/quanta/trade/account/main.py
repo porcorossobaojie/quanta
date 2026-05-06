@@ -100,12 +100,20 @@ class main:
         -----------------------------------------------------------------------
         """
         if file_name_by_date is None:
+            file_name_by_date = self.__get_files_name__(self.__settle_path__)
+        else:
+            file_name_by_date = [file_name_by_date]
+        if len(file_name_by_date):
             file_name_by_date = max(self.__get_files_name__(self.__settle_path__)).split('.')[0]
-        x = self.pipline.read(str(self.__settle_path__ / file_name_by_date))
-        x = x.set_index(x.columns[0])
-        x = x.iloc[:, 0]
-        x.index = getattr(flow, self.portfolio_type).code_standard(x.index)
-        x.name = pd.to_datetime(file_name_by_date) + pd.Timedelta(config.key.time_bias)
-        x = pd.f.Series(x, unit='share', state = 'settle', is_adj=False)
-        x = x[x.index.notnull()].astype('float64')
+            x = self.pipline.read(str(self.__settle_path__ / file_name_by_date))
+            x = x.set_index(x.columns[0])
+            x = x.iloc[:, 0]
+            x.index = getattr(flow, self.portfolio_type).code_standard(x.index)
+            x.name = pd.to_datetime(file_name_by_date) + pd.Timedelta(config.key.time_bias)
+            x = pd.f.Series(x, unit='share', state = 'settle', is_adj=False)
+            x = x[x.index.notnull()].astype('float64')
+        else:
+            name = flow.trade_days[flow.trade_days < pd.Timestamp.today()][-1]
+            x = pd.f.Series(unit='share', state='settle', is_adj=False, name=name)
+            x.index.name = self.portfolio_type + '_code'
         return x

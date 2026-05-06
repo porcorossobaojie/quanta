@@ -11,7 +11,7 @@ from quanta.libs.utils import lru_cache
 
 from quanta import flow, faclib
 from quanta.config import settings
-char = settings('trade').strategy_001.BJ_13611823855
+#char = settings('trade').strategy_001.BJ_13611823855
 from quanta.trade import account
 
 
@@ -82,6 +82,7 @@ class main:
         df = pd.concat({'settle':self.settle(), 'hope': portfolio}, axis=1)
         df['signal'] = df['hope'].fillna(0) - df['settle'].fillna(0)
         df['filter'] = df['signal'][(df['signal'] / df['settle'].fillna(1)).abs() > min_change]
+        df['ranker'] = self.ranker(df.index)
         return df
         
     def signal(self):
@@ -89,11 +90,12 @@ class main:
         x = pd.f.Series(x, name=self.settle().name, unit='share', is_adj=False)
         return x
             
-        
-        
-        
-    
-self = main(account(**char))
+    def write(self):
+        df = self.signal()
+        self.account.pipline.write(
+            df = df.to_frame().reset_index(), 
+            path = str(self.account.__order_path__/str(df.name.date()))
+        )
         
         
         

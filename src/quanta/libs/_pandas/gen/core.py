@@ -314,7 +314,7 @@ def d_cut(df_obj, count, max_count, delay):
     mask = ~np.isnan(val[0])
     masked_val = val[0][mask]
     ranks = (-masked_val).argsort().argsort() + 1
-    result[0, mask] = np.where(ranks <= count, ranks, 0)
+    result[0, mask] = np.where(ranks <= count if isinstance(count, int) else count[0], ranks, 0)
     for i in range(1, val.shape[0]):
         arr = val[i]
         hold = result[i-1]
@@ -325,12 +325,12 @@ def d_cut(df_obj, count, max_count, delay):
         result[i, mask] = np.where(
             (
                 must_hold[mask] |
-                (rank <= count + max_count)
+                (rank <= (count if isinstance(count, int) else count[i]) + (max_count if isinstance(max_count, int) else max_count[i]))
             ),
             hold[mask],
             0
         )
-        change_count = count - (result[i] > 0).sum()
+        change_count = (count if isinstance(count, int) else count[i]) - (result[i] > 0).sum()
         if change_count > 0:
             mask2 = (~np.isnan(arr)) & (result[i] <= 0)
             rank2 = (-arr[mask2]).argsort().argsort() + 1        
@@ -342,7 +342,26 @@ def d_cut(df_obj, count, max_count, delay):
         result[i, mask] = np.where(result[i, mask] > 0, rank, 0)
     result = pd.DataFrame(result, index=df_obj.index, columns=df_obj.columns)        
     return result    
+
+def ind_cut(ind_target_df, count, max_count, delay):
+    target = ind_target_df.notnull().groupby(ind_target_df.columns.names[0], axis=1).sum()
+    target = target[target > 0].div(target.sum(axis=1), axis=0) * count
+    int_target = target.round(0)
+    adj = count - int_target.sum(axis=1, min_count=1)
+    target_array = target.values
+    adj = adj.values.round(0)
+    
+    for i in target_array.shape[0]:
+        if adj[i] != 0:
+            isnan = np.isnan(target_array[i])
+            tmp_1 = np.argsort(target_array[i][~isnan])
+            if adj[i] > 0:
+                pass
+                
+            
         
+    
+
     
 
 def roll_weight(
