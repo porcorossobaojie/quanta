@@ -13,7 +13,7 @@ from quanta import flow
 from quanta.trade import pipline
 from quanta.config import settings
 
-char = settings('trade').strategy_001.BJ_13611823855
+#char = settings('trade').strategy_001.BJ_13611823855
 config = settings('data').public_keys.recommand_settings
 
 __all__ = ['main']
@@ -114,6 +114,6 @@ class main:
             x = x[x.index.notnull()].astype('float64')
         else:
             name = flow.trade_days[flow.trade_days < pd.Timestamp.today()][-1]
-            x = pd.f.Series(unit='share', state='settle', is_adj=False, name=name)
+            x = pd.f.Series(unit='share', state='settle', is_adj=False, name=name, cash=self._init_assets)
             x.index.name = self.portfolio_type + '_code'
         return x
