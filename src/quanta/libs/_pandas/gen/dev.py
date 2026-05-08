@@ -27,22 +27,20 @@ def fast_rank(data_2d, rule):
             slice_data = np.fmax(1, np.fmin(len(rule) - 1, slice_data))
             result[i, mask] = slice_data
     return result
-    
+
 
 
 
 def group(
     df: pd.DataFrame,
     rule: Union[Dict, List],
-    order: bool = False,
+    order: bool = True,
 ) -> pd.DataFrame:
     is_multi = bool(df.columns.nlevels - 1)
     rule = {i:np.array(j) for i,j in rule.items()} if isinstance(rule, dict) else np.array(rule)
-    
+
     if not is_multi:
         df = pd.DataFrame(fast_rank(df.values, rule), index=df.index, columns=df.columns)
-        return df
-    
     else:
         if isinstance(rule, np.ndarray):
             rule = {i: rule for i in df.columns.get_level_values(0).unique()}
@@ -51,9 +49,9 @@ def group(
         cols = x.columns.get_level_values(-1).value_counts() == len(keys)
         cols = cols[cols].index
         x = x.loc[:, x.columns.get_level_values(-1).isin(cols)]
+        arrays = np.full((x.index.shape[0], cols.shape[0], len(keys)), np.nan)
         if order:
-            arrays = np.full((x.index.shape[0], cols.shape[0], len(keys)), np.nan)
-            arrays[:, :, 0] = fast_rank(x[keys[1]].values, rule[keys[0]])
+            arrays[:, :, 0] = fast_rank(x[keys[0]].values, rule[keys[0]])
             ruled = [range(1, len(rule[keys[0]]))]
             for i in range(1, len(keys)):
                 flat_values = arrays[:, :, :i]
@@ -67,13 +65,17 @@ def group(
                 result = np.nansum(result, axis=0)
                 arrays[:, :, i] = result
                 ruled.append(range(1, len(rule[keys[i]])))
-            df = pd.DataFrame(arrays.reshape(-1, len(keys))).fillna(0).astype(int).astype(str)
-            df = pd.Series(df.values.tolist()).str.join('_')
-            df = pd.DataFrame(df.values.reshape(x.shape[0], -1), index=x.index, columns=cols)
-            return df
-    
-    
-    
-    
-    
-    
+        else:
+            for i in range(len(keys)):
+                arrays[:, :, i] =fast_rank(x[keys[i]].values, rule[keys[i]])
+        df = pd.DataFrame(arrays.reshape(-1, len(keys))).fillna(-1).astype(int).astype(str)
+        df = pd.Series(df.values.tolist()).str.join('_')
+        df = pd.DataFrame(df.values.reshape(x.shape[0], -1), index=x.index, columns=cols)
+        df = df.stack()
+        df = df[~df.str.contains('-1',  regex=False)].unstack()
+    return df
+
+
+
+
+
