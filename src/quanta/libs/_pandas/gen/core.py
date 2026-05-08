@@ -211,7 +211,7 @@ def portfolio(
         包含每个组的平均或加权收益率的 DataFrame.
     ---------------------------------------------------------------------------
     """
-    returns = returns.sort_index().rolling(roll).mean() if roll > 1 else returns.sort_index()
+    returns = returns.sort_index().rolling(roll).mean().shift(-1 * (roll-1)) if roll > 1 else returns.sort_index()
     df_obj = (fillna_func(df_obj.sort_index(), returns.index) if fillna else df_obj).shift(shift)
     if weight is not None:
         weight = (fillna_func(weight, returns.index) if fillna else weight).reindex_like(returns)[returns.notnull()]
