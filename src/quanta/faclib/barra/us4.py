@@ -73,17 +73,14 @@ class main(meta):
             计算得到的动量因子.
         -----------------------------------------------------------------------
         """
-        ret = getattr(flow, portfolio_type)(cls.trade.returns).tools.log().astype('float32')
-        entrade = ret.f.tradestatus().notnull()
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).f.tradestatus().tools.log(abs_adj=False).astype('float32')
         bench = cls.bench(bench).tools.log().astype('float32')
-        bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns)[entrade].fillna(0)
+        bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns).f.tradestatus()
         w = pd.tools.halflife(long_periods+short_periods, halflife)[short_periods:][np.newaxis, :]
-
-        ret_mom = ret.rolling(long_periods).apply(lambda x: w @ x, raw=True)
-        w_mom = entrade.rolling(long_periods).apply(lambda x: w @ x, raw=True)
-        bench_mom = bench.rolling(long_periods).apply(lambda x: w @ x, raw=True)
-
-        x = ((ret_mom - bench_mom) / w_mom).shift(short_periods)
+        
+        ret_mom = ret.gen.roll_weight(w)
+        bench_mom = bench.gen.roll_weight(w)
+        x = (ret_mom - bench_mom).shift(short_periods)
         x = x.f.tradestatus(long_periods, halflife)
         return x
    

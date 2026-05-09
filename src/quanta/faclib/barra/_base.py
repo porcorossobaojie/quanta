@@ -13,13 +13,11 @@ from quanta import flow
 from quanta.faclib._base.main import main as meta
 #from .._base.main import main as meta
 from quanta.config import settings
-config = settings('factors')
 
 class main(meta):
     """
     Base class for Barra factor calculations. | Barra因子计算基类.
     """
-    finance = config.finance_keys
 
     @classmethod
     def size(cls) -> pd.DataFrame:
@@ -47,9 +45,8 @@ class main(meta):
             账面市值比相对于市值因子的残差.
         -----------------------------------------------------------------------
         """
-        total_assets = flow.astock.finance(cls.finance.total_assets, shift=4)
-        mv = flow.astock(cls.finance.val_mv)
-        x = (total_assets / mv / 1e8).stats.neutral(fac=cls.size()).resid
+        x = flow.astock(cls.finance.pb) ** -1
+        x = x.stats.neutral(cls.size()).resid
         return x
 
     @classmethod
@@ -192,3 +189,149 @@ class main(meta):
         -----------------------------------------------------------------------
         """
         return cls._beta(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type).beta
+
+    @classmethod
+    @lru_cache(maxsize=4)
+    def hsigma(
+        cls,
+        periods: int = 252,
+        halflife: int = None,
+        bench: str = 'full',
+        portfolio_type: str = 'astock'
+    ) -> pd.DataFrame:
+        """Calculate Historical Sigma | 计算历史残差波动率"""
+        x = cls._beta(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type).resid
+        x = x.stats.neutral(me=cls.size(), beta=cls.beta()).resid
+        return x
+
+    @classmethod
+    @lru_cache(maxsize=4)
+    def dastd(
+        cls,
+        periods: int = 252,
+        halflife: int = None,
+        portfolio_type: str = 'astock'
+    ) -> pd.DataFrame:
+        """
+        =======================================================================
+        Calculate the Daily Standard Deviation (DASTD).
+
+        Parameters
+        ----------
+        periods : int
+            The lookback period.
+        halflife : int, optional
+            The halflife for decay.
+        portfolio_type : str
+            The portfolio type.
+
+        Returns
+        -------
+        pd.DataFrame
+            The calculated DASTD.
+        -----------------------------------------------------------------------
+        计算日收益率标准差 (DASTD).
+
+        参数
+        ----
+        periods : int
+            回看窗口.
+        halflife : int, 可选
+            半衰期.
+        portfolio_type : str
+            组合类型.
+
+        返回
+        ----
+        pd.DataFrame
+            计算得到的 DASTD.
+        -----------------------------------------------------------------------
+        """
+        halflife = periods // 6 if halflife is None else halflife
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).f.tradestatus()
+        w = pd.tools.halflife(periods, halflife)
+        x = (ret - ret.gen.roll_weight(w)) ** 2
+        x = x.gen.roll_weight(w)
+        x = x[ret.notnull()]
+        return x
+
+    @classmethod
+    @lru_cache(maxsize=4)
+    def cmra(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
+        """Calculate Cumulative Range of Adjusted Returns (CMRA) | 计算累积相对收益范围"""
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).fillna(0)
+        location = -(np.arange(0, periods, 21) + 1)
+        x = ret.rolling(periods).sum().tools.log()
+        df = x.rolling(periods).apply(lambda x: np.max(x[location], axis=0) - np.min(x[location], axis=0), raw=True)
+        df = df.tools.log().f.tradestatus(periods=periods)
+        return df
+    
+    @classmethod
+    @lru_cache(maxsize=4)
+    def _turnover(cls, periods, portfolio_type: str = 'astock') -> pd.DataFrame:
+        x = getattr(flow, portfolio_type)(cls.finance.turnover) / 100
+        x = x.rolling(periods, min_periods=periods // 4).sum()
+        x = x.tools.log()
+        return x
+    
+    @classmethod
+    def month_turnover(cls, periods=21, portfolio_type: str = 'astock') -> pd.DataFrame:
+        x = cls._turnover(periods=periods, portfolio_type = portfolio_type)
+        return x
+    
+    @classmethod
+    def quarter_turnover(cls, periods=63, portfolio_type: str = 'astock') -> pd.DataFrame:
+        x = cls._turnover(periods=periods, portfolio_type = portfolio_type)
+        x = x - np.log(4)
+        return x
+    
+    @classmethod
+    def annual_turnover(cls, periods=252, portfolio_type: str = 'astock') -> pd.DataFrame:
+        x = cls._turnover(periods=periods, portfolio_type = portfolio_type)
+        x = x - np.log(12)
+        return x    
+    
+    @classmethod
+    @lru_cache(maxsize=4)
+    def annul_weight_turnover(cls, periods=252, portfolio_type: str = 'astock') -> pd.DataFrame:
+        df = getattr(flow, portfolio_type)(cls.finance.turnover).f.tradestatus() / 100
+        w = pd.tools.halflife(periods, halflife=periods // 4)
+        x = df.gen.roll_weight(w)
+        x = x[df.notnull()]
+        return x
+    
+    @classmethod
+    @lru_cache(maxsize=4)
+    def short_term_reversal(cls, periods=21, portfolio_type: str = 'astock') -> pd.DataFrame:
+        w = pd.tools.halflife(periods, periods // 4)
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).f.tradestatus().tools.log(abs_adj=False)
+        x = ret.gen.roll_weight(w)
+        return x
+
+    @classmethod    
+    def seasonal(cls, periods=5, window=252, future=21, portfolio_type: str = 'astock') -> pd.DataFrame:
+        ret = getattr(flow, portfolio_type)(cls.trade.returns).f.tradestatus()
+        ret = ret.rolling(future).mean().shift(window - future + 1)
+        df = {i:ret.shift(i * window) for i in range(periods)}
+        df = pd.concat(df, axis=1).stack().mean(axis=1).unstack().reindex_like(ret).f.tradestatus()
+        return df
+    
+
+    
+    
+        
+
+        
+        
+        
+        
+        
+        
+    
+    
+        
+        
+        
+        
+    
+    

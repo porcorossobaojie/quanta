@@ -12,4 +12,4 @@ finance_keys:
     pcf: pcf
     pocf: pocf
     pb: pb
-    free_turnover: 'free_turnover'
+    turnover: 'free_turnover'

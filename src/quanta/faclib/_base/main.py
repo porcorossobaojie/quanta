@@ -23,6 +23,7 @@ class main():
     """
     index_mapping = settings('flow').index_mapping
     trade = settings('flow').trade_keys
+    finance = settings('factors').finance_keys
     
     @classmethod
     @lru_cache(maxsize=16)

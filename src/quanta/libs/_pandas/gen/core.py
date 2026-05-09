@@ -7,14 +7,75 @@ Created on Wed Feb  4 15:58:12 2026
 
 import numpy as np
 import pandas as pd
+from numba import njit, prange
+from itertools import product
 from typing import Optional, Dict, List, Union
 
 from quanta.libs._pandas.tools.core import fillna as fillna_func
 
 __all__ = ['group', 'weight', 'portfolio', 'cut', 'roll_weight', 'd_cut']
 
+@njit(parallel=True, cache=True, nopython=True)
+def fast_rank(data_2d, rule):
+    result = np.full(data_2d.shape, np.nan)
+    for i in prange(data_2d.shape[0]):
+        mask = ~np.isnan(data_2d[i])
+        slice_data = data_2d[i][mask]
+        if len(slice_data):
+            count = slice_data.shape[0]
+            slice_data = slice_data.argsort().argsort() + 1
+            slice_data = slice_data / count
+            slice_data = np.searchsorted(rule, slice_data, side='left')
+            slice_data = np.fmax(1, np.fmin(len(rule) - 1, slice_data))
+            result[i, mask] = slice_data
+    return result
+
 
 def group(
+    df: pd.DataFrame,
+    rule: Union[Dict, List],
+    order: bool = True,
+) -> pd.DataFrame:
+    is_multi = bool(df.columns.nlevels - 1)
+    rule = {i:np.array(j) for i,j in rule.items()} if isinstance(rule, dict) else np.array(rule)
+
+    if not is_multi:
+        df = pd.DataFrame(fast_rank(df.values, rule), index=df.index, columns=df.columns)
+    else:
+        if isinstance(rule, np.ndarray):
+            rule = {i: rule for i in df.columns.get_level_values(0).unique()}
+        keys = list(rule.keys())
+        x = df.sort_index(axis=1)
+        cols = x.columns.get_level_values(-1).value_counts() == len(keys)
+        cols = cols[cols].index
+        x = x.loc[:, x.columns.get_level_values(-1).isin(cols)]
+        arrays = np.full((x.index.shape[0], cols.shape[0], len(keys)), np.nan)
+        if order:
+            arrays[:, :, 0] = fast_rank(x[keys[0]].values, rule[keys[0]])
+            ruled = [range(1, len(rule[keys[0]]))]
+            for i in range(1, len(keys)):
+                flat_values = arrays[:, :, :i]
+                unique_keys = np.array(list(product(*ruled)))
+                result = (flat_values[:, :, np.newaxis, :] == unique_keys[np.newaxis, np.newaxis, :, :])
+                result = result.all(axis=-1)
+                result = np.where(result, x[keys[i]].values[:, :, np.newaxis], np.nan)
+                result = result.transpose(2, 0, 1).reshape(-1, result.shape[1])
+                result = fast_rank(result, rule[keys[i]])
+                result = result.reshape(len(unique_keys), -1, result.shape[-1])
+                result = np.nansum(result, axis=0)
+                arrays[:, :, i] = result
+                ruled.append(range(1, len(rule[keys[i]])))
+        else:
+            for i in range(len(keys)):
+                arrays[:, :, i] =fast_rank(x[keys[i]].values, rule[keys[i]])
+        df = pd.DataFrame(arrays.reshape(-1, len(keys))).fillna(-1).astype(int).astype(str)
+        df = pd.Series(df.values.tolist()).str.join('_')
+        df = pd.DataFrame(df.values.reshape(x.shape[0], -1), index=x.index, columns=cols)
+        df = df.stack()
+        df = df[~df.str.contains('-1',  regex=False)].unstack()
+    return df
+
+def group_old(
     df: pd.DataFrame,
     rule: Union[Dict, List],
     pct: bool = True,
@@ -343,31 +404,10 @@ def d_cut(df_obj, count, max_count, delay):
     result = pd.DataFrame(result, index=df_obj.index, columns=df_obj.columns)        
     return result    
 
-def ind_cut(ind_target_df, count, max_count, delay):
-    target = ind_target_df.notnull().groupby(ind_target_df.columns.names[0], axis=1).sum()
-    target = target[target > 0].div(target.sum(axis=1), axis=0) * count
-    int_target = target.round(0)
-    adj = count - int_target.sum(axis=1, min_count=1)
-    target_array = target.values
-    adj = adj.values.round(0)
-    
-    for i in target_array.shape[0]:
-        if adj[i] != 0:
-            isnan = np.isnan(target_array[i])
-            tmp_1 = np.argsort(target_array[i][~isnan])
-            if adj[i] > 0:
-                pass
-                
-            
-        
-    
-
-    
-
 def roll_weight(
     df_obj: pd.DataFrame,
     weight_array: Union[List, np.ndarray, pd.Series],
-    fix_na: bool = True
+    fillna: bool = 0
 ) -> pd.DataFrame:
     """
     ===========================================================================
@@ -408,16 +448,13 @@ def roll_weight(
     """
     window = len(weight_array)
     weight_array = np.array(weight_array)
-    if fix_na:
-        x = df_obj.fillna(0).rolling(window).apply(lambda x: weight_array @ x, raw=True)
-        reweight = df_obj.notnull().rolling(window).apply(lambda x: weight_array @ x, raw=True)
-        x = x / reweight
-    else:
-        x = df_obj.rolling(window).apply(lambda x: weight_array @ x, raw=True)
+    w_adj = df_obj.notnull().astype(int)
+    x = df_obj.fillna(fillna) if fillna is not None else df_obj
+    
+    up = np.einsum("ijk, j -> ik", pd.tools.array_roll(x.values, window), weight_array)
+    down = np.einsum("ijk, j -> ik", pd.tools.array_roll(w_adj.values, window), weight_array)
+    x = pd.DataFrame(up / down, index=df_obj.index[window-1:], columns=df_obj.columns)
+    x = x.reindex_like(df_obj)
     return x
-        
-    
-        
-    
     
     

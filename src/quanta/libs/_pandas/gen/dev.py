@@ -29,8 +29,6 @@ def fast_rank(data_2d, rule):
     return result
 
 
-
-
 def group(
     df: pd.DataFrame,
     rule: Union[Dict, List],
@@ -40,7 +38,7 @@ def group(
     rule = {i:np.array(j) for i,j in rule.items()} if isinstance(rule, dict) else np.array(rule)
 
     if not is_multi:
-        df = pd.DataFrame(fast_rank(df.values, rule), index=df.index, columns=df.columns)
+        df = pd.DataFrame(fast_rank(df.values, rule), index=df.index, columns=df.columns).astype('Int64')
     else:
         if isinstance(rule, np.ndarray):
             rule = {i: rule for i in df.columns.get_level_values(0).unique()}
@@ -74,8 +72,3 @@ def group(
         df = df.stack()
         df = df[~df.str.contains('-1',  regex=False)].unstack()
     return df
-
-
-
-
-

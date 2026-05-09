@@ -32,11 +32,9 @@ class main():
     def group(
         self,
         rule: Union[Dict, List] = np.linspace(0, 1, 11).round(2).tolist(),
-        pct: bool = True,
         order: bool = False,
-        nlevels: Optional[List[Union[int, str]]] = None,
     ) -> pd.DataFrame:
-        df: pd.DataFrame = group(self._obj, rule=rule, pct=pct, order=order, nlevels=nlevels)
+        df = group(self._obj, rule=rule, order=order)
         return df
 
     @doc_inherit(weight)
@@ -79,6 +77,6 @@ class main():
     def roll_weight(
         self,
         weight_array: Union[List, np.ndarray, pd.Series],
-        fix_na: bool = True
+        fillna: bool = 0
     ) -> pd.DataFrame:
-        return roll_weight(self._obj, weight_array, fix_na)
+        return roll_weight(self._obj, weight_array, fillna)
