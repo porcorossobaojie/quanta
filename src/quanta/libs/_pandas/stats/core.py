@@ -349,6 +349,65 @@ def neutral(
     dtype = None,
     **key_factors: pd.DataFrame
 ) -> Any:
+    """
+    ===========================================================================
+    Neutralizes a factor against specified risk factors using OLS or WLS.
+
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        The factor to be neutralized.
+    const : bool
+        Whether to include a constant term. Default is True.
+    neu_axis : int
+        The axis along which to neutralize. Default is 1.
+    periods : Optional[int]
+        The rolling window size. Default is None.
+    w : Optional[np.ndarray]
+        Weights for Weighted Least Squares. Default is None.
+    l2 : float
+        L2 regularization parameter (Ridge regression). Default is 0.
+    resid : bool
+        Whether to return the residuals. Default is False.
+    dtype : Any
+        Data type for calculation. Default is None.
+    **key_factors : pd.DataFrame
+        Risk factors to neutralize against.
+
+    Returns
+    -------
+    Any
+        The neutralization results, typically containing params and resid.
+    ---------------------------------------------------------------------------
+    使用 OLS 或 WLS 针对指定的风险因子对因子进行中性化处理.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        要进行中性化处理的因子.
+    const : bool
+        是否包含常数项. 默认为 True.
+    neu_axis : int
+        执行中性化的轴. 默认为 1.
+    periods : Optional[int]
+        滚动窗口大小. 默认为 None.
+    w : Optional[np.ndarray]
+        加权最小二乘的权重. 默认为 None.
+    l2 : float
+        L2 正则化参数 (岭回归). 默认为 0.
+    resid : bool
+        是否返回残差. 默认为 False.
+    dtype : Any
+        计算使用的数据类型. 默认为 None.
+    **key_factors : pd.DataFrame
+        用于中性化的风险因子.
+
+    返回
+    ----
+    Any
+        中性化结果, 通常包含参数和残差.
+    ---------------------------------------------------------------------------
+    """
     # 数据对齐
     dtype = 'float32' if periods is not None else ('float64' if dtype is None else dtype)
     l2 = np.array(l2).astype(dtype)
@@ -427,7 +486,52 @@ def neutral(
     result = dict_to_dataclass({'params':params, 'resid': resids if resid else None}, name='Neutral')
     return result
 
-def expose(df_obj, *xs, limit=0.05, max_iter=2):
+def expose(
+    df_obj: pd.DataFrame,
+    *xs: Tuple[pd.DataFrame, float],
+    limit: float = 0.05,
+    max_iter: int = 2
+) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Adjusts a DataFrame's exposure to specified factors to match target levels.
+
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        The input data to adjust.
+    *xs : Tuple[pd.DataFrame, float]
+        Variable number of tuples, each containing a factor DataFrame and its
+        target exposure (correlation).
+    limit : float
+        The maximum allowed deviation from target exposure. Default is 0.05.
+    max_iter : int
+        Maximum number of adjustment iterations. Default is 2.
+
+    Returns
+    -------
+    pd.DataFrame
+        The adjusted DataFrame with desired exposures.
+    ---------------------------------------------------------------------------
+    调整 DataFrame 对指定因子的风险暴露, 以匹配目标水平.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        要调整的输入数据.
+    *xs : Tuple[pd.DataFrame, float]
+        可变数量的元组, 每个元组包含一个因子 DataFrame 及其目标暴露 (相关性).
+    limit : float
+        允许偏离目标暴露的最大限值. 默认为 0.05.
+    max_iter : int
+        最大调整迭代次数. 默认为 2.
+
+    返回
+    ----
+    pd.DataFrame
+        具有所需风险暴露的调整后的 DataFrame.
+    ---------------------------------------------------------------------------
+    """
     df_neu = df_obj.stats.neutral(**{i.__str__():j[0] for i,j in enumerate(xs)}).resid
     def expose_1dim(y, x, v):
         y = y.stats.neutral(fac=x).resid

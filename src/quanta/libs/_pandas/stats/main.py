@@ -70,15 +70,20 @@ class main():
         neu_axis: int = 1,
         periods: Optional[int] = None,
         w: Optional[np.ndarray] = None,
-        l2 = 0,
+        l2: float = 0,
         resid: bool = True,
-        dtype = None,
+        dtype: Any = None,
         **key_factors: pd.DataFrame
     ) -> Any:
         return neutral(self._obj, const=const, neu_axis=neu_axis, periods=periods, w=w, l2=l2, resid=resid, dtype=dtype,**key_factors)
 
-    @doc_inherit(neutral)
-    def expose(self, *xs, limit=0.05, max_iter=2):
+    @doc_inherit(expose)
+    def expose(
+        self,
+        *xs: Tuple[pd.DataFrame, float],
+        limit: float = 0.05,
+        max_iter: int = 2
+    ) -> pd.DataFrame:
         return expose(self._obj, *xs, limit = limit, max_iter=max_iter)
 
 @pd.api.extensions.register_series_accessor(MODULE_DIR)

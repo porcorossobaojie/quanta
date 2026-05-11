@@ -100,8 +100,43 @@ class Series(pd.Series):
         total_weight: float = None,
         **kwargs: Any
     ) -> 'Series':
-        """Rebalances positive and negative weights | 重新平衡正负权重"""
         total_weight = 1.0 if total_weight is None else total_weight
+        """
+        =======================================================================
+        Rebalances positive and negative weights to a total target weight.
+
+        Parameters
+        ----------
+        zero_adj : bool
+            Whether to balance positive and negative values separately.
+            Default is True.
+        total_weight : float
+            The target total weight sum. Default is 1.0.
+        **kwargs : Any
+            Additional keyword arguments.
+
+        Returns
+        -------
+        Series
+            The rebalanced Series.
+        -----------------------------------------------------------------------
+        将正负权重重新平衡为总目标权重.
+
+        参数
+        ----
+        zero_adj : bool
+            是否分别平衡正值和负值. 默认为 True.
+        total_weight : float
+            目标总权重之和. 默认为 1.0.
+        **kwargs : Any
+            附加关键字参数.
+
+        返回
+        ----
+        Series
+            平衡后的 Series.
+        -----------------------------------------------------------------------
+        """
         x = self.copy()
         meta_values = x.values
         if zero_adj: # 平衡买卖 np.nansum is 5 more fast than pandas.sum()
@@ -121,8 +156,34 @@ class Series(pd.Series):
         attrs = {i for i in self.__dict__.keys() if '__lazymem_' in i}
         [delattr(self, i) for i in attrs]
 
-    def __add__(self, other: pd.Series) -> 'Series':
-        """Element-wise addition with index union | 具有索引并集的逐元素加法"""
+    def __add__(self, other: Union['Series', pd.Series, float]) -> 'Series':
+        """
+        =======================================================================
+        Element-wise addition with index union and cash handling.
+
+        Parameters
+        ----------
+        other : Union['Series', pd.Series, float]
+            The object to add.
+
+        Returns
+        -------
+        Series
+            The resulting Series.
+        -----------------------------------------------------------------------
+        具有索引并集和现金处理的逐元素加法.
+
+        参数
+        ----
+        other : Union['Series', pd.Series, float]
+            要相加的对象.
+
+        返回
+        ----
+        Series
+            相加后的 Series.
+        -----------------------------------------------------------------------
+        """
         if isinstance(other, (Series, pd.Series)):
             new_name =  max(
                 pd.to_datetime(self.name) if self.name else pd.Timestamp.min,
@@ -140,12 +201,38 @@ class Series(pd.Series):
             x = super().__add__(other)
         return x
 
-    def __radd__(self, other: pd.Series) -> 'Series':
+    def __radd__(self, other: Union['Series', pd.Series, float]) -> 'Series':
         """Reflected addition | 反向加法"""
         return self.__add__(other)
 
-    def __sub__(self, other: pd.Series) -> 'Series':
-        """Element-wise subtraction with index union | 具有索引并集的逐元素减法"""
+    def __sub__(self, other: Union['Series', pd.Series, float]) -> 'Series':
+        """
+        =======================================================================
+        Element-wise subtraction with index union and cash handling.
+
+        Parameters
+        ----------
+        other : Union['Series', pd.Series, float]
+            The object to subtract.
+
+        Returns
+        -------
+        Series
+            The resulting Series.
+        -----------------------------------------------------------------------
+        具有索引并集和现金处理的逐元素减法.
+
+        参数
+        ----
+        other : Union['Series', pd.Series, float]
+            要相减的对象.
+
+        返回
+        ----
+        Series
+            相减后的 Series.
+        -----------------------------------------------------------------------
+        """
         if isinstance(other, (Series, pd.Series)):
             new_name =  max(
                 pd.to_datetime(self.name) if self.name else pd.Timestamp.min,
@@ -163,7 +250,7 @@ class Series(pd.Series):
             x = super().__sub__(other)
         return x
 
-    def __rsub__(self, other: pd.Series) -> 'Series':
+    def __rsub__(self, other: Union['Series', pd.Series, float]) -> 'Series':
         """Reflected subtraction | 反向减法"""
         return self.__sub__(other)
 
@@ -233,7 +320,45 @@ class Series(pd.Series):
         total_weight: float = None,
         **kwargs: Any
     ) -> 'Series':
-        """Converts weight to asset values | 将权重转换为资产值"""
+        """
+        =======================================================================
+        Converts portfolio weights to asset values based on cash.
+
+        Parameters
+        ----------
+        cash : float
+            The total cash to allocate.
+        zero_adj : bool
+            Whether to balance positive and negative values. Default is False.
+        total_weight : float
+            The target total weight. Default is 1.0.
+        **kwargs : Any
+            Additional keyword arguments.
+
+        Returns
+        -------
+        Series
+            Series containing asset values.
+        -----------------------------------------------------------------------
+        根据现金将投资组合权重转换为资产值.
+
+        参数
+        ----
+        cash : float
+            要分配的总现金.
+        zero_adj : bool
+            是否平衡正负值. 默认为 False.
+        total_weight : float
+            目标总权重. 默认为 1.0.
+        **kwargs : Any
+            附加关键字参数.
+
+        返回
+        ----
+        Series
+            包含资产值的 Series.
+        -----------------------------------------------------------------------
+        """
         total_weight = 1 if total_weight is None else total_weight
         x = (
             self.copy()
@@ -250,7 +375,45 @@ class Series(pd.Series):
         total_weight: float = None,
         **kwargs: Any
     ) -> 'Series':
-        """Converts weight to share counts | 将权重转换为持股数量"""
+        """
+        =======================================================================
+        Converts portfolio weights to share counts based on cash and prices.
+
+        Parameters
+        ----------
+        cash : float
+            The total cash to allocate.
+        zero_adj : bool
+            Whether to balance positive and negative values. Default is False.
+        total_weight : float
+            The target total weight. Default is 1.0.
+        **kwargs : Any
+            Additional keyword arguments.
+
+        Returns
+        -------
+        Series
+            Series containing share counts.
+        -----------------------------------------------------------------------
+        根据现金和价格将投资组合权重转换为持股数量.
+
+        参数
+        ----
+        cash : float
+            要分配的总现金.
+        zero_adj : bool
+            是否平衡正负值. 默认为 False.
+        total_weight : float
+            目标总权重. 默认为 1.0.
+        **kwargs : Any
+            附加关键字参数.
+
+        返回
+        ----
+        Series
+            包含持股数量的 Series.
+        -----------------------------------------------------------------------
+        """
         total_weight = 1 if total_weight is None else total_weight
         if self.__zero_check__:
             x = self.copy()
@@ -275,6 +438,7 @@ class Series(pd.Series):
         )
         x._unit = 'weight'
         return x
+
 
     def __assets_to_assets__(self, **kwargs: Any) -> 'Series':
         """Identity conversion for assets | 资产到资产的恒等转换"""

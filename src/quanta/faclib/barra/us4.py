@@ -6,6 +6,7 @@ Created on Mon Mar 16 17:23:15 2026
 """
 
 from functools import lru_cache
+from typing import Optional, Union, List
 import numpy as np
 import pandas as pd
 
@@ -25,18 +26,18 @@ class main():
     
     @classmethod
     @doc_inherit(meta.bench)
-    def bench(cls, code, weight):
+    def bench(cls, code: str, weight: Optional[Union[str, pd.DataFrame]] = None) -> pd.Series:
         return cls._base.bench(code, weight)
     
     @classmethod
     @doc_inherit(meta.size)
-    def size(cls):
+    def size(cls) -> pd.DataFrame:
         return cls._base.size()
     
     @classmethod
     @doc_inherit(meta.bm)
-    def bm(cls):
-        return cls._base.bm
+    def bm(cls) -> pd.DataFrame:
+        return cls._base.bm()
 
     @classmethod
     @lru_cache(maxsize=4)
@@ -121,6 +122,7 @@ class main():
     @classmethod
     @lru_cache(maxsize=4)
     def liquidity(cls) -> pd.DataFrame:
+        """Calculate liquidity factor | 计算流动性因子"""
         x = pd.concat([cls._base.month_turnover(), cls._base.quarter_turnover(), cls._base.annual_turnover()], axis=1)
         x = x.groupby(x.columns, axis=1).mean()
         return x
@@ -178,9 +180,10 @@ class main():
     @classmethod    
     def neutral(
         cls, 
-        df, 
-        factors_name=['size', 'non_size', 'beta', 'bm', 'earnings', 'momentum']
-    ):
+        df: pd.DataFrame, 
+        factors_name: List[str] = ['size', 'non_size', 'beta', 'bm', 'earnings', 'momentum']
+    ) -> pd.DataFrame:
+        """Neutralize a factor against Barra risk factors | 针对 Barra 风险因子对因子进行中性化"""
         factors = {i:getattr(cls,i)() for i in factors_name}
         x = df.stats.neutral(**factors).resid
         return x

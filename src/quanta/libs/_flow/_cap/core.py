@@ -51,7 +51,39 @@ class Unit:
         cash: Optional[float] = None,
         trade_cost: bool = True
     ):
-        """Initializes the transaction unit | 初始化交易单元"""
+        """
+        =======================================================================
+        Initializes a transaction and settlement unit.
+
+        Parameters
+        ----------
+        signal : Optional[Series]
+            The target trade signal for the period.
+        settle : Optional[Series]
+            The settled position at the beginning of the period.
+        target : Optional[Union[Series, pd.Series]]
+            The target portfolio weights.
+        cash : Optional[float]
+            Initial cash if settle is None.
+        trade_cost : bool
+            Whether to account for trading costs. Default is True.
+        -----------------------------------------------------------------------
+        初始化交易和结算单元.
+
+        参数
+        ----
+        signal : Optional[Series]
+            本期的目标交易信号.
+        settle : Optional[Series]
+            期初已结算的持仓.
+        target : Optional[Union[Series, pd.Series]]
+            目标投资组合权重.
+        cash : Optional[float]
+            如果 settle 为 None, 则为初始现金.
+        trade_cost : bool
+            是否计算交易成本. 默认为 True.
+        -----------------------------------------------------------------------
+        """
         series_instance = Series._config.recommand_settings.to_dict()
         series_instance.update(
             {k: v for k, v in [('cash', cash), ('trade_cost', trade_cost)] if v is not None}
@@ -153,7 +185,23 @@ class Unit:
 
     @lru_cache(maxsize=16)
     def roll(self) -> Series:
-        """Rolls position to the next period | 将持仓滚动至下一期"""
+        """
+        =======================================================================
+        Rolls the current position to the next period based on signals.
+
+        Returns
+        -------
+        Series
+            The settled position for the next period.
+        -----------------------------------------------------------------------
+        根据信号将当前持仓滚动至下一期.
+
+        返回
+        ----
+        Series
+            下一期的已结算持仓.
+        -----------------------------------------------------------------------
+        """
         if self.signal is not None:
             settle = self.settle.share()
             entrade = self.entrade.share()
@@ -183,7 +231,33 @@ class Unit:
         self._target = x
 
     def __call__(self, new_target: Union[Series, pd.Series]) -> 'Unit':
-        """Executes a transition to a new target | 执行向新目标的转换"""
+        """
+        =======================================================================
+        Transitions the current unit to a new target state.
+
+        Parameters
+        ----------
+        new_target : Union[Series, pd.Series]
+            The new target weights for the next unit.
+
+        Returns
+        -------
+        Unit
+            A new transaction unit for the next period.
+        -----------------------------------------------------------------------
+        将当前单元转换到新的目标状态.
+
+        参数
+        ----
+        new_target : Union[Series, pd.Series]
+            下一单元的新目标权重.
+
+        返回
+        ----
+        Unit
+            下一周期的新交易单元.
+        -----------------------------------------------------------------------
+        """
         settle = self.roll()
         self.set_target(new_target)
         signal = self.target - settle
@@ -196,7 +270,41 @@ class Unit:
         theory: bool = True,
         order: bool = True
     ) -> Dict[str, float]:
-        """Calculates portfolio turnover | 计算投资组合换手率"""
+        """
+        =======================================================================
+        Calculates portfolio turnover metrics.
+
+        Parameters
+        ----------
+        actual : bool
+            Calculate actual turnover (considering trade restrictions).
+        theory : bool
+            Calculate theoretical turnover (signal-based).
+        order : bool
+            Calculate order-based turnover.
+
+        Returns
+        -------
+        Dict[str, float]
+            A dictionary containing the requested turnover metrics.
+        -----------------------------------------------------------------------
+        计算投资组合换手率指标.
+
+        参数
+        ----
+        actual : bool
+            计算实际换手率 (考虑交易限制).
+        theory : bool
+            计算理论换手率 (基于信号).
+        order : bool
+            计算基于订单的换手率.
+
+        返回
+        ----
+        Dict[str, float]
+            包含所请求换手率指标的字典.
+        -----------------------------------------------------------------------
+        """
         dic = {}
         if actual:
             try:
@@ -224,7 +332,41 @@ class Unit:
         theory: bool = True,
         order: bool = True
     ) -> Dict[str, float]:
-        """Calculates portfolio returns | 计算投资组合收益率"""
+        """
+        =======================================================================
+        Calculates portfolio return metrics.
+
+        Parameters
+        ----------
+        actual : bool
+            Calculate actual returns.
+        theory : bool
+            Calculate theoretical returns.
+        order : bool
+            Calculate order returns.
+
+        Returns
+        -------
+        Dict[str, float]
+            A dictionary containing the requested return metrics.
+        -----------------------------------------------------------------------
+        计算投资组合收益率指标.
+
+        参数
+        ----
+        actual : bool
+            计算实际收益率.
+        theory : bool
+            计算理论收益率.
+        order : bool
+            计算订单收益率.
+
+        返回
+        ----
+        Dict[str, float]
+            包含所请求收益率指标的字典.
+        -----------------------------------------------------------------------
+        """
         dic = {}
         if actual:
             try:
@@ -252,7 +394,41 @@ class Unit:
         theory: bool = True,
         order: bool = True
     ) -> pd.DataFrame:
-        """Generates performance comparison table | 生成绩效对比表"""
+        """
+        =======================================================================
+        Generates a summary comparison table for returns and turnover.
+
+        Parameters
+        ----------
+        actual : bool
+            Include actual metrics.
+        theory : bool
+            Include theoretical metrics.
+        order : bool
+            Include order metrics.
+
+        Returns
+        -------
+        pd.DataFrame
+            A DataFrame containing the performance comparison.
+        -----------------------------------------------------------------------
+        生成收益率和换手率的汇总对比表.
+
+        参数
+        ----
+        actual : bool
+            包含实际指标.
+        theory : bool
+            包含理论指标.
+        order : bool
+            包含订单指标.
+
+        返回
+        ----
+        pd.DataFrame
+            包含绩效对比的 DataFrame.
+        -----------------------------------------------------------------------
+        """
         turnover = self.turnover(actual, theory, order)
         returns = self.returns(actual, theory, order)
         dic = {'turnover':turnover, 'returns':returns}
@@ -292,13 +468,53 @@ class Chain:
         cash: float = 10000,
         trade_cost: bool = True
     ):
-        """Initializes the backtest chain | 初始化回测链条"""
+        """
+        =======================================================================
+        Initializes the backtest chain.
+
+        Parameters
+        ----------
+        dataframe : pd.DataFrame
+            DataFrame containing target weights over time.
+        cash : float
+            Initial starting cash. Default is 10000.
+        trade_cost : bool
+            Whether to enable trading costs. Default is True.
+        -----------------------------------------------------------------------
+        初始化回测链条.
+
+        参数
+        ----
+        dataframe : pd.DataFrame
+            包含随时间变化的目标权重的 DataFrame.
+        cash : float
+            初始启动现金. 默认为 10000.
+        trade_cost : bool
+            是否启用交易成本. 默认为 True.
+        -----------------------------------------------------------------------
+        """
         self.cash = cash
         self.trade_cost = trade_cost
         self._obj = DataFrame(dataframe)
 
     def __call__(self) -> Dict[pd.Timestamp, Unit]:
-        """Executes the complete backtest chain | 执行完整的向后回测链条"""
+        """
+        =======================================================================
+        Executes the iterative backtest across all periods in the chain.
+
+        Returns
+        -------
+        Dict[pd.Timestamp, Unit]
+            A dictionary mapping timestamps to the corresponding Unit instances.
+        -----------------------------------------------------------------------
+        执行链条中所有周期的迭代回测.
+
+        返回
+        ----
+        Dict[pd.Timestamp, Unit]
+            一个将时间戳映射到相应 Unit 实例的字典.
+        -----------------------------------------------------------------------
+        """
         dic = {}
         unit_obj = Unit(target=self._obj.iloc[0], cash=self.cash, trade_cost=self.trade_cost)
         dic[unit_obj.settle.name] = unit_obj
@@ -310,6 +526,7 @@ class Chain:
             self._internal_data = dic
         print(unit_obj.settle.name, round(unit_obj.settle.total_assets(), 4))
         return dic
+
 
     @property
     @lru_cache(maxsize=1)

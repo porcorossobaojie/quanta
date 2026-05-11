@@ -778,11 +778,51 @@ def ic(
     return x
         
 def ic_predict(
-    Series,
-    windows = (5,10,15,21,42,63),
-    diff = (1,),
-    periods = 42        
-):
+    Series: pd.Series,
+    windows: Tuple[int, ...] = (5, 10, 15, 21, 42, 63),
+    diff: Tuple[int, ...] = (1,),
+    periods: int = 42
+) -> pd.DataFrame:
+    """
+    =======================================================================
+    Predicts Information Coefficient (IC) using rolling regression on
+    exponentially weighted moving averages and differences.
+
+    Parameters
+    ----------
+    Series : pd.Series
+        The input IC series.
+    windows : Tuple[int, ...]
+        Lookback windows for weighting. Default is (5, 10, 15, 21, 42, 63).
+    diff : Tuple[int, ...]
+        Difference orders for trend capture. Default is (1,).
+    periods : int
+        The rolling window size for the predictive regression. Default is 42.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing predicted IC ('p') and R-squared ('r').
+    -----------------------------------------------------------------------
+    使用指数加权移动平均和差分的滚动回归来预测信息系数 (IC).
+
+    参数
+    ----
+    Series : pd.Series
+        输入的 IC 序列.
+    windows : Tuple[int, ...]
+        加权的回看窗口. 默认为 (5, 10, 15, 21, 42, 63).
+    diff : Tuple[int, ...]
+        用于捕获趋势的差分阶数. 默认为 (1,).
+    periods : int
+        预测回归的滚动窗口大小. 默认为 42.
+
+    返回
+    ----
+    pd.DataFrame
+        包含预测 IC ('p') 和 R 方值 ('r') 的 DataFrame.
+    -----------------------------------------------------------------------
+    """
     val = {w:pd.tools.array_roll(Series.values.astype('float32')[:, np.newaxis], w) for w in windows}
     val = {i.__str__(): np.einsum('w, twk -> t', pd.tools.halflife(i, i//4), j) for i,j in val.items()}
     for d in diff:
@@ -863,13 +903,61 @@ def ir(
     ir_val = x.mean() / x.std()
     return ir_val
 
-def corr(df_obj, other_obj=None):
+def corr(
+    df_obj: pd.DataFrame,
+    other_obj: Optional[pd.DataFrame] = None
+) -> pd.Series:
+    """
+    =======================================================================
+    Calculates cross-sectional correlation between factors or with a shift.
+
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        The primary factor DataFrame.
+    other_obj : Optional[pd.DataFrame]
+        The factor to correlate with. If None, uses df_obj.shift().
+
+    Returns
+    -------
+    pd.Series
+        Descriptive statistics of the cross-sectional correlation.
+    -----------------------------------------------------------------------
+    计算因子之间或带有平移的横截面相关性.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        主因子 DataFrame.
+    other_obj : Optional[pd.DataFrame]
+        要与之关联的因子. 如果为 None, 则使用 df_obj.shift().
+
+    返回
+    ----
+    pd.Series
+        横截面相关性的描述性统计.
+    -----------------------------------------------------------------------
+    """
     if other_obj is None:
         return df_obj.corrwith(df_obj.shift(), axis=1).describe()
     else:
         return df_obj.corrwith(other_obj, axis=1).describe()
 
 class test:
+    """
+    ===========================================================================
+    High-level backtesting engine for rapid strategy validation.
+
+    This class provides a streamlined interface for calculating theoretical
+    and real-world portfolio returns, considering trade constraints like
+    price limits and costs.
+    ---------------------------------------------------------------------------
+    用于快速策略验证的高级回测引擎.
+
+    此类提供了一个简化的接口, 用于计算理论和现实世界的投资组合收益率, 同时考虑
+    价格限制和成本等交易约束.
+    ---------------------------------------------------------------------------
+    """
     trade_price = config.trade_keys.avgprice_adj
     settle_price = config.trade_keys.close_adj
     compare_price = config.trade_keys.avgprice
@@ -880,33 +968,57 @@ class test:
 
     def __init__(
         self,
-        df,
-        shift = 1
+        df: pd.DataFrame,
+        shift: int = 1
     ):
+        """Initializes the backtest instance | 初始化回测实例"""
         df = df.astype('float').shift(shift)
         df = df[df > 0].dropna(how='all', axis=1).dropna(how='all', axis=0)
         df = df.div(df.sum(axis=1), axis=0)
         self._internal_data = df.fillna(0)
 
     @lru_cache(maxsize=1)
-    def _low_limit(self, limit):
+    def _low_limit(self, limit: float) -> pd.DataFrame:
+        """Checks for instruments hitting the low limit | 检查触及跌停板的标的"""
         x = 1 - self._internal_data.f.info(self.low) / self._internal_data.f.info(self.compare_price) < limit
         return x
+
     @property
-    def low_limit(self):
+    def low_limit(self) -> pd.DataFrame:
+        """Returns low limit indicator DataFrame | 返回跌停指示 DataFrame"""
         return self._low_limit(self.limit)
 
     @lru_cache(maxsize=1)
-    def _high_limit(self, limit):
+    def _high_limit(self, limit: float) -> pd.DataFrame:
+        """Checks for instruments hitting the high limit | 检查触及涨停板的标的"""
         x = self._internal_data.f.info(self.high) / self._internal_data.f.info(self.compare_price) - 1 < limit
         return x
+
     @property
-    def high_limit(self):
+    def high_limit(self) -> pd.DataFrame:
+        """Returns high limit indicator DataFrame | 返回涨停指示 DataFrame"""
         return self._high_limit(self.limit)
 
     @property
     @lru_cache(maxsize=1)
-    def entrade(self):
+    def entrade(self) -> pd.DataFrame:
+        """
+        =======================================================================
+        Calculates tradable positions considering price limit restrictions.
+
+        Returns
+        -------
+        pd.DataFrame
+            The actual tradable position weights.
+        -----------------------------------------------------------------------
+        考虑价格限制约束计算可交易持仓.
+
+        返回
+        ----
+        pd.DataFrame
+            实际可交易的持仓权重.
+        -----------------------------------------------------------------------
+        """
         df = self._internal_data
         values = df.values
         high = self.high_limit.values
@@ -926,39 +1038,71 @@ class test:
 
     @property
     @lru_cache(maxsize=1)
-    def trade_difference(self):
+    def trade_difference(self) -> pd.DataFrame:
+        """Returns the difference between target and actual trades | 返回目标与实际交易之间的差异"""
         x = self._internal_data - self.entrade
         x = x[x != 0].dropna(how='all', axis=1).dropna(how='all', axis=0)
         return x
 
     @property
     @lru_cache(maxsize=1)
-    def unbuy(self):
+    def unbuy(self) -> pd.DataFrame:
+        """Returns assets that couldn't be bought due to limits | 返回因限制而无法买入的资产"""
         x = self.trade_difference
         x = x[x > 0].dropna(how='all', axis=1).dropna(how='all', axis=0)
         return x
 
     @property
     @lru_cache(maxsize=1)
-    def unsell(self):
+    def unsell(self) -> pd.DataFrame:
+        """Returns assets that couldn't be sold due to limits | 返回因限制而无法卖出的资产"""
         x = self.trade_difference
         x = x[x < 0].dropna(how='all', axis=1).dropna(how='all', axis=0)
         return x
 
-    def action_returns(self, df):
+    def action_returns(self, df: pd.DataFrame) -> Any:
+        """Calculates returns specifically for buy and sell actions | 专门计算买入和卖出行为的收益率"""
         buy_actions = df[(df.shift() == 0) & df > 0].notnull()
         buy_ret = (buy_actions.f.info(self.trade_price) / buy_actions.f.info(self.settle_price))[buy_actions] - 1
         sell_actions =  df[(df.shift(-1) == 0) & df > 0].notnull()
         sell_ret = ( sell_actions.f.info(self.trade_price) / sell_actions.f.info(self.settle_price).shift())[sell_actions] - 1
         return type('returns', (), {'buy':buy_ret, 'sell':sell_ret})
 
-    def real_returns(self, df):
+    def real_returns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Calculates actual returns for a given position DataFrame | 计算给定持仓 DataFrame 的实际收益率"""
         action_returns = self.action_returns(df)
         real_returns = action_returns.buy.fillna(df.f.info(config.trade_keys.returns))
         real_returns = real_returns[df > 0].fillna(action_returns.sell)
         return real_returns
 
-    def summary(self, rebalance=True):
+    def summary(self, rebalance: bool = True) -> Any:
+        """
+        =======================================================================
+        Generates a comprehensive summary of backtest performance.
+
+        Parameters
+        ----------
+        rebalance : bool
+            Whether to re-weight positions to 1.0 each period. Default is True.
+
+        Returns
+        -------
+        Any
+            A structured object containing returns, turnover, and order details.
+        -----------------------------------------------------------------------
+        生成回测绩效的综合摘要.
+
+        参数
+        ----
+        rebalance : bool
+            是否每期将持仓权重重新调整为 1.0. 默认为 True.
+
+        返回
+        ----
+        Any
+            包含收益率, 换手率和订单详情的结构化对象.
+        -----------------------------------------------------------------------
+        """
         thoery_returns = (self._internal_data * self._internal_data.f.info(config.trade_keys.returns)).sum(axis=1)
         thoery_turnover = self._internal_data.diff().fillna(self._internal_data).abs().sum(axis=1)
         thoery_cost = thoery_turnover * self.cost
@@ -998,3 +1142,4 @@ class test:
             }
         }
         return dict_to_dataclass(dic)
+

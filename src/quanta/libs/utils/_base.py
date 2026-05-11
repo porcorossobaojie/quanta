@@ -181,9 +181,41 @@ def flatten_list(lst: List[Any]) -> List[Any]:
         (flatten_list(i) if isinstance(i, list) else [i] for i in lst), []
     )
 
-def dict_to_dataclass(dic: Dict, name: str = "Root"):
+def dict_to_dataclass(
+    dic: Dict[str, Any],
+    name: str = "Root"
+) -> Any:
     """
-    动态将包含 DataFrame 的字典转换为 dataclass 对象
+    ===========================================================================
+    Dynamically converts a dictionary (potentially containing nested
+    dictionaries and DataFrames) into a dataclass object.
+
+    Parameters
+    ----------
+    dic : Dict[str, Any]
+        The dictionary to be converted.
+    name : str
+        The name of the root dataclass. Default is "Root".
+
+    Returns
+    -------
+    Any
+        A dataclass instance representing the input dictionary structure.
+    ---------------------------------------------------------------------------
+    将字典 (可能包含嵌套字典和 DataFrame) 动态转换为 dataclass 对象.
+
+    参数
+    ----
+    dic : Dict[str, Any]
+        要转换的字典.
+    name : str
+        根 dataclass 的名称. 默认为 "Root".
+
+    返回
+    ----
+    Any
+        表示输入字典结构的 dataclass 实例.
+    ---------------------------------------------------------------------------
     """
     fields = []
     field_values = {}
@@ -220,3 +252,4 @@ def dict_to_dataclass(dic: Dict, name: str = "Root"):
     dynamic_cls = make_dataclass(name, fields)
     setattr(dynamic_cls, "__repr__", custom_repr)
     return dynamic_cls(**field_values)
+
