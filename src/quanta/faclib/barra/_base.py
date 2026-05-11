@@ -11,17 +11,15 @@ import pandas as pd
 
 from quanta import flow
 from quanta.faclib._base.main import main as meta
-#from .._base.main import main as meta
+
 from quanta.config import settings
 
 class main(meta):
-    """
-    Base class for Barra factor calculations. | Barra因子计算基类.
-    """
+    """Base class for Barra factor calculations. | Barra因子计算基类."""
 
     @classmethod
     def size(cls) -> pd.DataFrame:
-        """Calculate the size factor (log market cap) | 计算市值因子 (对数市值)"""
+        """Calculate the size factor (log market cap). | 计算市值因子 (对数市值)."""
         x = (flow.astock(cls.finance.val_mv) * 1e8).tools.log()
         return x
 
@@ -71,7 +69,7 @@ class main(meta):
         -----------------------------------------------------------------------
         """
         df = cls.size()
-        df = (df ** 3).stats.neutral(me=df, weight= (df ** 0.5).values).resid.tools.log().stats.standard()
+        df = (df ** 3).stats.neutral(me=df, weight=(df ** 0.5).values).resid.tools.log().stats.standard()
         return df
 
     @classmethod
@@ -123,7 +121,7 @@ class main(meta):
             包含 alpha, beta 和 resid 的多重索引数据框.
         -----------------------------------------------------------------------
         """
-        halflife = periods//4 if halflife is None else halflife
+        halflife = periods // 4 if halflife is None else halflife
         ret = getattr(flow, portfolio_type)(cls.trade.returns).astype('float32').f.tradestatus()
         bench = cls.bench(bench)
         bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns)
@@ -138,7 +136,7 @@ class main(meta):
                 columns = beta.resid.columns
             )
         )
-        df = pd.concat({i:j.f.tradestatus(periods=periods, min_periods=halflife) for i,j in {'alpha':alpha, 'beta':beta, 'resid':resid}.items()}, axis=1)
+        df = pd.concat({i: j.f.tradestatus(periods=periods, min_periods=halflife) for i, j in {'alpha': alpha, 'beta': beta, 'resid': resid}.items()}, axis=1)
         return df
 
     @classmethod
@@ -199,7 +197,7 @@ class main(meta):
         bench: str = 'full',
         portfolio_type: str = 'astock'
     ) -> pd.DataFrame:
-        """Calculate Historical Sigma | 计算历史残差波动率"""
+        """Calculate historical sigma. | 计算历史残差波动率."""
         x = cls._beta(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type).resid
         x = x.stats.neutral(me=cls.size(), beta=cls.beta()).resid
         return x
@@ -258,7 +256,7 @@ class main(meta):
     @classmethod
     @lru_cache(maxsize=4)
     def cmra(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
-        """Calculate Cumulative Range of Adjusted Returns (CMRA) | 计算累积相对收益范围"""
+        """Calculate Cumulative Range of Adjusted Returns (CMRA). | 计算累积相对收益范围."""
         ret = getattr(flow, portfolio_type)(cls.trade.returns).fillna(0)
         location = -(np.arange(0, periods, 21) + 1)
         x = ret.rolling(periods).sum().tools.log()
@@ -268,30 +266,69 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=4)
-    def _turnover(cls, periods, n=1, portfolio_type: str = 'astock') -> pd.DataFrame:
+    def _turnover(cls, periods: int, n: int = 1, portfolio_type: str = 'astock') -> pd.DataFrame:
+        """
+        =======================================================================
+        Calculate turnover. This is an internal helper method.
+
+        Parameters
+        ----------
+        periods : int
+            The lookback period.
+        n : int, optional
+            A divisor for the sum of turnover. Defaults to 1.
+        portfolio_type : str
+            The portfolio type.
+
+        Returns
+        -------
+        pd.DataFrame
+            The calculated turnover.
+        -----------------------------------------------------------------------
+        计算换手率. 这是一个内部辅助方法.
+
+        参数
+        ----
+        periods : int
+            回看周期.
+        n : int, 可选
+            换手率总和的除数. 默认为 1.
+        portfolio_type : str
+            组合类型.
+
+        返回
+        ----
+        pd.DataFrame
+            计算得到的换手率.
+        -----------------------------------------------------------------------
+        """
         x = getattr(flow, portfolio_type)(cls.finance.turnover) / 100
         x = x.rolling(periods, min_periods=periods // 4).sum() / n
         x = x.tools.log()
         return x
 
     @classmethod
-    def month_turnover(cls, periods=21, portfolio_type: str = 'astock') -> pd.DataFrame:
-        x = cls._turnover(periods=periods, portfolio_type = portfolio_type)
+    def month_turnover(cls, periods: int = 21, portfolio_type: str = 'astock') -> pd.DataFrame:
+        """Calculate monthly turnover. | 计算月度换手率."""
+        x = cls._turnover(periods=periods, portfolio_type=portfolio_type)
         return x
 
     @classmethod
-    def quarter_turnover(cls, periods=63, portfolio_type: str = 'astock') -> pd.DataFrame:
-        x = cls._turnover(periods=periods, n=3, portfolio_type = portfolio_type)
+    def quarter_turnover(cls, periods: int = 63, portfolio_type: str = 'astock') -> pd.DataFrame:
+        """Calculate quarterly turnover. | 计算季度换手率."""
+        x = cls._turnover(periods=periods, n=3, portfolio_type=portfolio_type)
         return x
 
     @classmethod
-    def annual_turnover(cls, periods=252, portfolio_type: str = 'astock') -> pd.DataFrame:
-        x = cls._turnover(periods=periods, n=12, portfolio_type = portfolio_type)
+    def annual_turnover(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
+        """Calculate annual turnover. | 计算年度换手率."""
+        x = cls._turnover(periods=periods, n=12, portfolio_type=portfolio_type)
         return x
 
     @classmethod
     @lru_cache(maxsize=4)
-    def annul_weight_turnover(cls, periods=252, portfolio_type: str = 'astock') -> pd.DataFrame:
+    def annul_weight_turnover(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
+        """Calculate annual weighted turnover. | 计算年度加权换手率."""
         df = getattr(flow, portfolio_type)(cls.finance.turnover).f.tradestatus() / 100
         w = pd.tools.halflife(periods, halflife=periods // 4)
         x = df.gen.roll_weight(w)
@@ -300,7 +337,8 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=4)
-    def short_term_reversal(cls, periods=21, portfolio_type: str = 'astock') -> pd.DataFrame:
+    def short_term_reversal(cls, periods: int = 21, portfolio_type: str = 'astock') -> pd.DataFrame:
+        """Calculate short-term reversal. | 计算短期反转."""
         w = pd.tools.halflife(periods, periods // 4)
         ret = getattr(flow, portfolio_type)(cls.trade.returns).f.tradestatus().tools.log(abs_adj=False)
         x = ret.gen.roll_weight(w)
@@ -308,18 +346,103 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=4)
-    def seasonal(cls, periods=5, window=252, future=21, portfolio_type: str = 'astock') -> pd.DataFrame:
+    def seasonal(
+        cls,
+        periods: int = 5,
+        window: int = 252,
+        future: int = 21,
+        portfolio_type: str = 'astock'
+    ) -> pd.DataFrame:
+        """
+        =======================================================================
+        Calculate seasonal factor.
+
+        Parameters
+        ----------
+        periods : int, optional
+            Number of seasonal periods. Defaults to 5.
+        window : int, optional
+            Window for rolling mean. Defaults to 252.
+        future : int, optional
+            Future period for rolling mean. Defaults to 21.
+        portfolio_type : str
+            The portfolio type.
+
+        Returns
+        -------
+        pd.DataFrame
+            The calculated seasonal factor.
+        -----------------------------------------------------------------------
+        计算季节性因子.
+
+        参数
+        ----
+        periods : int, 可选
+            季节性周期数. 默认为 5.
+        window : int, 可选
+            滚动平均窗口. 默认为 252.
+        future : int, 可选
+            未来滚动平均周期. 默认为 21.
+        portfolio_type : str
+            组合类型.
+
+        返回
+        ----
+        pd.DataFrame
+            计算得到的季节性因子.
+        -----------------------------------------------------------------------
+        """
         ret = getattr(flow, portfolio_type)(cls.trade.returns).f.tradestatus()
         ret = ret.rolling(future).mean().shift(window - future + 1)
-        df = {i:ret.shift(i * window) for i in range(periods)}
+        df = {i: ret.shift(i * window) for i in range(periods)}
         df = pd.concat(df, axis=1).stack().mean(axis=1).unstack().reindex_like(ret).f.tradestatus()
         return df
 
     @classmethod
     @lru_cache(maxsize=4)
-    def industry_momentum(cls, periods=126, industry_code = 'swl1_name', mv_rebalance=True):
+    def industry_momentum(
+        cls,
+        periods: int = 126,
+        industry_code: str = 'swl1_name',
+        mv_rebalance: bool = True
+    ) -> pd.DataFrame:
+        """
+        =======================================================================
+        Calculate industry momentum factor.
+
+        Parameters
+        ----------
+        periods : int, optional
+            The lookback period. Defaults to 126.
+        industry_code : str, optional
+            The industry classification code. Defaults to 'swl1_name'.
+        mv_rebalance : bool, optional
+            Whether to rebalance by market value. Defaults to True.
+
+        Returns
+        -------
+        pd.DataFrame
+            The calculated industry momentum factor.
+        -----------------------------------------------------------------------
+        计算行业动量因子.
+
+        参数
+        ----
+        periods : int, 可选
+            回看周期. 默认为 126.
+        industry_code : str, 可选
+            行业分类代码. 默认为 'swl1_name'.
+        mv_rebalance : bool, 可选
+            是否按市值再平衡. 默认为 True.
+
+        返回
+        ----
+        pd.DataFrame
+            计算得到的行业动量因子.
+        -----------------------------------------------------------------------
+        """
         w = pd.tools.halflife(periods, periods // 6)
-        mv = flow.astock(cls.finance.cur_mv) ** 0.5 *1e4
+        mv = flow.astock(cls.finance.cur_mv) ** 0.5 * 1e4
         ret = flow.astock(cls.trade.returns).f.tradestatus()
         x = ret.gen.roll_weight(w)
         x = x * mv
@@ -335,7 +458,8 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=4)
-    def relative_strengh(cls, periods = 252, shift=11):
+    def relative_strengh(cls, periods: int = 252, shift: int = 11) -> pd.DataFrame:
+        """Calculate relative strength. | 计算相对强度."""
         w = pd.tools.halflife(periods, periods // 2)
         ret = flow.astock(cls.trade.returns).f.tradestatus()
         x = ret.gen.roll_weight(w)
@@ -350,11 +474,51 @@ class main(meta):
         bench: str = 'full',
         portfolio_type: str = 'astock'
     ) -> pd.DataFrame:
+        """
+        =======================================================================
+        Extract the alpha factor from beta-related metrics.
+
+        Parameters
+        ----------
+        periods : int
+            The lookback period.
+        halflife : int, optional
+            The halflife for decay.
+        bench : str
+            The benchmark name.
+        portfolio_type : str
+            The portfolio type.
+
+        Returns
+        -------
+        pd.DataFrame
+            The calculated alpha factor.
+        -----------------------------------------------------------------------
+        从贝塔相关指标中提取阿尔法因子.
+
+        参数
+        ----
+        periods : int
+            回看窗口.
+        halflife : int, 可选
+            半衰期.
+        bench : str
+            基准名称.
+        portfolio_type : str
+            组合类型.
+
+        返回
+        ----
+        pd.DataFrame
+            计算得到的阿尔法因子.
+        -----------------------------------------------------------------------
+        """
         return cls._beta(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type).alpha
 
     @classmethod
     @lru_cache(maxsize=1)
-    def market_leverage(cls):
+    def market_leverage(cls) -> pd.DataFrame:
+        """Calculate market leverage. | 计算市场杠杆."""
         mv = flow.astock(cls.finance.val_mv) * 1e8
         long_liab = flow.astock.finance(cls.finance.long_liab, shift=4, periods=1)
         x = (mv + long_liab) / long_liab
@@ -362,7 +526,8 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=1)
-    def book_leverage(cls):
+    def book_leverage(cls) -> pd.DataFrame:
+        """Calculate book leverage. | 计算账面杠杆."""
         mv = flow.astock(cls.finance.val_mv) * 1e8
         long_liab = flow.astock.finance(cls.finance.long_liab, shift=4, periods=1)
         pb = flow.astock(cls.finance.val_mv)
@@ -371,7 +536,8 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=1)
-    def debt_to_asset_ratio(cls):
+    def debt_to_asset_ratio(cls) -> pd.DataFrame:
+        """Calculate debt to asset ratio. | 计算资产负债率."""
         liab = flow.astock.finance(cls.finance.total_liab, periods=1, shift=4)
         asset = flow.astock.finance(cls.finance.total_assets, periods=1, shift=4)
         x = liab / asset
@@ -379,46 +545,92 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=4)
-    def _variation(cls, key, periods, quarter_adj):
+    def _variation(
+        cls,
+        key: str,
+        periods: int,
+        quarter_adj: int = None
+    ) -> pd.DataFrame:
+        """
+        =======================================================================
+        Calculate the variation of a given financial key. This is an internal
+        helper method.
+
+        Parameters
+        ----------
+        key : str
+            The financial key to calculate variation for.
+        periods : int
+            The lookback period.
+        quarter_adj : int or None
+            Quarter adjustment.
+
+        Returns
+        -------
+        pd.DataFrame
+            The calculated variation.
+        -----------------------------------------------------------------------
+        计算给定财务指标的变异. 这是一个内部辅助方法.
+
+        参数
+        ----
+        key : str
+            要计算变异的财务指标.
+        periods : int
+            回看周期.
+        quarter_adj : int 或 None
+            季度调整.
+
+        返回
+        ----
+        pd.DataFrame
+            计算得到的变异.
+        -----------------------------------------------------------------------
+        """
         df = flow.astock.finance(key, shift=4, periods=periods, quarter_adj=quarter_adj)
         df = df / df.groupby(cls.trade.trade_dt).transform('mean').replace(0, np.nan)
         df = df.groupby(cls.trade.trade_dt).std()
         return df
 
     @classmethod
-    def variation_in_sales(cls, periods=20):
+    def variation_in_sales(cls, periods: int = 20) -> pd.DataFrame:
+        """Calculate variation in sales. | 计算销售额变异."""
         df = cls._variation(cls.finance.oper_rev, periods, 3)
         return df
 
     @classmethod
-    def variation_to_earnings(cls, periods=20):
+    def variation_to_earnings(cls, periods: int = 20) -> pd.DataFrame:
+        """Calculate variation to earnings. | 计算收益变异."""
         df = cls._variation(cls.finance.net_profit, periods, 3)
         return df
 
     @classmethod
-    def variation_to_cashflow(cls, periods=20):
+    def variation_to_cashflow(cls, periods: int = 20) -> pd.DataFrame:
+        """Calculate variation to cash flow. | 计算现金流变异."""
         df = cls._variation(cls.finance.net_cashflow, periods, None)
         return df
 
     @classmethod
     @lru_cache(maxsize=1)
-    def accr_balancesheet(cls):
+    def accr_balancesheet(cls) -> pd.DataFrame:
+        """Calculate accruals from balance sheet. | 计算资产负债表应计项目."""
         da = pd.concat(
             {i: flow.astock.finance(i, periods=1, shift=8) for i in
-                 [cls.finance.deprec, cls.finance.inv_depre, cls.finance.inta_amort, cls.finance.long_amort]
-            },
+             [cls.finance.deprec, cls.finance.inv_depre, cls.finance.inta_amort, cls.finance.long_amort]
+             },
             axis=1
         )
         da = da.groupby(cls.trade.astock_code, axis=1).sum(min_count=1).fillna(0).f.tradestatus()
-        ta = flow.astock.finance(cls.finance.total_assets, periods=2, shift=4).swaplevel(-1,0)
-        tc = flow.astock.finance(cls.finance.cash_and_equity, periods=2, shift=4).swaplevel(-1,0)
+        ta = flow.astock.finance(cls.finance.total_assets, periods=2, shift=4).swaplevel(-1, 0)
+        tc = flow.astock.finance(cls.finance.cash_and_equity, periods=2, shift=4).swaplevel(-1, 0)
         x = (ta.loc[0] - ta.loc[-1]) - (tc.loc[0] - tc.loc[-1])
         x = (x - da) / ta.loc[0]
         return x
 
     @classmethod
     @lru_cache(maxsize=1)
-    def accr_cashflow(cls):
+    def accr_cashflow(cls) -> pd.DataFrame:
+        """Calculate accruals from cash flow | 计算现金流量表应计项目"""
         da = pd.concat(
             {i: flow.astock.finance(i, periods=1, shift=8) for i in
                  [cls.finance.deprec, cls.finance.inv_depre, cls.finance.inta_amort, cls.finance.long_amort]
@@ -429,23 +641,25 @@ class main(meta):
         ni = flow.astock.finance(cls.finance.net_profit, shift=4, periods=1, quarter_adj=3)
         cfo = flow.astock.finance(cls.finance.oper_cash, shift=4, periods=1, quarter_adj=3)
         cfi = flow.astock.finance(cls.finance.inv_cash, shift=4, periods=1, quarter_adj=3)
-        ta =flow.astock.finance(cls.finance.total_assets, periods=1, shift=4)
+        ta = flow.astock.finance(cls.finance.total_assets, periods=1, shift=4)
         x = ni - (cfo + cfi) + da
         x = x / ta
         return x
 
     @classmethod
     @lru_cache(maxsize=1)
-    def asset_turnover(cls):
+    def asset_turnover(cls) -> pd.DataFrame:
+        """Calculate asset turnover. | 计算总资产周转率."""
         sales = flow.astock.finance(cls.finance.oper_rev, shift=4, periods=4, quarter_adj=3)
         sales = sales.groupby(cls.trade.trade_dt).sum()
         assets = flow.astock.finance(cls.finance.total_assets, shift=4, periods=1)
         df = sales / assets
         return df
-    
+
     @classmethod
     @lru_cache(maxsize=1)
-    def gross_profit(cls):
+    def gross_profit(cls) -> pd.DataFrame:
+        """Calculate gross profit. | 计算毛利润."""
         sales = flow.astock.finance(cls.finance.oper_rev, shift=4, periods=4, quarter_adj=3)
         sales = sales.groupby(cls.trade.trade_dt).sum()
         cost = flow.astock.finance(cls.finance.oper_cost, shift=4, periods=4, quarter_adj=3)
@@ -453,20 +667,23 @@ class main(meta):
         assets = flow.astock.finance(cls.finance.total_assets, shift=4, periods=1)
         df = (sales - cost) / assets
         return df
-    
+
     @classmethod
-    def gross_profit_margin(cls):
+    def gross_profit_margin(cls) -> pd.DataFrame:
+        """Calculate gross profit margin. | 计算毛利率."""
         df = flow.astock(cls.finance.gross_profit)
         return df
-    
+
     @classmethod
-    def roa(cls):
+    def roa(cls) -> pd.DataFrame:
+        """Calculate ROA. | 计算总资产收益率."""
         df = flow.astock(cls.finance.roa)
         return df
-    
+
     @classmethod
     @lru_cache(maxsize=1)
-    def asset_growth(cls, periods=20):
+    def asset_growth(cls, periods: int = 20) -> pd.DataFrame:
+        """Calculate asset growth. | 计算总资产增长率."""
         df = flow.astock.finance(cls.finance.total_assets, shift=4, periods=periods)
         df = df / df.groupby(cls.trade.trade_dt).transform('mean')
         df = df.unstack(cls.trade.trade_dt).T
@@ -474,13 +691,14 @@ class main(meta):
             np.arange(periods).repeat(df.shape[0]).reshape(periods, -1).T,
             columns = np.arange(periods) - periods + 1,
             index = df.index)
-        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False) 
+        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False)
         x = x.params.fac.iloc[:, -1].unstack(cls.trade.astock_code)
         return x
-    
+
     @classmethod
     @lru_cache(maxsize=1)
-    def invest_growth(cls, periods=20):
+    def invest_growth(cls, periods: int = 20) -> pd.DataFrame:
+        """Calculate investment growth. | 计算投资增长率."""
         df = flow.astock.finance(cls.finance.inv_cost, shift=4, periods=periods)
         df = df / df.groupby(cls.trade.trade_dt).transform('mean')
         df = df.unstack(cls.trade.trade_dt).T
@@ -491,30 +709,34 @@ class main(meta):
         x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False) 
         x = x.params.fac.iloc[:, -1].unstack(cls.trade.astock_code)
         return x
-        
+
     @classmethod
-    def ep(cls):
+    def ep(cls) -> pd.DataFrame:
+        """Calculate EP. | 计算市盈率倒数."""
         df = flow.astock(cls.finance.pe) ** -1
         return df
-    
+
     @classmethod
-    def cp(cls):
+    def cp(cls) -> pd.DataFrame:
+        """Calculate CP. | 计算市现率倒数."""
         df = flow.astock(cls.finance.pocf) ** -1
         return df
-    
+
     @classmethod
-    def ex_ep(cls):
+    def ex_ep(cls) -> pd.DataFrame:
+        """Calculate expert profit. | 计算专家收益率."""
         df = flow.astock.finance(cls.finance.expert_profit, shift=2).fillna(0).f.tradestatus()
         mv = flow.astock(cls.finance.val_mv) * 1e8
         df = df / mv
         return df
-    
+
     @classmethod
     @lru_cache(maxsize=1)
-    def enterprise(cls):
+    def enterprise(cls) -> pd.DataFrame:
+        """Calculate enterprise factor. | 计算企业因子."""
         profit = flow.astock.finance(cls.finance.net_profit, shift=4, periods=4, quarter_adj=3).groupby(cls.trade.trade_dt).sum()
         finance_cost = flow.astock.finance(cls.finance.interest_cost, shift=4, periods=4, quarter_adj=3).groupby(cls.trade.trade_dt).sum()
-        tax =  flow.astock.finance(cls.finance.income_tax, shift=4, periods=4, quarter_adj=3).groupby(cls.trade.trade_dt).sum()
+        tax = flow.astock.finance(cls.finance.income_tax, shift=4, periods=4, quarter_adj=3).groupby(cls.trade.trade_dt).sum()
         ebit = profit + finance_cost + tax
         mv = flow.astock(cls.finance.val_mv)
         tc = flow.astock.finance(cls.finance.cash_and_equity, shift=4, periods=1)
@@ -522,39 +744,43 @@ class main(meta):
         ev = mv + tl - tc
         df = (ebit / ev).f.tradestatus()
         return df
-    
+
     @classmethod
     @lru_cache(maxsize=1)
-    def long_relative_strengh(cls, periods = 252 * 4, shift=11):
+    def long_relative_strengh(cls, periods: int = 252 * 4, shift: int = 11) -> pd.DataFrame:
+        """Calculate long-term relative strength. | 计算长期相对强度."""
         w = pd.tools.halflife(periods, periods // 4)
         ret = flow.astock(cls.trade.returns).f.tradestatus()
         x = ret.gen.roll_weight(w)
         x = x.rolling(shift).mean().shift(periods // 4)
         return x
-    
+
     @classmethod
     @lru_cache(maxsize=1)
-    def long_historical_alpha(cls, periods = 252 * 4, shift=11):        
+    def long_historical_alpha(cls, periods: int = 252 * 4, shift: int = 11) -> pd.DataFrame:
+        """Calculate long-term historical alpha. | 计算长期历史阿尔法."""
         df = cls.historical_alpha()
         w = pd.tools.halflife(periods, periods // 4)
         x = df.gen.roll_weight(w)
         x = x.rolling(shift).mean().shift(periods // 4)
         return x
-    
+
     @classmethod
     @lru_cache(maxsize=1)
-    def ep_growth(cls, periods=252 * 4):
+    def ep_growth(cls, periods: int = 252 * 4) -> pd.DataFrame:
+        """Calculate EP growth. | 计算每股收益增长率."""
         growth = flow.astock(cls.finance.profit_growth)
         mv = flow.astock(cls.finance.val_mv)
-        mv = mv.rolling(252, min_periods=252 // 4).mean()
+        mv = mv.rolling(252, min_periods=63).mean()
         df = growth / mv
         trend = pd.DataFrame(np.arange(df.shape[0]).repeat(df.shape[1]).reshape(df.shape[0], -1), index=df.index, columns=df.columns)
         params = df.stats.neutral(fac=trend, periods=periods, neu_axis=0, resid=False).params.fac
         return params
-        
+
     @classmethod
     @lru_cache(maxsize=1)
-    def op_growth(cls, periods=252 * 4):
+    def op_growth(cls, periods: int = 252 * 4) -> pd.DataFrame:
+        """Calculate OP growth. | 计算经营收入增长率."""
         growth = flow.astock(cls.finance.oper_growth)
         mv = flow.astock(cls.finance.val_mv)
         mv = mv.rolling(252, min_periods=252 // 4).mean()
@@ -562,9 +788,10 @@ class main(meta):
         trend = pd.DataFrame(np.arange(df.shape[0]).repeat(df.shape[1]).reshape(df.shape[0], -1), index=df.index, columns=df.columns)
         params = df.stats.neutral(fac=trend, periods=periods, neu_axis=0, resid=False).params.fac
         return params
-        
+
     @classmethod
     @lru_cache(maxsize=1)
-    def dp(cls):
+    def dp(cls) -> pd.DataFrame:
+        """Calculate dividend payout. | 计算股息支付."""
         df = flow.astock(cls.finance.dividend)
         return df
