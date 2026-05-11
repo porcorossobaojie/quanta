@@ -102,8 +102,8 @@ def not_st(
 @lru_cache(maxsize=8)
 def enstatus(
     portfolio_type: str = 'astock',
-    periods: int = None,
-    min_periods:int = None
+    periods: Optional[int] = None,
+    min_periods: Optional[int] = None
 ) -> pd.DataFrame:
     """
     ===========================================================================
@@ -113,9 +113,9 @@ def enstatus(
     ----------
     portfolio_type : str
         The type of portfolio. Default is 'astock'.
-    periods : int
+    periods : Optional[int]
         The rolling window size for status check. Default is 126.
-    min_periods : int
+    min_periods : Optional[int]
         Minimum periods required in the window. Default is periods // 2.
 
     Returns
@@ -129,9 +129,9 @@ def enstatus(
     ----
     portfolio_type : str
         投资组合类型. 默认为 'astock'.
-    periods : int
+    periods : Optional[int]
         状态检查的滚动窗口大小. 默认为 126.
-    min_periods : int
+    min_periods : Optional[int]
         窗口中所需的最小周期数. 默认为 periods // 2.
 
     返回
@@ -155,7 +155,7 @@ def filtered(
     tradestatus: bool = True,
     portfolio_type: str = 'astock',
     periods: int = 126,
-    min_periods:int = None
+    min_periods: Optional[int] = None
 ) -> pd.DataFrame:
     """
     ===========================================================================
@@ -616,7 +616,7 @@ def merge(
 
 def port(
     df_obj: pd.DataFrame,
-    ret = None,
+    ret: Optional[pd.DataFrame] = None,
     listing_limit: int = 126,
     drop_st: int = 1,
     tradestatus: bool = True,
@@ -630,6 +630,8 @@ def port(
     ----------
     df_obj : pd.DataFrame
         The input factor values.
+    ret : Optional[pd.DataFrame]
+        Returns data. If None, fetched from global instance.
     listing_limit : int
         Minimum listing duration. Default is 126.
     drop_st : int
@@ -650,6 +652,8 @@ def port(
     ----
     df_obj : pd.DataFrame
         输入因子值.
+    ret : Optional[pd.DataFrame]
+        收益率数据. 如果为 None, 则从全局实例中获取.
     listing_limit : int
         最小上市时长. 默认为 126.
     drop_st : int
@@ -717,7 +721,7 @@ def trend(
 
 def ic(
     df_obj: pd.DataFrame,
-    shift = 1,
+    shift: int = 1,
     listing_limit: int = 126,
     drop_st: int = 1,
     tradestatus: bool = True,
@@ -732,7 +736,7 @@ def ic(
     df_obj : pd.DataFrame
         The factor values.
     shift : int
-        shift of returns
+        Shift of returns for correlation calculation. Default is 1.
     listing_limit : int
         Minimum listing duration. Default is 126.
     drop_st : int
@@ -754,7 +758,7 @@ def ic(
     df_obj : pd.DataFrame
         因子值.
     shift : int
-        和滞后n期的returns做ic
+        和滞后 n 期的 returns 做 IC. 默认为 1.
     listing_limit : int
         最小上市时长. 默认为 126.
     drop_st : int

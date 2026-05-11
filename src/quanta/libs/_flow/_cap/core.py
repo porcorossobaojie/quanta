@@ -50,7 +50,7 @@ class Unit:
         target: Optional[Union[Series, pd.Series]] = None,
         cash: Optional[float] = None,
         trade_cost: bool = True
-    ):
+    ) -> None:
         """
         =======================================================================
         Initializes a transaction and settlement unit.
@@ -467,7 +467,7 @@ class Chain:
         dataframe: pd.DataFrame,
         cash: float = 10000,
         trade_cost: bool = True
-    ):
+    ) -> None:
         """
         =======================================================================
         Initializes the backtest chain.

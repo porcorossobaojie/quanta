@@ -5,7 +5,7 @@ Created on Mon Mar  2 15:11:56 2026
 @author: Porco Rosso
 """
 from functools import lru_cache
-from typing import Optional, Union, List, Any
+from typing import Optional, Union, List, Any, Type
 import numpy as np
 import pandas as pd
 
@@ -57,12 +57,12 @@ class Series(pd.Series):
         return x
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Type['Series']:
         """Internal pandas constructor | 内部 pandas 构造函数"""
         return Series
 
     @property
-    def _constructor_sliced(self):
+    def _constructor_sliced(self) -> Type['Series']:
         """Internal pandas sliced constructor | 内部 pandas 切片构造函数"""
         return Series
 
@@ -97,10 +97,9 @@ class Series(pd.Series):
     def __pos_neg_rebalance__(
         self,
         zero_adj: bool = True,
-        total_weight: float = None,
+        total_weight: Optional[float] = None,
         **kwargs: Any
     ) -> 'Series':
-        total_weight = 1.0 if total_weight is None else total_weight
         """
         =======================================================================
         Rebalances positive and negative weights to a total target weight.
@@ -110,7 +109,7 @@ class Series(pd.Series):
         zero_adj : bool
             Whether to balance positive and negative values separately.
             Default is True.
-        total_weight : float
+        total_weight : Optional[float]
             The target total weight sum. Default is 1.0.
         **kwargs : Any
             Additional keyword arguments.
@@ -126,7 +125,7 @@ class Series(pd.Series):
         ----
         zero_adj : bool
             是否分别平衡正值和负值. 默认为 True.
-        total_weight : float
+        total_weight : Optional[float]
             目标总权重之和. 默认为 1.0.
         **kwargs : Any
             附加关键字参数.
@@ -137,6 +136,7 @@ class Series(pd.Series):
             平衡后的 Series.
         -----------------------------------------------------------------------
         """
+        total_weight = 1.0 if total_weight is None else total_weight
         x = self.copy()
         meta_values = x.values
         if zero_adj: # 平衡买卖 np.nansum is 5 more fast than pandas.sum()
@@ -277,7 +277,7 @@ class Series(pd.Series):
         copy: bool = False,
         fastpath: bool = False,
         **kwargs: Any
-    ):
+    ) -> None:
         """Initializes Series with data and attributes | 使用数据和属性初始化 Series"""
         params = config.recommand_settings.to_dict() | kwargs
         [setattr(self, f'_{i}',j) for i,j in params.items()]
@@ -300,7 +300,7 @@ class Series(pd.Series):
     def __weight_to_weight__(
         self,
         zero_adj: bool = False,
-        total_weight: float = None,
+        total_weight: Optional[float] = None,
         **kwargs: Any
     ) -> 'Series':
         """Converts weight to weight with rebalance | 转换权重并重新平衡"""
@@ -317,7 +317,7 @@ class Series(pd.Series):
         self,
         cash: float,
         zero_adj: bool = False,
-        total_weight: float = None,
+        total_weight: Optional[float] = None,
         **kwargs: Any
     ) -> 'Series':
         """
@@ -330,7 +330,7 @@ class Series(pd.Series):
             The total cash to allocate.
         zero_adj : bool
             Whether to balance positive and negative values. Default is False.
-        total_weight : float
+        total_weight : Optional[float]
             The target total weight. Default is 1.0.
         **kwargs : Any
             Additional keyword arguments.
@@ -348,7 +348,7 @@ class Series(pd.Series):
             要分配的总现金.
         zero_adj : bool
             是否平衡正负值. 默认为 False.
-        total_weight : float
+        total_weight : Optional[float]
             目标总权重. 默认为 1.0.
         **kwargs : Any
             附加关键字参数.
@@ -372,7 +372,7 @@ class Series(pd.Series):
         self,
         cash: float,
         zero_adj: bool = False,
-        total_weight: float = None,
+        total_weight: Optional[float] = None,
         **kwargs: Any
     ) -> 'Series':
         """
@@ -385,7 +385,7 @@ class Series(pd.Series):
             The total cash to allocate.
         zero_adj : bool
             Whether to balance positive and negative values. Default is False.
-        total_weight : float
+        total_weight : Optional[float]
             The target total weight. Default is 1.0.
         **kwargs : Any
             Additional keyword arguments.
@@ -403,7 +403,7 @@ class Series(pd.Series):
             要分配的总现金.
         zero_adj : bool
             是否平衡正负值. 默认为 False.
-        total_weight : float
+        total_weight : Optional[float]
             目标总权重. 默认为 1.0.
         **kwargs : Any
             附加关键字参数.
@@ -426,7 +426,7 @@ class Series(pd.Series):
     def __assets_to_weight__(
         self,
         zero_adj: bool = False,
-        total_weight: float = None,
+        total_weight: Optional[float] = None,
         **kwargs: Any
     ) -> 'Series':
         """Converts assets to weights | 将资产转换为权重"""
@@ -438,7 +438,6 @@ class Series(pd.Series):
         )
         x._unit = 'weight'
         return x
-
 
     def __assets_to_assets__(self, **kwargs: Any) -> 'Series':
         """Identity conversion for assets | 资产到资产的恒等转换"""
@@ -779,11 +778,11 @@ class DataFrame(pd.DataFrame):
     _metadata = pd.DataFrame._metadata
 
     @property
-    def _constructor(self):
+    def _constructor(self) -> Type['DataFrame']:
         """Internal pandas constructor | 内部 pandas 构造函数"""
         return DataFrame
 
     @property
-    def _constructor_sliced(self):
+    def _constructor_sliced(self) -> Type['Series']:
         """Internal pandas sliced constructor | 内部 pandas 切片构造函数"""
         return Series

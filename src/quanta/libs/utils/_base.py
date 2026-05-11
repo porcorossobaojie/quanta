@@ -33,7 +33,6 @@ def filter_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
     从类对象中提取属性及其值, 排除双下划线方法.
 
     参数
-    ----
     class_object : Type[Any]
         要从中提取属性的类对象.
 
@@ -44,6 +43,7 @@ def filter_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
     ---------------------------------------------------------------------------
     """
     def check_double_underscore(s: str) -> bool:
+        """Check if string is a dunder method | 检查字符串是否为双下划线方法"""
         return s.startswith('__') and s.endswith('__') and len(s) > 4
 
     dic = {
@@ -84,10 +84,11 @@ def filter_parents_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
     ---------------------------------------------------------------------------
     """
     def check_double_underscore(s: str) -> bool:
+        """Check if string is a dunder method | 检查字符串是否为双下划线方法"""
         return s.startswith('__') and s.endswith('__') and len(s) > 4
     all_attrs = {}
-    for cls in reversed(class_object.__mro__):  # 反向遍历 MRO，先处理基类
-        # 忽略 object 类，因为它包含大量不相关的内置属性
+    for cls in reversed(class_object.__mro__):  # 反向遍历 MRO, 先处理基类
+        # 忽略 object 类, 因为它包含大量不相关的内置属性
         if cls is object:
             continue
 
@@ -98,7 +99,7 @@ def filter_parents_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
                 current_cls_attrs[name] = value
 
         # 将当前类的属性合并到最终字典中
-        # 由于我们是反向遍历 MRO，先加入基类的属性，然后子类的同名属性会覆盖它们
+        # 由于我们是反向遍历 MRO, 先加入基类的属性, 然后子类的同名属性会覆盖它们
         all_attrs.update(current_cls_attrs)
 
     return all_attrs
@@ -138,6 +139,7 @@ def merge_dicts(*dicts: Dict[str, Any]) -> Dict[str, Any]:
     def get_non_none_value(
         key: str
     ) -> Any:
+        """Get the last non-None value for a key | 获取键的最后一个非 None 值"""
         return next(
             (d[key] for d in reversed(dicts) if key in d and d[key] is not None),
             None
@@ -230,16 +232,18 @@ def dict_to_dataclass(
             fields.append((key, type(value)))
             field_values[key] = value
     
-    def custom_repr(self):
+    def custom_repr(self) -> str:
+        """Custom string representation for dataclass | dataclass 的自定义字符串表示"""
     # 1. 构造一个只包含 key 的嵌套字典结构
-        def get_structure(d):
+        def get_structure(d: Dict[str, Any]) -> Dict[str, Any]:
+            """Recursively get dict structure | 递归获取字典结构"""
             structure = {}
             for k, v in d.items():
                 if isinstance(v, dict):
                     # 递归获取子层级的结构
                     structure[k] = get_structure(v)
                 elif isinstance(v, pd.DataFrame):
-                    # DataFrame 显示其形状，避免打印大量数据
+                    # DataFrame 显示其形状, 避免打印大量数据
                     structure[k] = f"<DataFrame shape={v.shape}>"
                 else:
                     # 普通值显示其类型
