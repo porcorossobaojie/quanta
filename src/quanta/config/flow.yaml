@@ -66,6 +66,8 @@ trade_keys: &public_keys
     volume: volume
     turnover: free_turnover
     trade_dt: trade_dt
+    ann_dt: ann_dt
+    report_period: report_period
     astock_code: astock_code
     afund_code: afund_code
     aindex_code: aindex_code

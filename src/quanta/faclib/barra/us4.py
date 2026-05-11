@@ -10,15 +10,33 @@ import numpy as np
 import pandas as pd
 
 from quanta import flow
-
+from quanta.libs.utils._decorator import doc_inherit
 from quanta.faclib.barra._base import main as meta
 #from._base import main as meta
 
-class main(meta):
+class main():
     """
     Implementation of Barra USA4 factor model. | Barra USA4 因子模型实现.
     """
     _model_name = 'us4'
+    _base = meta
+    finance = _base.finance
+    trade = _base.trade
+    
+    @classmethod
+    @doc_inherit(meta.bench)
+    def bench(cls, code, weight):
+        return cls._base.bench(code, weight)
+    
+    @classmethod
+    @doc_inherit(meta.size)
+    def size(cls):
+        return cls._base.size()
+    
+    @classmethod
+    @doc_inherit(meta.bm)
+    def bm(cls):
+        return cls._base.bm
 
     @classmethod
     @lru_cache(maxsize=4)
@@ -83,84 +101,6 @@ class main(meta):
         x = (ret_mom - bench_mom).shift(short_periods)
         x = x.f.tradestatus(long_periods, halflife)
         return x
-   
-    @classmethod
-    @lru_cache(maxsize=4)
-    def _dastd(
-        cls,
-        periods: int = 252,
-        halflife: int = None,
-        portfolio_type: str = 'astock'
-    ) -> pd.DataFrame:
-        """
-        =======================================================================
-        Calculate the Daily Standard Deviation (DASTD).
-
-        Parameters
-        ----------
-        periods : int
-            The lookback period.
-        halflife : int, optional
-            The halflife for decay.
-        portfolio_type : str
-            The portfolio type.
-
-        Returns
-        -------
-        pd.DataFrame
-            The calculated DASTD.
-        -----------------------------------------------------------------------
-        计算日收益率标准差 (DASTD).
-
-        参数
-        ----
-        periods : int
-            回看窗口.
-        halflife : int, 可选
-            半衰期.
-        portfolio_type : str
-            组合类型.
-
-        返回
-        ----
-        pd.DataFrame
-            计算得到的 DASTD.
-        -----------------------------------------------------------------------
-        """
-        halflife = periods // 6 if halflife is None else halflife
-        ret = getattr(flow, portfolio_type)(cls.trade.returns).f.tradestatus()
-        w = pd.tools.halflife(periods, halflife)[np.newaxis, :]
-        entrade = ret.f.tradestatus().notnull()
-        x = (ret - ret.rolling(periods, halflife).mean()).fillna(0) ** 2
-        x = x.rolling(periods).apply(lambda x: w @ x, raw=True)
-        w_roll = entrade.rolling(periods).apply(lambda x: w @ x, raw=True)
-        x = (x / w_roll).f.tradestatus()
-        return x
-
-    @classmethod
-    @lru_cache(maxsize=4)
-    def _cmra(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
-        """Calculate Cumulative Range of Adjusted Returns (CMRA) | 计算累积相对收益范围"""
-        ret = getattr(flow, portfolio_type)(cls.trade.returns).fillna(0)
-        location = -(np.arange(0, periods, 21) + 1)
-        x = ret.rolling(periods).sum().tools.log()
-        df = x.rolling(periods).apply(lambda x: np.max(x[location], axis=0) - np.min(x[location], axis=0), raw=True)
-        df = df.tools.log().f.tradestatus(periods=periods)
-        return df
-
-    @classmethod
-    @lru_cache(maxsize=4)
-    def _hsigma(
-        cls,
-        periods: int = 252,
-        halflife: int = None,
-        bench: str = 'full',
-        portfolio_type: str = 'astock'
-    ) -> pd.DataFrame:
-        """Calculate Historical Sigma | 计算历史残差波动率"""
-        x = cls._beta(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type).resid
-        x = x.stats.neutral(me=cls.size(), beta=cls.beta()).resid
-        return x
 
     @classmethod
     @lru_cache(maxsize=4)
@@ -172,67 +112,62 @@ class main(meta):
     ) -> pd.DataFrame:
         """Calculate residual volatility factor | 计算残差波动率因子"""
         x = (
-            0.74 * cls._dastd(periods=periods, portfolio_type=portfolio_type) +
-            0.16 * cls._cmra(periods=periods, portfolio_type=portfolio_type) +
-            0.10 * cls._hsigma(periods=periods, portfolio_type=portfolio_type, **kwargs)
+            0.74 * cls._base.dastd(periods=periods, portfolio_type=portfolio_type) +
+            0.16 * cls._base.cmra(periods=periods, portfolio_type=portfolio_type) +
+            0.10 * cls._base.hsigma(periods=periods, portfolio_type=portfolio_type, **kwargs)
         )
         return x
 
     @classmethod
     @lru_cache(maxsize=4)
-    def liquidity(cls, periods: int = 252) -> pd.DataFrame:
-        """Calculate liquidity factor | 计算流动性因子"""
-        periods = [periods, periods//4, periods//12]
-        turnover = flow.astock(cls.finance.free_turnover)
-        x = {i:turnover.rolling(i).sum().tools.log() for i in periods}
-        x = pd.concat(x, axis=1).groupby(turnover.columns.name, axis=1).sum(min_count=3) / len(periods)
-        x = x.f.tradestatus(periods[0])
+    def liquidity(cls) -> pd.DataFrame:
+        x = pd.concat([cls._base.month_turnover(), cls._base.quarter_turnover(), cls._base.annual_turnover()], axis=1)
+        x = x.groupby(x.columns, axis=1).mean()
         return x
     
     @classmethod
     @lru_cache(maxsize=4)
     def earnings(cls) -> pd.DataFrame:
         """Calculate earnings factor | 计算盈利因子"""
-        cp = flow.astock(cls.finance.pcf) ** -1
-        ep = flow.astock(cls.finance.pe) ** -1
-        except_profit = flow.astock.finance('astockperformance_lt-total_profit', shift=2) / flow.astock(cls.finance.val_mv) / 1e8       
-        x = cp * 0.21 + ep * 0.11 + except_profit.reindex_like(cp).fillna(ep) * 0.68
+        cp = cls._base.cp()
+        ep = cls._base.ep()
+        exep = cls._base.ex_ep()
+        x = cp * 0.21 + ep * 0.11 + exep * 0.68
         return x
  
     @classmethod
     @lru_cache(maxsize=4)
     def growth(cls, periods: int = 20) -> pd.DataFrame:
         """Calculate growth factor | 计算成长因子"""
-        net_profit = flow.astock.finance(cls.finance.net_profit, shift=2, periods=periods, quarter_adj=3, min_periods=periods//2)
-        net_profit = net_profit.stack().unstack(net_profit.index.names[1])
-        w = np.arange(periods)
-        x = np.polyfit(w, net_profit.fillna(0).values.T, 1)
-        x = x[1] / net_profit.mean(axis=1).abs().values
-        net_profit = pd.Series(x, index=net_profit.index).unstack() / 4
-        net_profit = net_profit.tools.log()
+        df = flow.astock.finance(cls.finance.net_profit, shift=4, periods=periods, quarter_adj=3)
+        df = df / df.groupby(cls.trade.trade_dt).transform('mean').abs()
+        df = df.unstack(cls.trade.trade_dt).T
+        trend = pd.DataFrame(
+            np.arange(periods).repeat(df.shape[0]).reshape(periods, -1).T,
+            columns = np.arange(periods) - periods + 1,
+            index = df.index)
+        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False) 
+        net_profit = x.params.fac.iloc[:, -1].unstack(cls.trade.astock_code)
         
-        oper_rev = flow.astock.finance(cls.finance.oper_rev, shift=2, periods=periods,  quarter_adj=3, min_periods=periods//2)
-        oper_rev = oper_rev.stack().unstack(oper_rev.index.names[1])
-        x = np.polyfit(w, oper_rev.fillna(0).values.T, 1)
-        x = x[1] / oper_rev.mean(axis=1).abs().values
-        oper_rev = pd.Series(x, index=oper_rev.index).unstack() / 4
-        
-        x = net_profit.stats.standard() * 0.24 + oper_rev.stats.standard() * 0.47
+        df = flow.astock.finance(cls.finance.oper_rev, shift=4, periods=periods, quarter_adj=3)
+        df = df / df.groupby(cls.trade.trade_dt).transform('mean').abs()
+        df = df.unstack(cls.trade.trade_dt).T
+        trend = pd.DataFrame(
+            np.arange(periods).repeat(df.shape[0]).reshape(periods, -1).T,
+            columns = np.arange(periods) - periods + 1,
+            index = df.index)
+        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False) 
+        oper_rev = x.params.fac.iloc[:, -1].unstack(cls.trade.astock_code)
+        x = net_profit * 0.24 + oper_rev * 0.47
         return x
     
     @classmethod
     @lru_cache(maxsize=4)
     def leverage(cls) -> pd.DataFrame:
         """Calculate leverage factor | 计算杠杆因子"""
-        mv = flow.astock(cls.finance.val_mv) * 1e8
-        long_liab = flow.astock.finance(cls.finance.long_liab, periods=1, shift=2)
-        total_liab = flow.astock.finance(cls.finance.total_liab, periods=1, shift=2)
-        total_assets = flow.astock.finance(cls.finance.total_assets, periods=1, shift=2)
-        net_assets = total_assets - total_liab
-        
-        mlev = long_liab / mv + 1
-        dtoa = total_liab / total_assets
-        blev = long_liab / (net_assets[net_assets > 1e7])
+        mlev = cls._base.market_leverage()
+        dtoa = cls._base.debt_to_asset_ratio()
+        blev = cls._base.book_leverage()
         x = (
             mlev * 0.38 + 
             dtoa * 0.35 + 

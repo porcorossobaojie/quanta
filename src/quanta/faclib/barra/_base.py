@@ -268,9 +268,9 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=4)
-    def _turnover(cls, periods, portfolio_type: str = 'astock') -> pd.DataFrame:
+    def _turnover(cls, periods, n=1, portfolio_type: str = 'astock') -> pd.DataFrame:
         x = getattr(flow, portfolio_type)(cls.finance.turnover) / 100
-        x = x.rolling(periods, min_periods=periods // 4).sum()
+        x = x.rolling(periods, min_periods=periods // 4).sum() / n
         x = x.tools.log()
         return x
 
@@ -281,14 +281,12 @@ class main(meta):
 
     @classmethod
     def quarter_turnover(cls, periods=63, portfolio_type: str = 'astock') -> pd.DataFrame:
-        x = cls._turnover(periods=periods, portfolio_type = portfolio_type)
-        x = x - np.log(4)
+        x = cls._turnover(periods=periods, n=3, portfolio_type = portfolio_type)
         return x
 
     @classmethod
     def annual_turnover(cls, periods=252, portfolio_type: str = 'astock') -> pd.DataFrame:
-        x = cls._turnover(periods=periods, portfolio_type = portfolio_type)
-        x = x - np.log(12)
+        x = cls._turnover(periods=periods, n=12, portfolio_type = portfolio_type)
         return x
 
     @classmethod
@@ -436,15 +434,137 @@ class main(meta):
         x = x / ta
         return x
 
-
-
-
-
-
-
-
-
-
-
-
-
+    @classmethod
+    @lru_cache(maxsize=1)
+    def asset_turnover(cls):
+        sales = flow.astock.finance(cls.finance.oper_rev, shift=4, periods=4, quarter_adj=3)
+        sales = sales.groupby(cls.trade.trade_dt).sum()
+        assets = flow.astock.finance(cls.finance.total_assets, shift=4, periods=1)
+        df = sales / assets
+        return df
+    
+    @classmethod
+    @lru_cache(maxsize=1)
+    def gross_profit(cls):
+        sales = flow.astock.finance(cls.finance.oper_rev, shift=4, periods=4, quarter_adj=3)
+        sales = sales.groupby(cls.trade.trade_dt).sum()
+        cost = flow.astock.finance(cls.finance.oper_cost, shift=4, periods=4, quarter_adj=3)
+        cost = cost.groupby(cls.trade.trade_dt).sum()
+        assets = flow.astock.finance(cls.finance.total_assets, shift=4, periods=1)
+        df = (sales - cost) / assets
+        return df
+    
+    @classmethod
+    def gross_profit_margin(cls):
+        df = flow.astock(cls.finance.gross_profit)
+        return df
+    
+    @classmethod
+    def roa(cls):
+        df = flow.astock(cls.finance.roa)
+        return df
+    
+    @classmethod
+    @lru_cache(maxsize=1)
+    def asset_growth(cls, periods=20):
+        df = flow.astock.finance(cls.finance.total_assets, shift=4, periods=periods)
+        df = df / df.groupby(cls.trade.trade_dt).transform('mean')
+        df = df.unstack(cls.trade.trade_dt).T
+        trend = pd.DataFrame(
+            np.arange(periods).repeat(df.shape[0]).reshape(periods, -1).T,
+            columns = np.arange(periods) - periods + 1,
+            index = df.index)
+        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False) 
+        x = x.params.fac.iloc[:, -1].unstack(cls.trade.astock_code)
+        return x
+    
+    @classmethod
+    @lru_cache(maxsize=1)
+    def invest_growth(cls, periods=20):
+        df = flow.astock.finance(cls.finance.inv_cost, shift=4, periods=periods)
+        df = df / df.groupby(cls.trade.trade_dt).transform('mean')
+        df = df.unstack(cls.trade.trade_dt).T
+        trend = pd.DataFrame(
+            np.arange(periods).repeat(df.shape[0]).reshape(periods, -1).T,
+            columns = np.arange(periods) - periods + 1,
+            index = df.index)
+        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False) 
+        x = x.params.fac.iloc[:, -1].unstack(cls.trade.astock_code)
+        return x
+        
+    @classmethod
+    def ep(cls):
+        df = flow.astock(cls.finance.pe) ** -1
+        return df
+    
+    @classmethod
+    def cp(cls):
+        df = flow.astock(cls.finance.pocf) ** -1
+        return df
+    
+    @classmethod
+    def ex_ep(cls):
+        df = flow.astock.finance(cls.finance.expert_profit, shift=2).fillna(0).f.tradestatus()
+        mv = flow.astock(cls.finance.val_mv) * 1e8
+        df = df / mv
+        return df
+    
+    @classmethod
+    @lru_cache(maxsize=1)
+    def enterprise(cls):
+        profit = flow.astock.finance(cls.finance.net_profit, shift=4, periods=4, quarter_adj=3).groupby(cls.trade.trade_dt).sum()
+        finance_cost = flow.astock.finance(cls.finance.interest_cost, shift=4, periods=4, quarter_adj=3).groupby(cls.trade.trade_dt).sum()
+        tax =  flow.astock.finance(cls.finance.income_tax, shift=4, periods=4, quarter_adj=3).groupby(cls.trade.trade_dt).sum()
+        ebit = profit + finance_cost + tax
+        mv = flow.astock(cls.finance.val_mv)
+        tc = flow.astock.finance(cls.finance.cash_and_equity, shift=4, periods=1)
+        tl = flow.astock.finance(cls.finance.total_liab, shift=4, periods=1)
+        ev = mv + tl - tc
+        df = (ebit / ev).f.tradestatus()
+        return df
+    
+    @classmethod
+    @lru_cache(maxsize=1)
+    def long_relative_strengh(cls, periods = 252 * 4, shift=11):
+        w = pd.tools.halflife(periods, periods // 4)
+        ret = flow.astock(cls.trade.returns).f.tradestatus()
+        x = ret.gen.roll_weight(w)
+        x = x.rolling(shift).mean().shift(periods // 4)
+        return x
+    
+    @classmethod
+    @lru_cache(maxsize=1)
+    def long_historical_alpha(cls, periods = 252 * 4, shift=11):        
+        df = cls.historical_alpha()
+        w = pd.tools.halflife(periods, periods // 4)
+        x = df.gen.roll_weight(w)
+        x = x.rolling(shift).mean().shift(periods // 4)
+        return x
+    
+    @classmethod
+    @lru_cache(maxsize=1)
+    def ep_growth(cls, periods=252 * 4):
+        growth = flow.astock(cls.finance.profit_growth)
+        mv = flow.astock(cls.finance.val_mv)
+        mv = mv.rolling(252, min_periods=252 // 4).mean()
+        df = growth / mv
+        trend = pd.DataFrame(np.arange(df.shape[0]).repeat(df.shape[1]).reshape(df.shape[0], -1), index=df.index, columns=df.columns)
+        params = df.stats.neutral(fac=trend, periods=periods, neu_axis=0, resid=False).params.fac
+        return params
+        
+    @classmethod
+    @lru_cache(maxsize=1)
+    def op_growth(cls, periods=252 * 4):
+        growth = flow.astock(cls.finance.oper_growth)
+        mv = flow.astock(cls.finance.val_mv)
+        mv = mv.rolling(252, min_periods=252 // 4).mean()
+        df = growth / mv
+        trend = pd.DataFrame(np.arange(df.shape[0]).repeat(df.shape[1]).reshape(df.shape[0], -1), index=df.index, columns=df.columns)
+        params = df.stats.neutral(fac=trend, periods=periods, neu_axis=0, resid=False).params.fac
+        return params
+        
+    @classmethod
+    @lru_cache(maxsize=1)
+    def dp(cls):
+        df = flow.astock(cls.finance.dividend)
+        return df

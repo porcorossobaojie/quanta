@@ -70,11 +70,12 @@ class main():
         neu_axis: int = 1,
         periods: Optional[int] = None,
         w: Optional[np.ndarray] = None,
+        l2 = 0,
         resid: bool = True,
         dtype = None,
         **key_factors: pd.DataFrame
     ) -> Any:
-        return neutral(self._obj, const=const, neu_axis=neu_axis, periods=periods, w=w, resid=resid, dtype=dtype,**key_factors)
+        return neutral(self._obj, const=const, neu_axis=neu_axis, periods=periods, w=w, l2=l2, resid=resid, dtype=dtype,**key_factors)
 
     @doc_inherit(neutral)
     def expose(self, *xs, limit=0.05, max_iter=2):

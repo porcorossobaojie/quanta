@@ -8,10 +8,16 @@ finance_keys:
     long_liab: 'total_non_current_liability'
 
     oper_rev: 'income-operating_revenue'
+    oper_cost: 'total_operating_cost'
+    interest_cost: 'interest_cost_fin' # 利息支出
 
     net_profit: 'income-net_profit'
+    gross_profit: 'gross_profit_margin' # 销售毛利率
+    expert_profit: 'astockperformance_lt-total_profit' # 预期利润
+    
     oper_cash: 'net_operate_cash_flow' # 经营活动产生的现金流量净额(元)
     inv_cash: 'net_invest_cash_flow' # 投资活动产生的现金流量净额(元)
+    inv_cost: 'subtotal_invest_cash_outflow' # 投资活动现金流出小计(元)
     net_cashflow: 'cash_equivalent_increase' # 现金及等价物增加额
     cash_and_equity: 'cash_and_equivalents_at_end' # 期末现金及等价物总额
 
@@ -19,11 +25,17 @@ finance_keys:
     inv_depre: investment_property_depreciation # 投资性房地产的折旧及摊销
     inta_amort: intangible_assets_amortization # 无形资产摊销
     long_amort: defferred_expense_amortization # 长期摊销
-
+    
+    income_tax: 'income_tax'
+    
     val_mv: val_mv
     cur_mv: cur_mv
     pe: pe_ttm
     pcf: pcf
     pocf: pocf
     pb: pb
-    turnover: 'free_turnover'
+    roa: roa
+    profit_growth: inc_net_profit_annual # 利润环比增长
+    oper_growth: inc_revenue_annual # 营收环比增长
+    dividend: dividend_ratio_ttm # 派息/市值
+    turnover: free_turnover

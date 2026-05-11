@@ -226,13 +226,14 @@ def const(
     return pd.get_dummies(df_obj, prefix=prefix, prefix_sep=sep, columns=columns)
 
 @njit(parallel=True, cache=True, nopython=True)
-def fast_wls_w3d(data_3d, weights):
+def fast_wls_w3d(data_3d, weights, l2=0):
     n_cols = data_3d.shape[0]
     n_slices = data_3d.shape[1]
     k_samples = data_3d.shape[2]
     betas = np.full((n_slices, k_samples - 1), np.nan)
     multi_w1 = (weights.shape[1] > 1)
     multi_w2 = (weights.shape[2] > 1)
+    l2_bool = (l2 == 0)
     for i in prange(n_slices):
         slice_data = data_3d[:, i, :]
         valid_mask = np.ones(n_cols, dtype=np.bool_)
@@ -241,7 +242,6 @@ def fast_wls_w3d(data_3d, weights):
                 if np.isnan(slice_data[c, k]):
                     valid_mask[c] = False
                     break
-
 
         if np.sum(valid_mask) > (2 * (k_samples - 1)):
             if multi_w1:
@@ -256,15 +256,23 @@ def fast_wls_w3d(data_3d, weights):
                 x = slice_data[valid_mask, 1:]
                 for col in range(x.shape[1]):
                     x[:, col] = x[:, col] * sqrt_w[:, 0]
-            betas[i] = np.linalg.solve(x.T @ x, x.T @ y)
+            xTx = x.T @ x
+            xTy = x.T @ y
+            if l2_bool:
+                betas[i] = np.linalg.solve(xTx, xTy)
+            else:
+                for j in range(xTx.shape[0]):
+                    xTx[j,j] = l2 + xTx[j,j]
+                betas[i] = np.linalg.solve(xTx, xTy)
     return betas
 
 @njit(parallel=True, cache=True, nopython=True)
-def fast_ols_3d(data_3d, weights):
+def fast_ols_3d(data_3d, weights, l2=0):
     n_cols = data_3d.shape[0]
     n_slices = data_3d.shape[1]
     k_samples = data_3d.shape[2]
     betas = np.full((n_slices, k_samples - 1), np.nan)
+    l2_bool = (l2 == 0)
     for i in prange(n_slices):
         slice_data = data_3d[:, i, :]
         valid_mask = np.ones(n_cols, dtype=np.bool_)
@@ -276,7 +284,15 @@ def fast_ols_3d(data_3d, weights):
         if np.sum(valid_mask) > (2 * (k_samples - 1)):
             y = slice_data[valid_mask, 0]
             x = slice_data[valid_mask, 1:]
-            betas[i] = np.linalg.solve(x.T @ x, x.T @ y)
+            xTx = x.T @ x
+            xTy = x.T @ y
+
+            if l2_bool:
+                betas[i] = np.linalg.solve(xTx, xTy)
+            else:
+                for j in range(xTx.shape[0]):
+                    xTx[j,j] = l2 + xTx[j,j]
+                betas[i] = np.linalg.solve(xTx, xTy)
     return betas
 
 @njit(parallel=True, cache=True, nopython=True, fastmath=True)
@@ -297,22 +313,27 @@ def fast_std(arr):
                 result[i, j] = np.sqrt(sum_sq / count)
     return result
 
-def fast_wls(data_3d, weights):
-    def core_func(data_2d, w):
+def fast_wls(data_3d, weights, l2):
+    l2_bool = (l2 == 0)
+    def core_func(data_2d, w, l2):
         not_nan = ~np.isnan(data_2d).any(axis=1)
         m = data_2d[not_nan, :]
         if m.shape[0] > m.shape[1] * 2:
             if w is not None:
                 w = w[not_nan, :] if w.ndim == 2 else w[not_nan][:, np.newaxis]
                 m = m * w
-            x = np.linalg.solve(m[:, 1:].T @ m[:, 1:], m[:, 1:].T @ m[:, 0])
+            if l2_bool:
+                x = np.linalg.solve(m[:, 1:].T @ m[:, 1:], m[:, 1:].T @ m[:, 0])
+            else:
+                x = np.linalg.solve(m[:, 1:].T @ m[:, 1:] + l2 * np.eye(m.shape[1]-1), m[:, 1:].T @ m[:, 0])
         else:
             x = np.array([np.nan] * (m.shape[1] - 1))
         return x
     if weights is not None and data_3d.shape[:2] == weights.shape[:2]:
+        partial_func = partial(core_func, l2=l2)
         x = list(map(core_func, data_3d, weights))
     else:
-        partial_func = partial(core_func, w=weights)
+        partial_func = partial(core_func, w=weights, l2=l2)
         x = list(map(partial_func, data_3d))
     params = np.array(x)
     return params
@@ -323,12 +344,14 @@ def neutral(
     neu_axis: int = 1,
     periods: Optional[int] = None,
     w: Optional[np.ndarray] = None,
+    l2: float = 0,
     resid: bool = False,
     dtype = None,
     **key_factors: pd.DataFrame
 ) -> Any:
     # 数据对齐
     dtype = 'float32' if periods is not None else ('float64' if dtype is None else dtype)
+    l2 = np.array(l2).astype(dtype)
     raw = (
         {'__y__': df_obj} |
         ({'const': pd.DataFrame().reindex_like(df_obj).fillna(1)} if const else {}) |
@@ -372,7 +395,7 @@ def neutral(
         for p in range(periods, vals.shape[0] + 1):
             data_3d = vals[p-periods:p, :, :]
             weights = w[p-periods:p, :, :] if (w is not None and w.shape[0] != periods) else w
-            params[p-1, :, :] = func(data_3d, weights)
+            params[p-1, :, :] = func(data_3d, weights, l2)
         if resid:
             resids = (
                 sliding_window_view(vals[:, :, 0], window_shape=periods, axis=0) -
@@ -394,7 +417,7 @@ def neutral(
             params = {i:j.T for i,j in params.items()}
         params = pd.concat(params, axis=1)
     else:
-        params = fast_wls(vals, w)
+        params = fast_wls(vals, w, l2)
         if resid:
             resids = vals[:, :, 0] - np.einsum("rck, rk -> rc", vals[:, :, 1:], params)
             resids = resids if neu_axis == 1 else resids.T

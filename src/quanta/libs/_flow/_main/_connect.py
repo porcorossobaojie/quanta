@@ -627,7 +627,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
         -----------------------------------------------------------------------
         """
         day_index = calendar_days if day_index is None else day_index
-        df = self.__read_from_internal__(column)
+        df = self.__read_from_internal__(column) if isinstance(column, str) else column
         if drop_zero:
             df = df[df != 0]
         x = self.__finance_periods_merge__(df, periods, quarter_adj, quarter_diff)
@@ -668,7 +668,113 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
         obj = obj[obj.index.get_level_values(0).isin(trade_days)].loc[self.start_date:]
         return obj
 
+    def _finance(
+        self,
+        df: str,
+        quarter_adj: bool = False,
+        quarter_diff: int = 1,
+        shift: int = 0,
+        periods: int = 1,
+        min_periods: Optional[int] = None,
+        drop_zero: bool = True,
+        day_index: Optional[pd.DatetimeIndex] = None
+    ) -> pd.DataFrame:
+        """
+        =======================================================================
+        Comprehensive financial data processing, including merging periods,
+        adjusting for report lag, and reindexing to trade days.
 
+        Parameters
+        ----------
+        column : str
+            Financial column to process.
+        quarter_adj : bool
+            Whether to apply quarter adjustment. Default is False.
+        quarter_diff : int
+            Difference for quarter adjustment. Default is 1.
+        shift : int
+            Number of periods to shift reporting. Default is 0.
+        periods : int
+            Number of reporting periods to combine. Default is 1.
+        min_periods : Optional[int]
+            Minimum periods required for results. Default is None.
+        drop_zero : bool
+            Whether to treat zero values as NaNs. Default is True.
+        day_index : Optional[pd.DatetimeIndex]
+            Custom index for reindexing. Defaults to calendar_days.
+
+        Returns
+        -------
+        pd.DataFrame
+            Fully processed financial DataFrame.
+        -----------------------------------------------------------------------
+        综合财务数据处理, 包括合并周期, 调整报告滞后以及对齐到交易日.
+
+        参数
+        ----
+        df : str
+            要处理的财务列.
+        quarter_adj : bool
+            是否应用季度调整. 默认为 False.
+        quarter_diff : int
+            季度调整的差值. 默认为 1.
+        shift : int
+            报告位移周期. 默认为 0.
+        periods : int
+            要组合的报告周期数. 默认为 1.
+        min_periods : Optional[int]
+            结果所需的最小周期数. 默认为 None.
+        drop_zero : bool
+            是否将零值视为 NaN. 默认为 True.
+        day_index : Optional[pd.DatetimeIndex]
+            用于重索引的自定义索引. 默认为 calendar_days.
+
+        返回
+        ----
+        pd.DataFrame
+            完全处理后的财务 DataFrame.
+        -----------------------------------------------------------------------
+        """
+        day_index = calendar_days if day_index is None else day_index
+        if drop_zero:
+            df = df[df != 0]
+        x = self.__finance_periods_merge__(df, periods, quarter_adj, quarter_diff)
+        x = x.set_index(self.ann_dt).sort_index()
+        x.index = x.index.astype('datetime64[ns]')
+        fill_index = pd.MultiIndex.from_product([day_index, x[self.code].unique()], names=[self.trade_dt, self.code])
+        obj = pd.DataFrame(index=fill_index).reset_index(self.code)
+        obj = pd.merge_asof(obj, x, by=self.code, left_index=True, right_index=True)
+
+        obj['Q'] = obj.index.to_period('Q')
+        obj['Q'] = obj['Q'].dt.year * 4 + obj['Q'].dt.quarter
+        obj[self.report_period] = obj[self.report_period].dt.to_period('Q')
+        obj[self.report_period] = obj[self.report_period].dt.year * 4 + obj[self.report_period].dt.quarter
+        obj['Q'] = obj['Q'] - obj[self.report_period] - 1 - shift
+        obj = obj.set_index([self.code, 'Q'], append=True).drop(self.report_period, axis=1).dropna(how='all')
+        meta = obj[obj.index.get_level_values('Q') <= 0]
+        obj = obj[~obj.index.isin(meta.index)]
+        if len(obj):
+            while (obj.index.get_level_values('Q') > 0).any():
+                obj[obj.index.get_level_values('Q') > 0] = obj[obj.index.get_level_values('Q') > 0].shift(axis=1)
+                obj = obj.reset_index('Q')
+                obj['Q'] -= 1
+                obj = obj.set_index('Q', append=True)
+                obj = obj.dropna(how='all')
+            obj = pd.concat([meta, obj])
+        else:
+            obj = meta
+
+        obj = obj.reset_index('Q').drop('Q', axis=1)
+        obj.columns.name = self.report_period
+        obj = obj.unstack(self.trade_dt)
+        obj = obj.swaplevel(self.trade_dt, self.report_period, axis=1).T
+        if len(obj.index.get_level_values(self.report_period).unique()) == 1:
+            obj.index = obj.index.get_level_values(self.trade_dt)
+        obj = obj.sort_index().sort_index(axis=1)
+        if min_periods is not None:
+            obj = obj[obj.groupby(self.trade_dt).transform('count') >= min_periods]
+        obj = obj[obj.index.get_level_values(0).isin(trade_days)].loc[self.start_date:]
+        return obj
 calendar_days = pd.date_range(
     start=pd.to_datetime(main.date_start) + main.time_bias,
     freq='d',
