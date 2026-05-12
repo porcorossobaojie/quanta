@@ -35,9 +35,25 @@ class main():
         return cls._base.size()
     
     @classmethod
+    @doc_inherit(meta.non_size)
+    def non_size(cls) -> pd.DataFrame:
+        return cls._base.non_size()
+
+    @classmethod
     @doc_inherit(meta.bm)
     def bm(cls) -> pd.DataFrame:
         return cls._base.bm()
+    
+    @classmethod
+    @doc_inherit(meta.beta)
+    def beta(
+        cls,
+        periods: int = 252,
+        halflife: int = None,
+        bench: str = 'full',
+        portfolio_type: str = 'astock'
+    ) -> pd.DataFrame:
+        return cls._base.beta(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type)
 
     @classmethod
     @lru_cache(maxsize=4)

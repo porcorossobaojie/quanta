@@ -599,13 +599,13 @@ class main(meta):
         return df
 
     @classmethod
-    def variation_to_earnings(cls, periods: int = 20) -> pd.DataFrame:
+    def variation_in_earnings(cls, periods: int = 20) -> pd.DataFrame:
         """Calculate variation to earnings. | 计算收益变异."""
         df = cls._variation(cls.finance.net_profit, periods, 3)
         return df
 
     @classmethod
-    def variation_to_cashflow(cls, periods: int = 20) -> pd.DataFrame:
+    def variation_in_cashflow(cls, periods: int = 20) -> pd.DataFrame:
         """Calculate variation to cash flow. | 计算现金流变异."""
         df = cls._variation(cls.finance.net_cashflow, periods, None)
         return df
@@ -724,7 +724,7 @@ class main(meta):
 
     @classmethod
     def ex_ep(cls) -> pd.DataFrame:
-        """Calculate expert profit. | 计算专家收益率."""
+        """Calculate expert profit. | 计算预期收益率."""
         df = flow.astock.finance(cls.finance.expert_profit, shift=2).fillna(0).f.tradestatus()
         mv = flow.astock(cls.finance.val_mv) * 1e8
         df = df / mv
@@ -790,7 +790,6 @@ class main(meta):
         return params
 
     @classmethod
-    @lru_cache(maxsize=1)
     def dp(cls) -> pd.DataFrame:
         """Calculate dividend payout. | 计算股息支付."""
         df = flow.astock(cls.finance.dividend)
