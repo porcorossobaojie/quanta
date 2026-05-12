@@ -111,7 +111,7 @@ class main():
         ret = getattr(flow, portfolio_type)(cls.trade.returns).f.tradestatus().tools.log(abs_adj=False).astype('float32')
         bench = cls.bench(bench).tools.log().astype('float32')
         bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns).f.tradestatus()
-        w = pd.tools.halflife(long_periods+short_periods, halflife)[short_periods:][np.newaxis, :]
+        w = pd.tools.halflife(long_periods+short_periods, halflife)[short_periods:]
         
         ret_mom = ret.gen.roll_weight(w)
         bench_mom = bench.gen.roll_weight(w)

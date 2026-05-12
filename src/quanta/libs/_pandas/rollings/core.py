@@ -664,6 +664,8 @@ class _rolls():
         """
         count = self.window if count is None else count
         x = self._max_class(count)
+        if (x.shape[1] == 1) and x.columns[0] == 0:
+            x = x.iloc[:, 0]
         return x
 
     def min(
@@ -700,6 +702,8 @@ class _rolls():
         """
         count = self.window if count is None else count
         x = self._min_class(count)
+        if (x.shape[1] == 1) and x.columns[0] == 0:
+            x = x.iloc[:, 0]
         return x
 
     def ts_rank(
@@ -734,4 +738,6 @@ class _rolls():
         -----------------------------------------------------------------------
         """
         x = self._rank_class(pct)
+        if (x.shape[1] == 1) and x.columns[0] == 0:
+            x = x.iloc[:, 0]
         return x
