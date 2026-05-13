@@ -83,6 +83,8 @@ class main():
 
 @pd.api.extensions.register_series_accessor(MODULE_DIR)
 class main():
+    def __init__(self, pandas_obj: pd.DataFrame):
+        self._obj = pandas_obj
     @doc_inherit(roll_weight)
     def roll_weight(
         self,
