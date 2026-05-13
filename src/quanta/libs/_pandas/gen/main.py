@@ -80,3 +80,14 @@ class main():
         fillna: bool = 0
     ) -> pd.DataFrame:
         return roll_weight(self._obj, weight_array, fillna)
+
+@pd.api.extensions.register_series_accessor(MODULE_DIR)
+class main():
+    @doc_inherit(roll_weight)
+    def roll_weight(
+        self,
+        weight_array: Union[List, np.ndarray, pd.Series],
+        fillna: bool = 0
+    ) -> pd.DataFrame:
+        return roll_weight(self._obj.to_frame(), weight_array, fillna).iloc[:, 0]
+    
