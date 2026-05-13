@@ -27,6 +27,8 @@ finance_keys:
     long_amort: defferred_expense_amortization # 长期摊销
     
     income_tax: 'income_tax'
+
+    owner_equity: total_owner_equities # 所有者权益
     
     val_mv: val_mv
     cur_mv: cur_mv
@@ -35,6 +37,7 @@ finance_keys:
     pocf: pocf
     pb: pb
     roa: roa
+    roe: roe
     profit_growth: inc_net_profit_annual # 利润环比增长
     oper_growth: inc_revenue_annual # 营收环比增长
     dividend: dividend_ratio_ttm # 派息/市值

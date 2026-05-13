@@ -44,7 +44,7 @@ class main(meta):
         -----------------------------------------------------------------------
         """
         x = flow.astock(cls.finance.pb) ** -1
-        x = x.stats.neutral(cls.size()).resid
+        x = x.stats.neutral(fac=cls.size()).resid
         return x
 
     @classmethod
@@ -69,7 +69,7 @@ class main(meta):
         -----------------------------------------------------------------------
         """
         df = cls.size()
-        df = (df ** 3).stats.neutral(me=df, weight=(df ** 0.5).values).resid.tools.log().stats.standard()
+        df = (df ** 3).stats.neutral(me=df, weight=(df ** 0.5)).resid.tools.log().stats.standard()
         return df
 
     @classmethod
