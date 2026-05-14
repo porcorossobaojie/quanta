@@ -375,7 +375,7 @@ class main():
         summary = cls.summary()
         keys = key.split('.')
         x = filter_class_attrs(getattr(getattr(summary, keys[0]), keys[1]))
-        df = {i:j() for i,j in x.items()}
+        df = {i:j() for i,j in x.items() if i != '_group'}
         df = pd.f.merge(*df.values())
         return df
             

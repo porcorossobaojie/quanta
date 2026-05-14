@@ -1133,7 +1133,7 @@ class test:
                 },
                 'action': self.action_returns(self.entrade)
             },
-            'turnvoer':{
+            'turnover':{
                 'thoery': thoery_turnover,
                 'real': real_turnover
             },
@@ -1146,4 +1146,3 @@ class test:
             }
         }
         return dict_to_dataclass(dic)
-
