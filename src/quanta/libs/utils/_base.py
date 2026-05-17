@@ -219,6 +219,19 @@ def dict_to_dataclass(
         表示输入字典结构的 dataclass 实例.
     ---------------------------------------------------------------------------
     """
+    def instance_to_dict(self) -> Dict[str, Any]:
+        result = {}
+        for k, v in self.__dict__.items():
+            # 如果属性本身也是动态生成的 dataclass 实例，就递归调用它的 to_dict
+            if hasattr(v, 'to_dict') and callable(v.to_dict):
+                result[k] = v.to_dict()
+            # 如果是 DataFrame，可以根据需求处理（这里选择保留原对象或转为字典）
+            elif isinstance(v, pd.DataFrame):
+                result[k] = v  # 或者 result[k] = v.to_dict() / v.to_dict(orient='records')
+            else:
+                result[k] = v
+        return result
+
     fields = []
     field_values = {}
     for key, value in dic.items():
@@ -231,7 +244,7 @@ def dict_to_dataclass(
             # 自动识别类型：如果是 DataFrame，会自动标注为 pd.DataFrame
             fields.append((key, type(value)))
             field_values[key] = value
-    
+
     def custom_repr(self) -> str:
         """Custom string representation for dataclass | dataclass 的自定义字符串表示"""
     # 1. 构造一个只包含 key 的嵌套字典结构
@@ -251,9 +264,10 @@ def dict_to_dataclass(
             return structure
         structure_str = pformat(get_structure(field_values), width=60, sort_dicts=False)
         return f"{name}:\n{structure_str}"
-    
+
     # 动态创建类
     dynamic_cls = make_dataclass(name, fields)
     setattr(dynamic_cls, "__repr__", custom_repr)
+    setattr(dynamic_cls, "to_dict", instance_to_dict)
     return dynamic_cls(**field_values)
 
