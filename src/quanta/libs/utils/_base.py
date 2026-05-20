@@ -268,6 +268,5 @@ def dict_to_dataclass(
     # 动态创建类
     dynamic_cls = make_dataclass(name, fields)
     setattr(dynamic_cls, "__repr__", custom_repr)
-    setattr(dynamic_cls, "to_dict", instance_to_dict)
+    setattr(dynamic_cls, "_to_dict", instance_to_dict)
     return dynamic_cls(**field_values)
-
