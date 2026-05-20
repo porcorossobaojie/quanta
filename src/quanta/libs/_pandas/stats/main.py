@@ -86,6 +86,10 @@ class main():
     ) -> pd.DataFrame:
         return expose(self._obj, *xs, limit = limit, max_iter=max_iter)
 
+    @doc_inherit(z)
+    def z(self, periods=None, min_periods=None):
+        return z(self._obj, periods, min_periods)
+
 @pd.api.extensions.register_series_accessor(MODULE_DIR)
 class main():
     """
@@ -115,3 +119,7 @@ class main():
         sep: str = ''
     ) -> pd.DataFrame:
         return const(self._obj, prefix=prefix, sep=sep)
+
+    @doc_inherit(z)
+    def z(self, periods=None, min_periods=None):
+        return z(self._obj, periods, min_periods)

@@ -21,7 +21,15 @@ import numba
 from numba import njit, prange
 from numpy.lib.stride_tricks import sliding_window_view
 
-__all__ = ['standard', 'OLS', 'const', 'neutral', 'expose']
+__all__ = ['z', 'standard', 'OLS', 'const', 'neutral', 'expose']
+
+def z(df_obj, periods, min_periods=None):
+    if periods is None:
+        return df_obj.mean() / df_obj.std()
+    else:
+        x = df_obj.rolling(periods, min_periods=(periods // 4) if min_periods is None else periods)
+        return x.mean() / x.std()
+
 
 def standard(
     df_obj: Union[pd.Series, pd.DataFrame],
