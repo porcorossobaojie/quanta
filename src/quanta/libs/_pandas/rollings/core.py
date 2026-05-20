@@ -623,12 +623,13 @@ class _rolls():
             窗口中所需的最小观测数.
         -----------------------------------------------------------------------
         """
-        self._obj = pandas_obj
+        self._is_series = True if isinstance(pandas_obj, pd.Series) else False
+        self._obj = pandas_obj.to_frame() if self._is_series else pandas_obj
         self.window = window
         self.min_periods = min_periods if min_periods is not None else window
-        self._max_class = _max(pandas_obj, self.window, self.min_periods)
-        self._min_class = _min(pandas_obj, self.window, self.min_periods)
-        self._rank_class = _rank(pandas_obj, self.window, self.min_periods)
+        self._max_class = _max(self._obj, self.window, self.min_periods)
+        self._min_class = _min(self._obj, self.window, self.min_periods)
+        self._rank_class = _rank(self._obj, self.window, self.min_periods)
 
     def max(
         self,
@@ -664,7 +665,7 @@ class _rolls():
         """
         count = self.window if count is None else count
         x = self._max_class(count)
-        if (x.shape[1] == 1) and x.columns[0] == 0:
+        if self._is_series:
             x = x.iloc[:, 0]
         return x
 
@@ -702,7 +703,7 @@ class _rolls():
         """
         count = self.window if count is None else count
         x = self._min_class(count)
-        if (x.shape[1] == 1) and x.columns[0] == 0:
+        if self._is_series:
             x = x.iloc[:, 0]
         return x
 
@@ -738,6 +739,6 @@ class _rolls():
         -----------------------------------------------------------------------
         """
         x = self._rank_class(pct)
-        if (x.shape[1] == 1) and x.columns[0] == 0:
+        if self._is_series:
             x = x.iloc[:, 0]
         return x

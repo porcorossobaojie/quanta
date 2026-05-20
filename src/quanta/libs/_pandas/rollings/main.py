@@ -63,7 +63,7 @@ class main:
             滚动窗口操作容器.
         -----------------------------------------------------------------------
         """
-        x = rolls(self._obj.to_frame(), window, min_periods)
+        x = rolls(self._obj, window, min_periods)
         return x
 
 
