@@ -10,9 +10,7 @@ os.environ['NUMBA_NUM_THREADS'] = f'{os.cpu_count()}'
 os.environ['NUMBA_THREADING_LAYER'] = 'tbb'
 import numpy as np
 import pandas as pd
-from numpy.lib.stride_tricks import as_strided
 from functools import partial
-import scipy as sp
 import statsmodels.api as sm
 from typing import Optional, Union, Tuple, List, Dict, Any, Callable
 
