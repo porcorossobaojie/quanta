@@ -201,6 +201,19 @@ class flow_extra():
         shift = 1
     ):
         return test(self._obj, shift)
+    
+    @doc_inherit(Chain)
+    def concept(
+        self,
+        label,
+        label_df=None,
+        expand=True,
+        how='sum',
+        w=None,
+        portfolio_type=None
+        
+    ):
+        return concept(self._obj, label, label_df, expand, how, w, portfolio_type)
 
 
 @pd.api.extensions.register_series_accessor(config.extra_pandas_attrname)

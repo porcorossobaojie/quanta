@@ -1146,3 +1146,15 @@ class test:
             }
         }
         return dict_to_dataclass(dic)
+
+def concept(df_obj, label, label_df=None, expand=True, how='sum', w=None, portfolio_type=None):
+    x = df_obj.f.label(label, label_df, portfolio_type)
+    if w is not None:
+        w = w.f.label(label, label_df, portfolio_type)
+        x = (x * w).groupby(x.columns.names[0], axis=1).apply(how) / w.groupby(w.columns.names[0], axis=1).apply(how)
+    else:
+        x = x.groupby(x.columns.names[0], axis=1).apply(how)
+    if expand:
+        x = x.f.expand()
+        x = x.groupby(x.columns.names[1], axis=1).mean()
+    return x
