@@ -31,6 +31,7 @@ class class_obj:
     DataFrame = staticmethod(DataFrame)
     unit = staticmethod(Unit)
     chain = staticmethod(Chain)
+    industry = staticmethod(industry)
 
 setattr(pd, config.extra_pandas_attrname, class_obj)
 

@@ -19,6 +19,13 @@ portfolio_types = settings('data').public_keys.recommand_settings.portfolio_type
 config = settings('flow')
 
 
+@lru_cache(maxsize=4)
+def industry(code):
+    x = __instance__['astock'].multilize(code)
+    stock_list = x.columns.get_level_values(__instance__['trade_keys'].astock_code).unique().sort_values()
+    dic = {i: x[i].reindex(stock_list, axis=1).fillna(False) for i in x.columns.get_level_values(code).unique().sort_values()}
+    return dic
+
 @lru_cache(maxsize=8)
 def listing(
     listing_limit: int = 126,
