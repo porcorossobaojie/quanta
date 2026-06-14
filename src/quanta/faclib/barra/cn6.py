@@ -27,23 +27,23 @@ class main():
         'liquidity': {'month_turnover': 0.25, 'quarter_turnover': 0.25, 'annual_turnover': 0.25, 'annul_weight_turnover': 0.25},
         'leverage': {'market_leverage': 0.38, 'debt_to_asset_ratio': 0.35, 'book_leverage': 0.27}
         }
-    
+
     @classmethod
     @doc_inherit(meta.bench)
     def bench(cls, code: str, weight: Optional[Union[str, pd.DataFrame]] = None) -> pd.Series:
         return cls._base.bench(code, weight)
-    
+
     @classmethod
     def _group(cls, dic):
         df = {i:getattr(cls, i)() * j for i,j in dic.items()}
         df = pd.concat(df, axis=1)
         df = df.groupby(df.columns.get_level_values(1), axis=1).sum(min_count=len(dic))
-    
+
     @classmethod
     @doc_inherit(meta.size)
     def size(cls) -> pd.DataFrame:
         return cls._base.size()
-    
+
     @classmethod
     @doc_inherit(meta.non_size)
     def non_size(cls) -> pd.DataFrame:
@@ -53,7 +53,7 @@ class main():
     @doc_inherit(meta.bm)
     def bm(cls) -> pd.DataFrame:
         return cls._base.bm()
-    
+
     @classmethod
     @doc_inherit(meta.beta)
     def beta(
@@ -64,7 +64,7 @@ class main():
         portfolio_type: str = 'astock'
     ) -> pd.DataFrame:
         return cls._base.beta(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type)
-    
+
     @classmethod
     @doc_inherit(meta.hsigma)
     def hsigma(
@@ -74,8 +74,8 @@ class main():
         bench: str = 'full',
         portfolio_type: str = 'astock'
     ) -> pd.DataFrame:
-        return cls._base.hsigma(periods=periods, halflife = halflife, bench = bench, portfolio_type = portfolio_type) 
-        
+        return cls._base.hsigma(periods=periods, halflife = halflife, bench = bench, portfolio_type = portfolio_type)
+
     @classmethod
     @doc_inherit(meta.dastd)
     def dastd(
@@ -85,32 +85,32 @@ class main():
         portfolio_type: str = 'astock'
     ) -> pd.DataFrame:
         return cls._base.dastd(periods=periods, halflife=halflife, portfolio_type=portfolio_type)
-    
+
     @classmethod
     @doc_inherit(meta.cmra)
     def cmra(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
         return cls._base.cmra(periods=periods, portfolio_type=portfolio_type)
-    
+
     @classmethod
     @doc_inherit(meta.month_turnover)
     def month_turnover(cls, periods: int = 21, portfolio_type: str = 'astock') -> pd.DataFrame:
         return cls._base.month_turnover(periods=periods, portfolio_type=portfolio_type)
-    
+
     @classmethod
     @doc_inherit(meta.quarter_turnover)
     def quarter_turnover(cls, periods: int = 63, portfolio_type: str = 'astock') -> pd.DataFrame:
         return cls._base.quarter_turnover(periods=periods, portfolio_type=portfolio_type)
-        
+
     @classmethod
     @doc_inherit(meta.annual_turnover)
     def annual_turnover(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
         return cls._base.annual_turnover(periods=periods, portfolio_type=portfolio_type)
-        
+
     @classmethod
     @doc_inherit(meta.annul_weight_turnover)
     def annul_weight_turnover(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
         return cls._base.annul_weight_turnover(periods=periods, portfolio_type=portfolio_type)
-    
+
     @classmethod
     @doc_inherit(meta.short_term_reversal)
     def short_term_reversal(cls, periods: int = 21, portfolio_type: str = 'astock') -> pd.DataFrame:
@@ -126,7 +126,7 @@ class main():
         portfolio_type: str = 'astock'
     ) -> pd.DataFrame:
         return cls._base.seasonal(periods=periods, window=window, future=future, portfolio_type=portfolio_type)
-    
+
     @classmethod
     @doc_inherit(meta.industry_momentum)
     def industry_momentum(
@@ -136,12 +136,12 @@ class main():
         mv_rebalance: bool = True
     ) -> pd.DataFrame:
         return cls._base.industry_momentum(periods=periods, industry_code=industry_code, mv_rebalance=mv_rebalance)
-    
+
     @classmethod
     @doc_inherit(meta.relative_strengh)
     def relative_strengh(cls, periods: int = 252, shift: int = 11) -> pd.DataFrame:
         return cls._base.relative_strengh(periods=periods, shift=shift)
-    
+
     @classmethod
     @doc_inherit(meta.historical_alpha)
     def historical_alpha(
@@ -152,27 +152,27 @@ class main():
         portfolio_type: str = 'astock'
     ) -> pd.DataFrame:
         return cls._base.historical_alpha(periods=periods, halflife=halflife, bench=bench, portfolio_type=portfolio_type)
-    
+
     @classmethod
     @doc_inherit(meta.market_leverage)
     def market_leverage(cls) -> pd.DataFrame:
         return cls._base.market_leverage()
-    
+
     @classmethod
     @doc_inherit(meta.market_leverage)
     def book_leverage(cls) -> pd.DataFrame:
         return cls._base.book_leverage()
-    
+
     @classmethod
     @doc_inherit(meta.debt_to_asset_ratio)
     def debt_to_asset_ratio(cls) -> pd.DataFrame:
         return cls._base.debt_to_asset_ratio()
-    
+
     @classmethod
     @doc_inherit(meta.variation_in_sales)
     def variation_in_sales(cls, periods: int = 20) -> pd.DataFrame:
         return cls._base.variation_in_sales(periods=periods)
-    
+
     @classmethod
     @doc_inherit(meta.variation_in_earnings)
     def variation_in_earnings(cls, periods: int = 20) -> pd.DataFrame:
@@ -197,22 +197,22 @@ class main():
     @doc_inherit(meta.asset_turnover)
     def asset_turnover(cls) -> pd.DataFrame:
         return cls._base.asset_turnover()
-    
+
     @classmethod
     @doc_inherit(meta.gross_profit)
     def gross_profit(cls) -> pd.DataFrame:
         return cls._base.gross_profit()
-    
+
     @classmethod
     @doc_inherit(meta.gross_profit_margin)
     def gross_profit_margin(cls) -> pd.DataFrame:
         return cls._base.gross_profit_margin()
-    
+
     @classmethod
     @doc_inherit(meta.roa)
     def roa(cls) -> pd.DataFrame:
         return cls._base.roa()
-    
+
     @classmethod
     @doc_inherit(meta.asset_growth)
     def asset_growth(cls, periods: int = 20) -> pd.DataFrame:
@@ -227,42 +227,42 @@ class main():
     @doc_inherit(meta.ep)
     def ep(cls) -> pd.DataFrame:
         return cls._base.ep()
-    
+
     @classmethod
     @doc_inherit(meta.cp)
     def cp(cls) -> pd.DataFrame:
         return cls._base.cp()
-    
+
     @classmethod
     @doc_inherit(meta.ex_ep)
     def ex_ep(cls) -> pd.DataFrame:
         return cls._base.ex_ep()
-    
+
     @classmethod
     @doc_inherit(meta.enterprise)
     def enterprise(cls) -> pd.DataFrame:
         return cls._base.enterprise()
-    
+
     @classmethod
     @doc_inherit(meta.long_relative_strengh)
     def long_relative_strengh(cls, periods: int = 252 * 4, shift: int = 11) -> pd.DataFrame:
         return cls._base.long_relative_strengh(periods=periods, shift=shift)
-    
+
     @classmethod
     @doc_inherit(meta.long_historical_alpha)
     def long_historical_alpha(cls, periods: int = 252 * 4, shift: int = 11) -> pd.DataFrame:
         return cls._base.long_historical_alpha(periods=periods, shift=shift)
-    
+
     @classmethod
     @doc_inherit(meta.ep_growth)
     def ep_growth(cls, periods: int = 252 * 4) -> pd.DataFrame:
         return cls._base.ep_growth(periods=periods)
-    
+
     @classmethod
     @doc_inherit(meta.op_growth)
     def op_growth(cls, periods: int = 252 * 4) -> pd.DataFrame:
         return cls._base.op_growth(periods=periods)
-    
+
     @classmethod
     @doc_inherit(meta.dp)
     def dp(cls) -> pd.DataFrame:
@@ -272,13 +272,13 @@ class main():
     def summary(cls):
         def residual_volatility():
             return cls._group(cls._group_info['residual_volatility'])
-        
+
         def liquidity():
             return cls._group(cls._group_info['liquidity'])
-        
+
         def leverage():
             return cls._group(cls._group_info['leverage'])
-        
+
         dic = {
             'size': {
                 'size': {
@@ -323,7 +323,7 @@ class main():
                 'variation': {
                     'variation_in_sales': cls.variation_in_sales,
                     'variation_in_cashflow': cls.variation_in_cashflow,
-                    'variation_in_earnings': cls.variation_in_earnings},    
+                    'variation_in_earnings': cls.variation_in_earnings},
                 'earn_quality': {
                     'accr_balancesheet': cls.accr_balancesheet,
                     'accr_cashflow': cls.accr_cashflow},
@@ -358,18 +358,18 @@ class main():
             }
         }
         return dict_to_dataclass(dic, cls._model_name)
-            
-    @classmethod    
+
+    @classmethod
     def neutral(
-        cls, 
-        df: pd.DataFrame, 
+        cls,
+        df: pd.DataFrame,
         factors_name: List[str] = ['size', 'non_size', 'beta', 'bm']
     ) -> pd.DataFrame:
         """Neutralize a factor against Barra risk factors | 针对 Barra 风险因子对因子进行中性化"""
         factors = {i:getattr(cls,i)() for i in factors_name}
-        x = df.stats.neutral(**factors).resid
-        return x         
-            
+        x = df.stats.neutral(**factors, l2=1e-7).resid
+        return x
+
     @classmethod
     def merge(cls, key):
         summary = cls.summary()
@@ -378,9 +378,6 @@ class main():
         df = {i:j() for i,j in x.items() if i != '_group'}
         df = pd.f.merge(*df.values())
         return df
-            
-            
-            
 
 
 
@@ -393,4 +390,7 @@ class main():
 
 
 
-    
+
+
+
+

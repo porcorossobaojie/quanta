@@ -23,17 +23,17 @@ class main():
     _base = meta
     finance = _base.finance
     trade = _base.trade
-    
+
     @classmethod
     @doc_inherit(meta.bench)
     def bench(cls, code: str, weight: Optional[Union[str, pd.DataFrame]] = None) -> pd.Series:
         return cls._base.bench(code, weight)
-    
+
     @classmethod
     @doc_inherit(meta.size)
     def size(cls) -> pd.DataFrame:
         return cls._base.size()
-    
+
     @classmethod
     @doc_inherit(meta.non_size)
     def non_size(cls) -> pd.DataFrame:
@@ -43,7 +43,7 @@ class main():
     @doc_inherit(meta.bm)
     def bm(cls) -> pd.DataFrame:
         return cls._base.bm()
-    
+
     @classmethod
     @doc_inherit(meta.beta)
     def beta(
@@ -112,7 +112,7 @@ class main():
         bench = cls.bench(bench).tools.log().astype('float32')
         bench = pd.DataFrame(bench.values.repeat(ret.shape[1]).reshape(-1, ret.shape[1]), index=ret.index, columns=ret.columns).f.tradestatus()
         w = pd.tools.halflife(long_periods+short_periods, halflife)[short_periods:]
-        
+
         ret_mom = ret.gen.roll_weight(w)
         bench_mom = bench.gen.roll_weight(w)
         x = (ret_mom - bench_mom).shift(short_periods)
@@ -142,7 +142,7 @@ class main():
         x = pd.concat([cls._base.month_turnover(), cls._base.quarter_turnover(), cls._base.annual_turnover()], axis=1)
         x = x.groupby(x.columns, axis=1).mean()
         return x
-    
+
     @classmethod
     @lru_cache(maxsize=4)
     def earnings(cls) -> pd.DataFrame:
@@ -152,7 +152,7 @@ class main():
         exep = cls._base.ex_ep()
         x = cp * 0.21 + ep * 0.11 + exep * 0.68
         return x
- 
+
     @classmethod
     @lru_cache(maxsize=4)
     def growth(cls, periods: int = 20) -> pd.DataFrame:
@@ -164,9 +164,9 @@ class main():
             np.arange(periods).repeat(df.shape[0]).reshape(periods, -1).T,
             columns = np.arange(periods) - periods + 1,
             index = df.index)
-        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False) 
+        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False)
         net_profit = x.params.fac.iloc[:, -1].unstack(cls.trade.astock_code)
-        
+
         df = flow.astock.finance(cls.finance.oper_rev, shift=4, periods=periods, quarter_adj=3)
         df = df / df.groupby(cls.trade.trade_dt).transform('mean').abs()
         df = df.unstack(cls.trade.trade_dt).T
@@ -174,11 +174,11 @@ class main():
             np.arange(periods).repeat(df.shape[0]).reshape(periods, -1).T,
             columns = np.arange(periods) - periods + 1,
             index = df.index)
-        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False) 
+        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False)
         oper_rev = x.params.fac.iloc[:, -1].unstack(cls.trade.astock_code)
         x = net_profit * 0.24 + oper_rev * 0.47
         return x
-    
+
     @classmethod
     @lru_cache(maxsize=4)
     def leverage(cls) -> pd.DataFrame:
@@ -187,22 +187,22 @@ class main():
         dtoa = cls._base.debt_to_asset_ratio()
         blev = cls._base.book_leverage()
         x = (
-            mlev * 0.38 + 
-            dtoa * 0.35 + 
+            mlev * 0.38 +
+            dtoa * 0.35 +
             blev * 0.27
         )
         return x
-    
-    @classmethod    
+
+    @classmethod
     def neutral(
-        cls, 
-        df: pd.DataFrame, 
+        cls,
+        df: pd.DataFrame,
         factors_name: List[str] = ['size', 'non_size', 'beta', 'bm', 'earnings', 'momentum']
     ) -> pd.DataFrame:
         """Neutralize a factor against Barra risk factors | 针对 Barra 风险因子对因子进行中性化"""
         factors = {i:getattr(cls,i)() for i in factors_name}
-        x = df.stats.neutral(**factors).resid
+        x = df.stats.neutral(**factors, l2=1e-7).resid
         return x
-    
-        
-        
+
+
+
