@@ -70,7 +70,7 @@ class main():
         neu_axis: int = 1,
         periods: Optional[int] = None,
         w: Optional[np.ndarray] = None,
-        l2: float = 0,
+        l2: float = 1e-7,
         resid: bool = True,
         dtype: Any = None,
         **key_factors: pd.DataFrame
