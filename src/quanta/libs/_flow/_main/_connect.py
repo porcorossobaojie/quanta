@@ -794,6 +794,6 @@ except Exception:
     trade_days = pd.to_datetime(
         sorted(
             main(table='astockeodprices').__read__(columns=main.trade_dt).iloc[:, 0].unique()
-        ),
-        name = columns_info.trade_dt
+        )
     )
+    trade_days.name = columns_info.trade_dt
