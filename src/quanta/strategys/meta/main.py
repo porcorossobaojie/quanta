@@ -92,6 +92,7 @@ class main:
             
     def write(self):
         df = self.signal()
+        df.index = [i.split('.')[0] for i in df.index]
         self.account.pipline.write(
             df = df.to_frame().reset_index(), 
             path = str(self.account.__order_path__/str(df.name.date()))
