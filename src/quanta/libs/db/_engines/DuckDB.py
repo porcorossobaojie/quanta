@@ -19,6 +19,14 @@ config = settings('libs').db.DuckDB
 
 class main(meta, type('', (), config.recommand_settings)):
     @classmethod
+    def __setting__ (cls, **kwargs):
+        [setattr(cls, i, j) for i,j in kwargs.items()]
+
+    @classmethod
+    def __resetting__ (cls):
+        [setattr(cls, i, j) for i,j in  config.recommand_settings.items()]
+
+    @classmethod
     def __engine__(cls, **kwargs: Any) -> duckdb.DuckDBPyConnection:
         """
         =======================================================================

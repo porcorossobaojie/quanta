@@ -24,6 +24,11 @@ public_keys:
             aindex_code: aindex_code
             date_start: "2010-01-01"
             time_bias: "15 hours"
+    minfreq_settings:
+        key:
+            <<: *base_key
+            date_start: "2017-01-01"
+            database: "Locals_minfreq"
 
 tables:
     # =========================================================================
