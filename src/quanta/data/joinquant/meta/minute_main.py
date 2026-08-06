@@ -54,8 +54,8 @@ class main(type('recommand_settings', (), config.public_keys.minfreq_settings.ke
         _fund = jq.get_all_securities('fund', date=None)
         self._fund = _fund[_fund.iloc[:, -1] == 'etf'].index.tolist()
         self._index = jq.get_all_securities('index', date=None).index.tolist()
-        _trade_days = pd.to_datetime(jq.get_trade_days('2005-01-01')) + pd.Timedelta(config.tables.recommand_settings.time_bias)
-        self._trade_days = _trade_days[_trade_days <= pd.Timestamp.today() - pd.Timedelta(4, 'h')]
+        _trade_days = pd.to_datetime(jq.get_trade_days('2005-01-01'))
+        self._trade_days = _trade_days[_trade_days <= pd.Timestamp.today() - pd.Timedelta(19, 'h')]
 
     @property
     def portfolio_type(self) -> str:
@@ -237,15 +237,8 @@ class main(type('recommand_settings', (), config.public_keys.minfreq_settings.ke
         """
         # df columns renamed as create_table's columns
         df = self.__columns_rename__(df)
-        # add time bias on trade_dt or ann_dt
-        for i in [self.ann_dt, self.trade_dt]:
-            if i in df.columns:
-                df[i] = pd.to_datetime(df[i]) + pd.Timedelta(config.tables.recommand_settings.time_bias)
-            if (i not in df.columns) and i in self.columns.keys():
-                try:
-                    df[i] = pd.to_datetime(kwargs['start_date']) + pd.Timedelta(config.tables.recommand_settings.time_bias)
-                except KeyError:
-                    pass
+        df[self.trade_dt] = pd.to_datetime(df[self.trade_dt])
+
         # replace nan and standard codes
         df = df.replace({np.inf: np.nan, -np.inf: np.nan})
         if self.portfolio_type == 'astock':
