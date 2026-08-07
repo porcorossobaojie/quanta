@@ -27,55 +27,57 @@ class main():
         self.name = name
         self.baktable = baktable
         
+    @lru_cache(maxsize=1)       
+    def _internal_calendar_days(self, start, bias, daily_bias, name):
+        calendar_days = pd.date_range(
+            start = start,
+            freq = 'd',
+            end = pd.Timestamp.today() - pd.Timedelta(bias),
+            name = name)
+        if daily_bias is not None:
+            calendar_days = calendar_days + pd.Timedelta(daily_bias)
+        calendar_days = pd.Series(calendar_days, index = calendar_days)
+        return calendar_days
+        
     @property
     def calendar_days(self):
-        @lru_cache(maxsize=1)       
-        def _internal(start, bias, daily_bias, name):
-            calendar_days = pd.date_range(
-                start = start,
-                freq = 'd',
-                end = pd.Timestamp.today() - pd.Timedelta(bias),
-                name = name)
-            if daily_bias is not None:
-                calendar_days = calendar_days + pd.Timedelta(daily_bias)
-            calendar_days = pd.Series(calendar_days, index = calendar_days)
-            return calendar_days
-        x = _internal(self.start, self.bias, self.daily_bias, self.name)
+        x = self._internal_calendar_days(self.start, self.bias, self.daily_bias, self.name)
         return x
+    
+    @lru_cache(maxsize=1)
+    def _internal_trade_days(self, start, bias, daily_bias, name):
+        try:
+            trade_days = db().__read__(
+                table = self.baktable, 
+                columns = name).iloc[:, 0] - pd.Timedelta(daily_bias)
+            trade_days = pd.to_datetime(
+                sorted(
+                    trade_days[trade_days >= pd.to_datetime(start)].unique()
+                )
+            )
+        except Exception:
+            import jqdatasdk as jq
+            jq.auth(**login_info('account').joinquant)
+            trade_days = pd.to_datetime(
+                jq.get_trade_days(
+                    start,
+                    pd.Timestamp.today() - pd.Timedelta(bias)
+                )
+            )
+            trade_days.name = name
+        if daily_bias is not None:
+            trade_days = trade_days + pd.Timedelta(daily_bias)
+        trade_days =  pd.Series(trade_days, index = trade_days)
+        return trade_days
 
     @property
     def trade_days(self):
-        @lru_cache(maxsize=1)
-        def _internal(start, bias, daily_bias, name):
-            try:
-                trade_days = db().__read__(
-                    table = self.baktable, 
-                    columns = name).iloc[:, 0] - pd.Timedelta(daily_bias)
-                trade_days = pd.to_datetime(
-                    sorted(
-                        trade_days[trade_days >= pd.to_datetime(self.start)].unique()
-                    )
-                )
-            except Exception:
-                import jqdatasdk as jq
-                jq.auth(**login_info('account').joinquant)
-                trade_days = pd.to_datetime(
-                    jq.get_trade_days(
-                        start,
-                        pd.Timestamp.today() - pd.Timedelta(bias)
-                    )
-                )
-                trade_days.name = name
-            if daily_bias is not None:
-                trade_days = trade_days + pd.Timedelta(daily_bias)
-            trade_days =  pd.Series(trade_days, index = trade_days)
-            return trade_days
-        x = _internal(self.start, self.bias, self.daily_bias, self.name)
+        x = self._internal_trade_days(self.start, self.bias, self.daily_bias, self.name)
         return x            
 
-    @property
     def units(self, start=None, end=None, window=None, day_set='trade_days'):
-        if start == end == window:
+        parameter_bool = [i is None for i in [start, end, window]]
+        if all(parameter_bool) or not any(parameter_bool):
             raise ValueError("<start>, <end>, <window> must have 2 not None values and 1 None value")
         days = getattr(self, day_set)
         if start is not None:
