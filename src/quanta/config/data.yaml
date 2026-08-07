@@ -344,6 +344,50 @@ tables:
     # 按交易日期索引的表配置 (分钟级).
     # -------------------------------------------------------------------------
     minute_table:           
+        afundeodprices:
+            table: afundeodprices
+            periods: 1
+            columns_information:
+                time: {'trade_dt': ['datetime', '交易日']}
+                code: {'afund_code': ['VARCHAR(16)', '股票代码']}
+                open: {'open': ['double(12, 2)', '开盘价(元)']}
+                close: {'close': ['double(12, 2)', '收盘价(元)']}
+                low: {'low': ['double(12, 2)', '最低价(元)']}
+                high: {'high': ['double(12, 2)', '最高价(元)']}
+                volume: {'volume': ['bigint', '成交量(股)']}
+                money: {'amount': ['bigint', '成交量(元)']}
+                high_limit: {'high_limit': ['double(12, 2)', '涨停价(元)']}
+                low_limit: {'low_limit': ['double(12, 2)', '跌停价(元)']}
+                avg: {'avgprice': ['double(12, 2)', 'VWAP(元)']}
+                pre_close: {'preclose': ['double(12, 2)', '昨收盘价(元)']}
+                paused: {'tradestatus': ['int(1)', '交易状态']}
+                factor: {'post_factor': ['double(16, 6)', '后复权因子']}
+                open_adj: {'open_adj': ['double(18, 8)', '后复权开盘价(元)']}
+                avg_adj: {'avgprice_adj': ['double(18, 8)', '后复权VWAP(元)']}
+                close_adj: {'close_adj': ['double(18, 8)', '后复权收盘价(元)']}
+                pre_close_adj: {'preclose_adj': ['double(18, 8)', '后复权昨收盘价(元)']}
+                returns: {'ret': ['double(10, 8)', '涨跌幅']}
+            commands: >
+                pd.merge(
+                    jq.get_price(
+                        jq.get_all_securities('fund', date='{end_date}').query('type == "etf"').index.tolist(),
+                        fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close','paused'],
+                        start_date = '{start_date} : 00:00:00', 
+                        end_date = '{end_date} : 23:59:59', 
+                        fq = None,
+                        frequency = '1m',
+                        skip_paused = False),
+                    jq.get_price(
+                        jq.get_all_securities('fund', date='{end_date}').query('type == "etf"').index.tolist(),
+                        fields = ['factor', 'open', 'close', 'avg', 'pre_close'],
+                        start_date = '{start_date} : 00:00:00', 
+                        end_date = '{end_date} : 23:59:59', 
+                        fq = 'post',
+                        frequency = '1m',
+                        skip_paused = False),
+                    suffixes=('', '_adj'),
+                    on =['code', 'time'])
+
         aindexeodprices:
             table: aindexeodprices
             periods: 1
@@ -413,47 +457,3 @@ tables:
                         skip_paused = False),
                     suffixes=('', '_adj'),
                     on =['code', 'time'])                    
-
-        afundeodprices:
-            table: afundeodprices
-            periods: 1
-            columns_information:
-                time: {'trade_dt': ['datetime', '交易日']}
-                code: {'afund_code': ['VARCHAR(16)', '股票代码']}
-                open: {'open': ['double(12, 2)', '开盘价(元)']}
-                close: {'close': ['double(12, 2)', '收盘价(元)']}
-                low: {'low': ['double(12, 2)', '最低价(元)']}
-                high: {'high': ['double(12, 2)', '最高价(元)']}
-                volume: {'volume': ['bigint', '成交量(股)']}
-                money: {'amount': ['bigint', '成交量(元)']}
-                high_limit: {'high_limit': ['double(12, 2)', '涨停价(元)']}
-                low_limit: {'low_limit': ['double(12, 2)', '跌停价(元)']}
-                avg: {'avgprice': ['double(12, 2)', 'VWAP(元)']}
-                pre_close: {'preclose': ['double(12, 2)', '昨收盘价(元)']}
-                paused: {'tradestatus': ['int(1)', '交易状态']}
-                factor: {'post_factor': ['double(16, 6)', '后复权因子']}
-                open_adj: {'open_adj': ['double(18, 8)', '后复权开盘价(元)']}
-                avg_adj: {'avgprice_adj': ['double(18, 8)', '后复权VWAP(元)']}
-                close_adj: {'close_adj': ['double(18, 8)', '后复权收盘价(元)']}
-                pre_close_adj: {'preclose_adj': ['double(18, 8)', '后复权昨收盘价(元)']}
-                returns: {'ret': ['double(10, 8)', '涨跌幅']}
-            commands: >
-                pd.merge(
-                    jq.get_price(
-                        jq.get_all_securities('fund', date='{end_date}').query('type == "etf"').index.tolist(),
-                        fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close','paused'],
-                        start_date = '{start_date} : 00:00:00', 
-                        end_date = '{end_date} : 23:59:59', 
-                        fq = None,
-                        frequency = '1m',
-                        skip_paused = False),
-                    jq.get_price(
-                        jq.get_all_securities('fund', date='{end_date}').query('type == "etf"').index.tolist(),
-                        fields = ['factor', 'open', 'close', 'avg', 'pre_close'],
-                        start_date = '{start_date} : 00:00:00', 
-                        end_date = '{end_date} : 23:59:59', 
-                        fq = 'post',
-                        frequency = '1m',
-                        skip_paused = False),
-                    suffixes=('', '_adj'),
-                    on =['code', 'time'])

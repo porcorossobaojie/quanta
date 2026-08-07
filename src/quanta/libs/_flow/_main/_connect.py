@@ -775,10 +775,13 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
             obj = obj[obj.groupby(self.trade_dt).transform('count') >= min_periods]
         obj = obj[obj.index.get_level_values(0).isin(trade_days)].loc[self.start_date:]
         return obj
+    
+    
 calendar_days = pd.date_range(
     start=pd.to_datetime(main.date_start) + main.time_bias,
     freq='d',
     end=pd.Timestamp.today() - pd.Timedelta(4, 'h'))
+calendar_days = pd.Series(calendar_days, index = calendar_days)
 
 try:
     import jqdatasdk as jq

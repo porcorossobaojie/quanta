@@ -6,6 +6,7 @@ Created on Fri Feb 13 14:11:56 2026
 """
 
 from functools import lru_cache
+from cachetools import LRUCache
 from typing import Literal, Optional, Union, List, Dict, Any, Tuple
 import pandas as pd
 import numpy as np
@@ -15,6 +16,38 @@ from quanta.config import settings, login_info
 
 config = settings('data').public_keys
 columns_info = config.minfreq_settings.key
+
+calendar_days = pd.date_range(
+    start=pd.to_datetime(columns_info.date_start),
+    freq='d',
+    end=pd.Timestamp.today() - pd.Timedelta(19, 'h'),
+    name = columns_info.trade_dt)
+calendar_days = pd.Series(calendar_days, index = calendar_days)
+  
+try:
+    import jqdatasdk as jq
+    jq.auth(**login_info('account').joinquant)
+    trade_days = pd.to_datetime(
+        jq.get_trade_days(
+            columns_info.date_start,
+            pd.Timestamp.today() - pd.Timedelta(19, 'h')
+        )
+    )
+    trade_days.name = columns_info.trade_dt
+except Exception:
+    trade_days = db().__read__(
+        table = 'astockeodprices', 
+        columns = columns_info.trade_dt).iloc[:, 0] - pd.Timedelta((columns_info.time_bias))
+    trade_days = pd.to_datetime(
+        sorted(
+            trade_days[trade_days >= pd.to_datetime(columns_info.date_start)].unique()
+        )
+    )
+    trade_days.name = columns_info.trade_dt
+trade_days =  pd.Series(trade_days, index = trade_days)
+    
+
+
 
 
 class main(type('recommand_settings', (), config.minfreq_settings.key), db):
@@ -26,7 +59,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
     用于金融数据流的专用数据库连接类, 继承自基础数据库类和动态公共键.
     ---------------------------------------------------------------------------
     """
-    start_date = pd.to_datetime(config.minfreq_settings.key.date_start)
+    date_start = pd.to_datetime(config.minfreq_settings.key.date_start)
 
     @classmethod
     @lru_cache(maxsize=1)
@@ -49,6 +82,11 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         -----------------------------------------------------------------------
         """
         return cls.__schema_info__()
+    
+    @classmethod    
+    def __get_date_from_parameters__(cls, start=None, end=None, window=None):
+        pass
+        
 
     @property
     def columns(self) -> List[str]:
@@ -250,5 +288,21 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         df = df.set_index(self.index_keys).unstack()
         df.columns
         return df
+    
+    @property
+    def window(self):
+        return self._window
+    
+    @window.setter
+    def window(self, v):
+        self._window = v
+        self._internal_data = self._internal_data(v)
+        
+    @property
+    def internal_data(self):
+        if not hasattr(self, '_internal_data'):
+            self._internal_data = LRUCache(1)
+        return self._internal_data
+    
 
-    def __read_from_internal()
+    

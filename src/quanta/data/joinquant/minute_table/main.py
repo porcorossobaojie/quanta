@@ -124,7 +124,7 @@ class main(meta):
             periods = self.periods
             total = len(days)
 
-            while i < total and jq.get_query_count()['spare'] > 30000000:
+            while i < total and jq.get_query_count()['spare'] > 10000000:
                 start_date = days[i]
                 end_idx = min(i + periods - 1, total - 1)
                 end_date = days[end_idx]
