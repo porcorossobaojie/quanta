@@ -9,8 +9,9 @@ import pandas as pd
 import numpy as np
 from functools import lru_cache
 from typing import Optional, Union, List, Any
-from quanta.config import settings
-from quanta.libs.utils._decorator import doc_inherit
+from ....config import settings
+from ....libs.utils._decorator import doc_inherit
+
 from .core import *
 from .._cap.core import *
 

@@ -9,7 +9,7 @@ from box import Box
 import pandas as pd
 from functools import lru_cache
 from typing import Optional, Union, Dict, Any
-from quanta.libs._flow._cap.base import Series, DataFrame
+from .base import Series, DataFrame
 
 __all__ = ['Series', 'DataFrame', 'Unit', 'Chain']
 

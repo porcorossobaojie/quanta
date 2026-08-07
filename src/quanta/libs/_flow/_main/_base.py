@@ -10,9 +10,8 @@ from functools import reduce
 from functools import lru_cache
 from typing import Optional, Union, List, Dict, Any
 
-from quanta.libs._flow._main._connect import main as meta_table, trade_days, calendar_days
-#from ._connect import main as meta_table, trade_days, calendar_days
-from quanta.config import settings
+from ._connect import main as meta_table
+from ....config import settings
 
 table_info = settings('data').public_keys.recommand_settings
 config = settings('flow')
@@ -409,7 +408,7 @@ class main():
                 .set_index(config.listing.astock_delisting_date, append=True)[config.listing.astock_listing_date]).unstack(0)
             df = df.reindex(pd.date_range(df.index.min(), df.index.max(), freq='d')).bfill().dropna(how='all', axis=1)
             df.index = df.index + pd.Timedelta(meta_table.time_bias)
-            df = df.reindex(trade_days)
+            df = df.reindex(meta_table.calendar.trade_days)
             x = df[df.sub(df.index, axis=0).astype('int64') <= 0].notnull().cumsum()
             setattr(self, '_internal_listing_result', x)
         x = getattr(self, '_internal_listing_result')
@@ -541,7 +540,7 @@ class main():
         df = df.replace(status)
         df = df[df.isin(status.values())]
         df = df.loc[~df.index.duplicated(keep='last')].unstack(table_obj.code).sort_index(axis=1).sort_index()
-        df = df.ffill().reindex(calendar_days).ffill().reindex(trade_days).loc[meta_table.start_date:]
+        df = df.ffill().reindex(meta_table.calendar.calendar_days).ffill().reindex(meta_table.calendar.trade_days).loc[meta_table.start_date:]
         df = df < value
         return df
 
@@ -580,7 +579,7 @@ class main():
         df = df.set_index(config.listing.afund_delisting_date, append=True).unstack(0)
         df = df.reindex(pd.date_range(df.index.min(), df.index.max(), freq='d')).bfill().dropna(how='all', axis=1)
         df.index = df.index + pd.Timedelta(meta_table.time_bias)
-        df = df.reindex(trade_days)
+        df = df.reindex(meta_table.calendar.trade_days)
         be_list = df[config.listing.afund_listing_date].loc[meta_table.start_date:]
         be_list = be_list[be_list.sub(be_list.index, axis=0).astype('int64') <= 0].notnull().cumsum().sort_index(axis=1)
         traced_index = df[column].loc[meta_table.start_date:][be_list > 0].sort_index(axis=1)

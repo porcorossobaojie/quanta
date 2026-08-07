@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from typing import Union, Optional
 from .core import _rolls as rolls
-from quanta.libs.utils._decorator import doc_inherit
+from ....libs.utils._decorator import doc_inherit
 
 MODULE_DIR = __name__.split('.')[-2]
 

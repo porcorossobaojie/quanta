@@ -10,9 +10,9 @@ from typing import Literal, Optional, Union, List, Dict, Any, Tuple
 import pandas as pd
 import duckdb
 
-from quanta.config import settings
+from ....config import settings
 from .meta import main as meta
-from quanta.libs.db._data_type_standard import data_trans
+from ...db._data_type_standard import data_trans
 
 config = settings('libs').db.DuckDB
 

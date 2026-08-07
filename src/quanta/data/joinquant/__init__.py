@@ -10,7 +10,7 @@ def daily():
     id_daily()
     dt_daily()
 
-def minute_daily():
+def minute():
     import jqdatasdk as jq
     from quanta.config import login_info
     jq.auth(**login_info('account').joinquant)

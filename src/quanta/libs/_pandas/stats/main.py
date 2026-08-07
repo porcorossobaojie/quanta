@@ -10,8 +10,7 @@ import numpy as np
 import pandas as pd
 from typing import Optional, Union, Tuple, List, Dict, Any, Callable
 from .core import *
-from quanta.libs.utils._decorator import doc_inherit
-
+from ...utils._decorator import doc_inherit
 MODULE_DIR = __name__.split('.')[-2]
 
 

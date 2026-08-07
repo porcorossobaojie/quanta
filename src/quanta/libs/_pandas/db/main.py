@@ -8,7 +8,7 @@ Created on Wed Feb  4 21:30:52 2026
 import numpy as np
 import pandas as pd
 from typing import Literal, Any
-from quanta.libs.db.main import main as db
+from ...db.main import main as db
 
 MODULE_DIR = __name__.split('.')[-2]
 # Registering the db main instance directly to pandas for generic access

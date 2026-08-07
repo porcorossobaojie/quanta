@@ -13,9 +13,9 @@ from sqlalchemy import create_engine
 import pymysql
 from numpy import isreal
 
-from quanta.config import settings
-from quanta.libs.db._engines.meta import main as meta
-from quanta.libs.db._data_type_standard import data_trans
+from ....config import settings
+from .._engines.meta import main as meta
+from .._data_type_standard import data_trans
 
 config = settings('libs').db.MySQL
 

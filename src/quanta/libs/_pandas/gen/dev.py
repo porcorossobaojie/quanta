@@ -10,7 +10,7 @@ from numba import njit, prange
 from itertools import product
 from typing import Optional, Dict, List, Union
 
-from quanta.libs._pandas.tools.core import fillna as fillna_func
+from ..tools.core import fillna as fillna_func
 
 
 @njit(parallel=True, cache=True, nopython=True)

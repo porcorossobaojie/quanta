@@ -10,10 +10,10 @@ from typing import Optional, Union, List
 import numpy as np
 import pandas as pd
 
-from quanta import flow
-from quanta.libs.utils._decorator import doc_inherit
-from quanta.faclib.barra._base import main as meta
-#from._base import main as meta
+from ...libs import _flow as flow
+from ...libs.utils._decorator import doc_inherit
+
+from._base import main as meta
 
 class main():
     """
@@ -203,6 +203,3 @@ class main():
         factors = {i:getattr(cls,i)() for i in factors_name}
         x = df.stats.neutral(**factors, l2=1e-7).resid
         return x
-
-
-

@@ -1,8 +1,8 @@
-from .joinquant import daily as _jq_daily, minute_daily as _minute_daily
+from .joinquant import daily as _jq_daily, minute as _jq_minute
 
 def daily():
     _jq_daily()
     
 def minute():
-    _minute_daily()
+    _jq_minute()
     

@@ -9,8 +9,8 @@ from typing import Optional, Union, List, Any, Type
 import numpy as np
 import pandas as pd
 
-from quanta.libs._flow._main import __instance__
-from quanta.config import settings
+from .._main import __instance__
+from ....config import settings
 config = settings('flow').cap
 
 __all__ = ['Series', 'DataFrame']

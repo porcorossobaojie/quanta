@@ -10,8 +10,16 @@ from typing import Literal, Optional, Union, List, Dict, Any, Tuple
 import pandas as pd
 import numpy as np
 
+from ...db.main import main as db
+from ....config import settings, login_info
+from ...utils import calendar as cal
+
+"""
 from quanta.libs.db.main import main as db
 from quanta.config import settings, login_info
+from quanta.libs.utils import calendar as cal
+"""
+
 
 config = settings('data').public_keys
 columns_info = config.recommand_settings.key
@@ -28,7 +36,13 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
     """
     time_bias = pd.Timedelta(config.recommand_settings.time_bias)
     start_date = pd.to_datetime(settings('flow').start_date) + pd.Timedelta(config.recommand_settings.time_bias)
-
+    calendar = cal(
+        start = pd.to_datetime(settings('flow').start_date), 
+        daily_bias = config.recommand_settings.time_bias,
+        name = columns_info.trade_dt,
+        baktable = 'aindexeodprices'
+    )
+    
     @classmethod
     @lru_cache(maxsize=1)
     def table_info(cls) -> pd.DataFrame:
@@ -626,7 +640,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
             完全处理后的财务 DataFrame.
         -----------------------------------------------------------------------
         """
-        day_index = calendar_days if day_index is None else day_index
+        day_index = self.calendar.calendar_days if day_index is None else day_index
         df = self.__read_from_internal__(column) if isinstance(column, str) else column
         if drop_zero:
             df = df[df != 0]
@@ -665,7 +679,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
         obj = obj.sort_index().sort_index(axis=1)
         if min_periods is not None:
             obj = obj[obj.groupby(self.trade_dt).transform('count') >= min_periods]
-        obj = obj[obj.index.get_level_values(0).isin(trade_days)].loc[self.start_date:]
+        obj = obj[obj.index.get_level_values(0).isin(self.calendar.trade_days)].loc[self.start_date:]
         return obj
 
     def _finance(
@@ -735,7 +749,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
             完全处理后的财务 DataFrame.
         -----------------------------------------------------------------------
         """
-        day_index = calendar_days if day_index is None else day_index
+        day_index = self.calendar.calendar_days if day_index is None else day_index
         if drop_zero:
             df = df[df != 0]
         x = self.__finance_periods_merge__(df, periods, quarter_adj, quarter_diff)
@@ -773,30 +787,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
         obj = obj.sort_index().sort_index(axis=1)
         if min_periods is not None:
             obj = obj[obj.groupby(self.trade_dt).transform('count') >= min_periods]
-        obj = obj[obj.index.get_level_values(0).isin(trade_days)].loc[self.start_date:]
+        obj = obj[obj.index.get_level_values(0).isin(self.calendar.trade_days)].loc[self.start_date:]
         return obj
     
     
-calendar_days = pd.date_range(
-    start=pd.to_datetime(main.date_start) + main.time_bias,
-    freq='d',
-    end=pd.Timestamp.today() - pd.Timedelta(4, 'h'))
-calendar_days = pd.Series(calendar_days, index = calendar_days)
-
-try:
-    import jqdatasdk as jq
-    jq.auth(**login_info('account').joinquant)
-    trade_days = pd.to_datetime(
-        jq.get_trade_days(
-            main.date_start,
-            pd.Timestamp.today() - pd.Timedelta(4, 'h') - main.time_bias
-        )
-    ) + main.time_bias
-    trade_days.name = columns_info.trade_dt
-except Exception:
-    trade_days = pd.to_datetime(
-        sorted(
-            main(table='astockeodprices').__read__(columns=main.trade_dt).iloc[:, 0].unique()
-        )
-    )
-    trade_days.name = columns_info.trade_dt

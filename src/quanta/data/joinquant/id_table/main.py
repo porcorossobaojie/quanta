@@ -8,8 +8,8 @@ Created on Fri Feb  6 11:11:28 2026
 from typing import Any, Literal, Optional, Dict
 import pandas as pd
 
-from quanta.data.joinquant.meta.main import main as meta
-from quanta.config import settings
+from ..meta.main import main as meta
+from ....config import settings
 
 config = settings('data')
 

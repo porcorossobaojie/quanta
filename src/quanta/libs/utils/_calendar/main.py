@@ -7,39 +7,56 @@ Created on Fri Aug  7 12:29:07 2026
 from functools import lru_cache
 
 import pandas as pd
-from quanta.config import settings, login_info
-from quanta.libs.db.main import main as db
+from ....config import settings, login_info
+from ...db.main import main as db
 
-config = settings('data').public_keys.recommand_settings.key
 
 class main():
       
-    def __init__(self, start, bias='19 hours', daily_bias=True, trade_days_baktable = 'astockeodprices'):
+    def __init__(
+        self, 
+        start, 
+        bias = '19 hours', 
+        daily_bias = '15 hours', 
+        name = 'trade_dt', 
+        baktable = 'astockeodprices'
+    ):
         self.start = pd.to_datetime(start)
         self.bias = bias
         self.daily_bias = daily_bias
-        self.baktable = trade_days_baktable
+        self.name = name
+        self.baktable = baktable
         
     @property
     def calendar_days(self):
         @lru_cache(maxsize=1)       
-        def _internal(start, bias, daily_bias):
+        def _internal(start, bias, daily_bias, name):
             calendar_days = pd.date_range(
                 start = start,
                 freq = 'd',
                 end = pd.Timestamp.today() - pd.Timedelta(bias),
-                name = config.trade_dt)
-            if daily_bias:
-                calendar_days = calendar_days + pd.Timedelta(config.time_bias)
+                name = name)
+            if daily_bias is not None:
+                calendar_days = calendar_days + pd.Timedelta(daily_bias)
             calendar_days = pd.Series(calendar_days, index = calendar_days)
-        x = _internal(self.start, self.bias, self.daily_bias)
+            return calendar_days
+        x = _internal(self.start, self.bias, self.daily_bias, self.name)
         return x
 
     @property
     def trade_days(self):
         @lru_cache(maxsize=1)
-        def _internal(start, bias, daily_bias):
+        def _internal(start, bias, daily_bias, name):
             try:
+                trade_days = db().__read__(
+                    table = self.baktable, 
+                    columns = name).iloc[:, 0] - pd.Timedelta(daily_bias)
+                trade_days = pd.to_datetime(
+                    sorted(
+                        trade_days[trade_days >= pd.to_datetime(self.start)].unique()
+                    )
+                )
+            except Exception:
                 import jqdatasdk as jq
                 jq.auth(**login_info('account').joinquant)
                 trade_days = pd.to_datetime(
@@ -48,21 +65,12 @@ class main():
                         pd.Timestamp.today() - pd.Timedelta(bias)
                     )
                 )
-                trade_days.name = config.trade_dt
-            except Exception:
-                trade_days = db().__read__(
-                    table = self.baktable, 
-                    columns = config.trade_dt).iloc[:, 0] - pd.Timedelta((config.time_bias))
-                trade_days = pd.to_datetime(
-                    sorted(
-                        trade_days[trade_days >= pd.to_datetime(self.start)].unique()
-                    )
-                )
-            if self.daily_bias:
-                trade_days = trade_days + pd.Timedelta(config.time_bias)
+                trade_days.name = name
+            if daily_bias is not None:
+                trade_days = trade_days + pd.Timedelta(daily_bias)
             trade_days =  pd.Series(trade_days, index = trade_days)
             return trade_days
-        x = _internal(self.start, self.bias, self.daily_bias)
+        x = _internal(self.start, self.bias, self.daily_bias, self.name)
         return x            
 
     @property

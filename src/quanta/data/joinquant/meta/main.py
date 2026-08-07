@@ -9,10 +9,9 @@ from typing import Any, Dict, List, Union, Optional
 import numpy as np
 import pandas as pd
 import jqdatasdk as jq
-
-from quanta.libs.utils import merge_dicts
-from quanta.config import settings, login_info
-from quanta.libs.db.main import main as db
+from ....libs.utils import merge_dicts
+from ....libs.db.main import main as db
+from ....config import settings, login_info
 
 config = settings('data')
 

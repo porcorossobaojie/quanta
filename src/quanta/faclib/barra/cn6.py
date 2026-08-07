@@ -10,9 +10,9 @@ from typing import Optional, Union, List
 import numpy as np
 import pandas as pd
 
-from quanta import flow
-from quanta.libs.utils import dict_to_dataclass, doc_inherit, filter_class_attrs
-from quanta.faclib.barra._base import main as meta
+from ...libs import _flow as flow
+from ...libs.utils import dict_to_dataclass, doc_inherit, filter_class_attrs
+from ..barra._base import main as meta
 
 class main():
     """
@@ -378,19 +378,3 @@ class main():
         df = {i:j() for i,j in x.items() if i != '_group'}
         df = pd.f.merge(*df.values())
         return df
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

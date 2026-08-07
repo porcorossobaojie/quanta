@@ -8,8 +8,8 @@ Created on Fri Mar 13 13:32:16 2026
 import pandas as pd
 from typing import Optional, Union
 from functools import lru_cache
-from quanta import flow
-from quanta.config import settings
+from ...libs import _flow as flow
+from ...config import settings
 
 
 class main():

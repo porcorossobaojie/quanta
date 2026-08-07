@@ -13,42 +13,12 @@ import numpy as np
 
 from quanta.libs.db.main import main as db
 from quanta.config import settings, login_info
-
+from quanta.libs.utils import calendar as cal
+"""
+from ...utils import calendar as cal
+"""
 config = settings('data').public_keys
 columns_info = config.minfreq_settings.key
-
-calendar_days = pd.date_range(
-    start=pd.to_datetime(columns_info.date_start),
-    freq='d',
-    end=pd.Timestamp.today() - pd.Timedelta(19, 'h'),
-    name = columns_info.trade_dt)
-calendar_days = pd.Series(calendar_days, index = calendar_days)
-  
-try:
-    import jqdatasdk as jq
-    jq.auth(**login_info('account').joinquant)
-    trade_days = pd.to_datetime(
-        jq.get_trade_days(
-            columns_info.date_start,
-            pd.Timestamp.today() - pd.Timedelta(19, 'h')
-        )
-    )
-    trade_days.name = columns_info.trade_dt
-except Exception:
-    trade_days = db().__read__(
-        table = 'astockeodprices', 
-        columns = columns_info.trade_dt).iloc[:, 0] - pd.Timedelta((columns_info.time_bias))
-    trade_days = pd.to_datetime(
-        sorted(
-            trade_days[trade_days >= pd.to_datetime(columns_info.date_start)].unique()
-        )
-    )
-    trade_days.name = columns_info.trade_dt
-trade_days =  pd.Series(trade_days, index = trade_days)
-    
-
-
-
 
 class main(type('recommand_settings', (), config.minfreq_settings.key), db):
     """
@@ -60,6 +30,12 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
     ---------------------------------------------------------------------------
     """
     date_start = pd.to_datetime(config.minfreq_settings.key.date_start)
+    calendar = cal(
+        start = pd.to_datetime(config.minfreq_settings.key.date_start), 
+        daily_bias = None,
+        name = columns_info.trade_dt,
+        baktable = 'aindexeodprices'
+    )
 
     @classmethod
     @lru_cache(maxsize=1)

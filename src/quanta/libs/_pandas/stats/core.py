@@ -14,10 +14,10 @@ from functools import partial
 import statsmodels.api as sm
 from typing import Optional, Union, Tuple, List, Dict, Any, Callable
 
-from quanta.libs.utils import dict_to_dataclass
 import numba
 from numba import njit, prange
 from numpy.lib.stride_tricks import sliding_window_view
+from ....libs.utils import dict_to_dataclass
 
 __all__ = ['z', 'standard', 'OLS', 'const', 'neutral', 'expose']
 

@@ -1,8 +1,11 @@
-from quanta.config import settings as _settings
+from ....config import settings as _settings
 _portfolio_types = _settings('data').public_keys.recommand_settings.portfolio_types
 
 from ._base import main as _meta
-from ._connect import calendar_days, trade_days
+from ._connect import main as _calendar
+
+calendar_days = _calendar.calendar.calendar_days
+trade_days = _calendar.calendar.trade_days
 trade_keys = _settings('flow').trade_keys
 finance_keys = _settings('factors').finance_keys
 

@@ -9,10 +9,9 @@ import numexpr as ne
 import numpy as np
 import pandas as pd
 
-from quanta import flow
-from quanta.faclib._base.main import main as meta
-
-from quanta.config import settings
+from ...libs import _flow as flow
+from ._base.main import main as meta
+from ...config import settings
 
 class main(meta):
     """Base class for Barra factor calculations. | Barra因子计算基类."""
