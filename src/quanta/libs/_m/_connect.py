@@ -10,13 +10,17 @@ from cachetools import LRUCache
 from typing import Literal, Optional, Union, List, Dict, Any, Tuple
 import pandas as pd
 import numpy as np
-
+"""
 from quanta.libs.db.main import main as db
-from quanta.config import settings, login_info
+from quanta.config import settings
 from quanta.libs.utils import calendar as cal
 """
-from ...utils import calendar as cal
-"""
+
+from ..db.main import main as db
+from ...config import settings
+from ...libs.utils import calendar as cal
+
+
 config = settings('data').public_keys
 columns_info = config.minfreq_settings.key
 
@@ -31,7 +35,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
     """
     date_start = pd.to_datetime(config.minfreq_settings.key.date_start)
     calendar = cal(
-        start = pd.to_datetime(config.minfreq_settings.key.date_start), 
+        start = config.minfreq_settings.key.date_start,
         daily_bias = None,
         name = columns_info.trade_dt,
         baktable = 'aindexeodprices'
@@ -58,11 +62,6 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         -----------------------------------------------------------------------
         """
         return cls.__schema_info__()
-    
-    @classmethod    
-    def __get_date_from_parameters__(cls, start=None, end=None, window=None):
-        pass
-        
 
     @property
     def columns(self) -> List[str]:
@@ -223,7 +222,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
 
     def __read_from_db__(
         self,
-        date, 
+        date,
         **kwargs: Any
     ) -> Optional[Union[pd.Series, pd.DataFrame, Dict[str, pd.DataFrame]]]:
         """
@@ -258,27 +257,46 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
             如果 returns 为 True, 则返回缓存的数据.
         -----------------------------------------------------------------------
         """
-        df = self.__read__(where=f"{self.trade_dt} >= {date} and {self.trade_dt} < {pd.to_datetime(date) + pd.Timedelta(1, 'd')}", show_time=True)
+        df = self.__read__(where=f"{self.trade_dt} >= '{pd.to_datetime(date)}' and {self.trade_dt} < '{pd.to_datetime(date) + pd.Timedelta(1, 'd')}'", show_time=True)
         df.columns = pd.CategoricalIndex(df.columns)
         df[self.code] = pd.CategoricalIndex(df[self.code])
         df = df.set_index(self.index_keys).unstack()
         df.columns
         return df
-    
+
     @property
     def window(self):
+        if not hasattr(self, '_window'):
+            self._window = 1
         return self._window
-    
+
     @window.setter
     def window(self, v):
-        self._window = v
-        self._internal_data = self._internal_data(v)
-        
+        if v != self.window:
+            self._window = v
+            x = self.internal_data
+            self._internal_data = LRUCache(v)
+            self._internal_data.update(x)
+
     @property
     def internal_data(self):
         if not hasattr(self, '_internal_data'):
             self._internal_data = LRUCache(1)
         return self._internal_data
-    
 
-    
+    def __read_from_internal__(self, dates):
+        dic = {}
+        for i in dates:
+            j = self.internal_data.get(i)
+            if j is None:
+                j = self.__read_from_db__(i)
+            dic[i] = j
+        self._internal_data.update(dic)
+        return dic
+
+    def __call__(self, start=None, end=None, window=1):
+        dates = self.calendar.units(start, end, window)
+        x = self.__read_from_internal__(dates)
+        x = pd.concat(x.values())
+        self.window = window
+        return x

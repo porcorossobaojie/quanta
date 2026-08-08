@@ -10,8 +10,7 @@ import numpy as np
 import pandas as pd
 
 from ...libs import _flow as flow
-from ._base.main import main as meta
-from ...config import settings
+from .._base.main import main as meta
 
 class main(meta):
     """Base class for Barra factor calculations. | Barra因子计算基类."""
@@ -705,7 +704,7 @@ class main(meta):
             np.arange(periods).repeat(df.shape[0]).reshape(periods, -1).T,
             columns = np.arange(periods) - periods + 1,
             index = df.index)
-        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False) 
+        x = df.stats.neutral(fac=trend, dtype='float32', periods=periods, resid=False)
         x = x.params.fac.iloc[:, -1].unstack(cls.trade.astock_code)
         return x
 

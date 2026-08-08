@@ -10,15 +10,14 @@ import pandas as pd
 from ....config import settings, login_info
 from ...db.main import main as db
 
-
 class main():
-      
+
     def __init__(
-        self, 
-        start, 
-        bias = '19 hours', 
-        daily_bias = '15 hours', 
-        name = 'trade_dt', 
+        self,
+        start,
+        bias = '19 hours',
+        daily_bias = '15 hours',
+        name = 'trade_dt',
         baktable = 'astockeodprices'
     ):
         self.start = pd.to_datetime(start)
@@ -26,8 +25,8 @@ class main():
         self.daily_bias = daily_bias
         self.name = name
         self.baktable = baktable
-        
-    @lru_cache(maxsize=1)       
+
+    @lru_cache(maxsize=1)
     def _internal_calendar_days(self, start, bias, daily_bias, name):
         calendar_days = pd.date_range(
             start = start,
@@ -38,18 +37,18 @@ class main():
             calendar_days = calendar_days + pd.Timedelta(daily_bias)
         calendar_days = pd.Series(calendar_days, index = calendar_days)
         return calendar_days
-        
+
     @property
     def calendar_days(self):
         x = self._internal_calendar_days(self.start, self.bias, self.daily_bias, self.name)
         return x
-    
+
     @lru_cache(maxsize=1)
     def _internal_trade_days(self, start, bias, daily_bias, name):
         try:
             trade_days = db().__read__(
-                table = self.baktable, 
-                columns = name).iloc[:, 0] - pd.Timedelta(daily_bias)
+                table = self.baktable,
+                columns = name).iloc[:, 0] - pd.Timedelta(settings('data').public_keys.recommand_settings.time_bias)
             trade_days = pd.to_datetime(
                 sorted(
                     trade_days[trade_days >= pd.to_datetime(start)].unique()
@@ -73,7 +72,7 @@ class main():
     @property
     def trade_days(self):
         x = self._internal_trade_days(self.start, self.bias, self.daily_bias, self.name)
-        return x            
+        return x
 
     def units(self, start=None, end=None, window=None, day_set='trade_days'):
         parameter_bool = [i is None for i in [start, end, window]]
@@ -89,7 +88,3 @@ class main():
             if window is not None:
                 days = days.iloc[-window:]
         return days
-    
-    
-        
-        
