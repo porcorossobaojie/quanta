@@ -16,9 +16,9 @@ from quanta.config import settings
 from quanta.libs.utils import calendar as cal
 """
 
-from ..db.main import main as db
-from ...config import settings
-from ...libs.utils import calendar as cal
+from ...db.main import main as db
+from ....config import settings
+from ....libs.utils import calendar as cal
 
 
 config = settings('data').public_keys

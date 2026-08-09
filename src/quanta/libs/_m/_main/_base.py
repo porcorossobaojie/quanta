@@ -10,7 +10,7 @@ from functools import lru_cache
 from typing import Optional, Union, List, Dict, Any
 
 from ._connect import main as meta_table
-from ...config import settings
+from ....config import settings
 """
 from quanta.libs._m._connect import main as meta_table
 from quanta.config import settings
