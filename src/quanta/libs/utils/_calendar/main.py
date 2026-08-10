@@ -46,15 +46,6 @@ class main():
     @lru_cache(maxsize=1)
     def _internal_trade_days(self, start, bias, daily_bias, name):
         try:
-            trade_days = db().__read__(
-                table = self.baktable,
-                columns = name).iloc[:, 0] - pd.Timedelta(settings('data').public_keys.recommand_settings.time_bias)
-            trade_days = pd.to_datetime(
-                sorted(
-                    trade_days[trade_days >= pd.to_datetime(start)].unique()
-                )
-            )
-        except Exception:
             import jqdatasdk as jq
             jq.auth(**login_info('account').joinquant)
             trade_days = pd.to_datetime(
@@ -64,6 +55,16 @@ class main():
                 )
             )
             trade_days.name = name
+
+        except Exception:
+            trade_days = db().__read__(
+                table = self.baktable,
+                columns = name).iloc[:, 0] - pd.Timedelta(settings('data').public_keys.recommand_settings.time_bias)
+            trade_days = pd.to_datetime(
+                sorted(
+                    trade_days[trade_days >= pd.to_datetime(start)].unique()
+                )
+            )
         if daily_bias is not None:
             trade_days = trade_days + pd.Timedelta(daily_bias)
         trade_days =  pd.Series(trade_days, index = trade_days)
