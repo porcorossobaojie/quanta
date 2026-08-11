@@ -222,7 +222,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
 
     def __read_from_db__(
         self,
-        date,
+        date: Union[str, pd.Timestamp],
         **kwargs: Any
     ) -> Optional[Union[pd.Series, pd.DataFrame, Dict[str, pd.DataFrame]]]:
         """
@@ -232,29 +232,29 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
 
         Parameters
         ----------
-        returns : bool
-            Whether to return the loaded data immediately. Default is False.
+        date : Union[str, pd.Timestamp]
+            The trading date to load.
         **kwargs : Any
             Additional arguments for the database read method.
 
         Returns
         -------
         Optional[Union[pd.Series, pd.DataFrame, Dict[str, pd.DataFrame]]]
-            The cached data if returns is True.
+            The reshaped data for the requested date.
         -----------------------------------------------------------------------
         从数据库加载数据到内部缓存, 并在必要时对其进行重塑.
 
         参数
         ----
-        returns : bool
-            是否立即返回加载的数据. 默认为 False.
+        date : Union[str, pd.Timestamp]
+            要加载的交易日.
         **kwargs : Any
             数据库读取方法的附加参数.
 
         返回
         ----
         Optional[Union[pd.Series, pd.DataFrame, Dict[str, pd.DataFrame]]]
-            如果 returns 为 True, 则返回缓存的数据.
+            所请求日期的重塑后数据.
         -----------------------------------------------------------------------
         """
         df = self.__read__(where=f"{self.trade_dt} >= '{pd.to_datetime(date)}' and {self.trade_dt} < '{pd.to_datetime(date) + pd.Timedelta(1, 'd')}'", show_time=True)
@@ -265,13 +265,15 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         return df
 
     @property
-    def window(self):
+    def window(self) -> int:
+        """Returns the current rolling window size | 返回当前滚动窗口大小"""
         if not hasattr(self, '_window'):
             self._window = 1
         return self._window
 
     @window.setter
-    def window(self, v):
+    def window(self, v: int) -> None:
+        """Sets the window size and resizes the internal cache | 设置窗口大小并调整内部缓存"""
         if v != self.window:
             self._window = v
             x = self.internal_data
@@ -279,12 +281,17 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
             self._internal_data.update(x)
 
     @property
-    def internal_data(self):
+    def internal_data(self) -> LRUCache:
+        """Returns the internal LRU data cache | 返回内部 LRU 数据缓存"""
         if not hasattr(self, '_internal_data'):
             self._internal_data = LRUCache(1)
         return self._internal_data
 
-    def __read_from_internal__(self, dates):
+    def __read_from_internal__(
+        self,
+        dates: pd.Series
+    ) -> Dict[pd.Timestamp, pd.DataFrame]:
+        """Reads data for multiple dates, falling back to the database | 读取多日数据, 缺失时回退到数据库"""
         dic = {}
         for i in dates:
             j = self.internal_data.get(i)
@@ -294,7 +301,47 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         self._internal_data.update(dic)
         return dic
 
-    def __call__(self, start=None, end=None, window=1):
+    def __call__(
+        self,
+        start: Optional[Union[str, pd.Timestamp]] = None,
+        end: Optional[Union[str, pd.Timestamp]] = None,
+        window: int = 1
+    ) -> pd.DataFrame:
+        """
+        =======================================================================
+        Reads and concatenates data for the requested day range.
+
+        Parameters
+        ----------
+        start : Optional[Union[str, pd.Timestamp]]
+            The start bound. Default is None.
+        end : Optional[Union[str, pd.Timestamp]]
+            The end bound. Default is None.
+        window : int
+            The number of days to read. Default is 1.
+
+        Returns
+        -------
+        pd.DataFrame
+            The concatenated data.
+        -----------------------------------------------------------------------
+        读取并拼接所请求日期范围内的数据.
+
+        参数
+        ----
+        start : Optional[Union[str, pd.Timestamp]]
+            起始边界. 默认为 None.
+        end : Optional[Union[str, pd.Timestamp]]
+            结束边界. 默认为 None.
+        window : int
+            读取的天数. 默认为 1.
+
+        返回
+        ----
+        pd.DataFrame
+            拼接后的数据.
+        -----------------------------------------------------------------------
+        """
         dates = self.calendar.units(start, end, window)
         x = self.__read_from_internal__(dates)
         x = pd.concat(x.values())

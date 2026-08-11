@@ -25,7 +25,8 @@ class main():
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, pandas_obj: pd.DataFrame):
+    def __init__(self, pandas_obj: pd.DataFrame) -> None:
+        """Initializes the DataFrame accessor | 初始化 DataFrame 访问器"""
         self._obj = pandas_obj
 
     @doc_inherit(group)
@@ -70,7 +71,12 @@ class main():
         return cut(self._obj, left, right, rng_left, rng_right, pct, ascending)
     
     @doc_inherit(d_cut)
-    def d_cut(self, count, max_count, delay=1):
+    def d_cut(
+        self,
+        count: Union[int, List[int]],
+        max_count: Union[int, List[int]],
+        delay: int = 1
+    ) -> pd.DataFrame:
         return d_cut(self._obj, count, max_count, delay)
 
     @doc_inherit(roll_weight)
@@ -83,7 +89,16 @@ class main():
 
 @pd.api.extensions.register_series_accessor(MODULE_DIR)
 class main():
-    def __init__(self, pandas_obj: pd.DataFrame):
+    """
+    ===========================================================================
+    Pandas Series accessor for generation and grouping operations.
+    ---------------------------------------------------------------------------
+    用于生成和分组操作的 Pandas Series 访问器.
+    ---------------------------------------------------------------------------
+    """
+
+    def __init__(self, pandas_obj: pd.Series) -> None:
+        """Initializes the Series accessor | 初始化 Series 访问器"""
         self._obj = pandas_obj
     @doc_inherit(roll_weight)
     def roll_weight(

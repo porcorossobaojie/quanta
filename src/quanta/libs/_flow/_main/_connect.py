@@ -556,7 +556,11 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
             df['tmp'] = df.groupby(['tmp_year', self.code])[0].diff(diff).fillna(df[0])
             df = df[[self.ann_dt, self.report_period, self.code, 'tmp']].rename({'tmp': 0}, axis=1)
 
-        def next_period(sub_df, shift_val):
+        def next_period(
+            sub_df: pd.DataFrame,
+            shift_val: int
+        ) -> pd.DataFrame:
+            """Shifts the report period by a quarter and reindexes | 将报告期平移一个季度并重建索引"""
             ne = sub_df.copy()
             ne.columns = ne.columns[:-1].to_list() + [shift_val * -1]
             ne[self.report_period] = pd.DatetimeIndex(ne[self.report_period]).shift(shift_val, freq='QE')

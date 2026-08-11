@@ -20,7 +20,34 @@ config = settings('flow')
 
 
 @lru_cache(maxsize=4)
-def industry(code):
+def industry(code: str) -> Dict[str, pd.DataFrame]:
+    """
+    ===========================================================================
+    Retrieves industry classification boolean masks for all industry codes.
+
+    Parameters
+    ----------
+    code : str
+        The industry label column key (e.g., 'swl1_code').
+
+    Returns
+    -------
+    Dict[str, pd.DataFrame]
+        Boolean masks per industry, True indicating membership.
+    ---------------------------------------------------------------------------
+    获取所有行业分类的布尔掩码.
+
+    参数
+    ----
+    code : str
+        行业标签列键 (例如 'swl1_code').
+
+    返回
+    ----
+    Dict[str, pd.DataFrame]
+        每个行业的布尔掩码, True 表示属于该行业.
+    ---------------------------------------------------------------------------
+    """
     x = __instance__['astock'].multilize(code)
     stock_list = x.columns.get_level_values(__instance__['trade_keys'].astock_code).unique().sort_values()
     dic = {i: x[i].reindex(stock_list, axis=1).fillna(False) for i in x.columns.get_level_values(code).unique().sort_values()}
@@ -795,7 +822,7 @@ def ic_predict(
     periods: int = 42
 ) -> pd.DataFrame:
     """
-    =======================================================================
+    ===========================================================================
     Predicts Information Coefficient (IC) using rolling regression on
     exponentially weighted moving averages and differences.
 
@@ -814,7 +841,7 @@ def ic_predict(
     -------
     pd.DataFrame
         DataFrame containing predicted IC ('p') and R-squared ('r').
-    -----------------------------------------------------------------------
+    ---------------------------------------------------------------------------
     使用指数加权移动平均和差分的滚动回归来预测信息系数 (IC).
 
     参数
@@ -832,7 +859,7 @@ def ic_predict(
     ----
     pd.DataFrame
         包含预测 IC ('p') 和 R 方值 ('r') 的 DataFrame.
-    -----------------------------------------------------------------------
+    ---------------------------------------------------------------------------
     """
     val = {w:pd.tools.array_roll(Series.values.astype('float32')[:, np.newaxis], w) for w in windows}
     val = {i.__str__(): np.einsum('w, twk -> t', pd.tools.halflife(i, i//4), j) for i,j in val.items()}
@@ -919,7 +946,7 @@ def corr(
     other_obj: Optional[pd.DataFrame] = None
 ) -> pd.Series:
     """
-    =======================================================================
+    ===========================================================================
     Calculates cross-sectional correlation between factors or with a shift.
 
     Parameters
@@ -933,7 +960,7 @@ def corr(
     -------
     pd.Series
         Descriptive statistics of the cross-sectional correlation.
-    -----------------------------------------------------------------------
+    ---------------------------------------------------------------------------
     计算因子之间或带有平移的横截面相关性.
 
     参数
@@ -947,7 +974,7 @@ def corr(
     ----
     pd.Series
         横截面相关性的描述性统计.
-    -----------------------------------------------------------------------
+    ---------------------------------------------------------------------------
     """
     if other_obj is None:
         return df_obj.corrwith(df_obj.shift(), axis=1).describe()
@@ -981,7 +1008,7 @@ class test:
         self,
         df: pd.DataFrame,
         shift: int = 1
-    ):
+    ) -> None:
         """Initializes the backtest instance | 初始化回测实例"""
         df = df.astype('float').shift(shift)
         df = df[df > 0].dropna(how='all', axis=1).dropna(how='all', axis=0)
@@ -1154,7 +1181,68 @@ class test:
         }
         return dict_to_dataclass(dic)
 
-def concept(df_obj, label, label_df=None, expand=True, how='sum', w=None, portfolio_type=None):
+def concept(
+    df_obj: pd.DataFrame,
+    label: str,
+    label_df: Optional[pd.DataFrame] = None,
+    expand: bool = True,
+    how: str = 'sum',
+    w: Optional[pd.DataFrame] = None,
+    portfolio_type: Optional[str] = None
+) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Aggregates factor values by industry or concept labels, optionally
+    weighted, and expands back to the original stock universe.
+
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        The input factor DataFrame.
+    label : str
+        The industry or concept label column key.
+    label_df : Optional[pd.DataFrame]
+        Pre-computed label DataFrame. If None, fetched internally.
+    expand : bool
+        Whether to expand aggregated values back to stock level.
+        Default is True.
+    how : str
+        Aggregation method (e.g., 'sum', 'mean'). Default is 'sum'.
+    w : Optional[pd.DataFrame]
+        Optional weights for weighted aggregation.
+    portfolio_type : Optional[str]
+        The portfolio type. Default is 'astock'.
+
+    Returns
+    -------
+    pd.DataFrame
+        Aggregated factor values by label.
+    ---------------------------------------------------------------------------
+    按行业或概念标签聚合因子值, 可选择加权, 并可展开回原始股票域.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        输入的因子 DataFrame.
+    label : str
+        行业或概念标签列键.
+    label_df : Optional[pd.DataFrame]
+        预计算的标签 DataFrame. 如果为 None, 则内部获取.
+    expand : bool
+        是否将聚合值展开回股票层面. 默认为 True.
+    how : str
+        聚合方法 (例如 'sum', 'mean'). 默认为 'sum'.
+    w : Optional[pd.DataFrame]
+        可选权重, 用于加权聚合.
+    portfolio_type : Optional[str]
+        投资组合类型. 默认为 'astock'.
+
+    返回
+    ----
+    pd.DataFrame
+        按标签聚合后的因子值.
+    ---------------------------------------------------------------------------
+    """
     x = df_obj.f.label(label, label_df, portfolio_type)
     if w is not None:
         w = w.f.label(label, label_df, portfolio_type)

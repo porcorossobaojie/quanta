@@ -21,6 +21,14 @@ config = settings('libs').db.MySQL
 
 
 class main(meta, type('', (), config.recommand_settings)):
+    """
+    ===========================================================================
+    MySQL database engine implementation.
+    ---------------------------------------------------------------------------
+    MySQL 数据库引擎实现.
+    ---------------------------------------------------------------------------
+    """
+
     @classmethod
     def __URL__(cls) -> str:
         """Constructs MySQL connection URL | 构建 MySQL 连接 URL"""
@@ -227,6 +235,7 @@ class main(meta, type('', (), config.recommand_settings)):
             schema=schema, table=table, show_time=show_time
         )
         def wraps_function() -> pd.DataFrame:
+            """Executes the timed read command | 执行带计时的读取命令"""
             columns = parameters.get('columns', None)
             columns = list(columns.keys()) if isinstance(columns, dict) else columns
             columns = self.__columns_connect__(columns)

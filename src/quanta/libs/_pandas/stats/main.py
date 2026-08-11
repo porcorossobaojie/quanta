@@ -27,7 +27,8 @@ class main():
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, pandas_obj: pd.DataFrame):
+    def __init__(self, pandas_obj: pd.DataFrame) -> None:
+        """Initializes the DataFrame accessor | 初始化 DataFrame 访问器"""
         self._obj = pandas_obj
 
     @doc_inherit(standard)
@@ -86,7 +87,11 @@ class main():
         return expose(self._obj, *xs, limit = limit, max_iter=max_iter)
 
     @doc_inherit(z)
-    def z(self, periods=None, min_periods=None):
+    def z(
+        self,
+        periods: Optional[int] = None,
+        min_periods: Optional[int] = None
+    ) -> Union[pd.Series, pd.DataFrame]:
         return z(self._obj, periods, min_periods)
 
 @pd.api.extensions.register_series_accessor(MODULE_DIR)
@@ -100,7 +105,8 @@ class main():
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, pandas_obj: pd.Series):
+    def __init__(self, pandas_obj: pd.Series) -> None:
+        """Initializes the Series accessor | 初始化 Series 访问器"""
         self._obj = pandas_obj
 
     @doc_inherit(standard)
@@ -120,5 +126,9 @@ class main():
         return const(self._obj, prefix=prefix, sep=sep)
 
     @doc_inherit(z)
-    def z(self, periods=None, min_periods=None):
+    def z(
+        self,
+        periods: Optional[int] = None,
+        min_periods: Optional[int] = None
+    ) -> Union[pd.Series, pd.DataFrame]:
         return z(self._obj, periods, min_periods)

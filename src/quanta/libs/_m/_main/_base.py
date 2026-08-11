@@ -37,7 +37,7 @@ class main():
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, portfolio_type: str = 'astock'):
+    def __init__(self, portfolio_type: str = 'astock') -> None:
         """
         =======================================================================
         Initializes the flow main instance for a specific portfolio type.
@@ -158,13 +158,15 @@ class main():
         return index
 
     @property
-    def window(self):
+    def window(self) -> int:
+        """Returns the current rolling window size | 返回当前滚动窗口大小"""
         if not hasattr(self, '_window'):
             self._window = 1
         return self._window
 
     @window.setter
-    def window(self, v):
+    def window(self, v: int) -> None:
+        """Sets the rolling window across all tables | 为所有表设置滚动窗口"""
         if self.window != v:
             tables = TABLE_DIC.get(self.portfolio_type).keys()
             for i in tables:
@@ -175,17 +177,100 @@ class main():
 
     def __call__(
         self,
-        end,
-        window = 1,
-        start = None,
-        table = 'eodprices',
+        end: Union[str, pd.Timestamp],
+        window: int = 1,
+        start: Optional[Union[str, pd.Timestamp]] = None,
+        table: str = 'eodprices',
         **kwargs: Any
-        ) -> Union[pd.Series, pd.DataFrame]:
+    ) -> Union[pd.Series, pd.DataFrame]:
+        """
+        =======================================================================
+        Reads data ending at the given day with a rolling window.
+
+        Parameters
+        ----------
+        end : Union[str, pd.Timestamp]
+            The end trading day.
+        window : int
+            The number of days to include. Default is 1.
+        start : Optional[Union[str, pd.Timestamp]]
+            The optional start bound. Default is None.
+        table : str
+            The table suffix (e.g., 'eodprices'). Default is 'eodprices'.
+        **kwargs : Any
+            Additional keyword arguments.
+
+        Returns
+        -------
+        Union[pd.Series, pd.DataFrame]
+            The requested data slice.
+        -----------------------------------------------------------------------
+        读取以给定日期结束且带滚动窗口的数据.
+
+        参数
+        ----
+        end : Union[str, pd.Timestamp]
+            结束交易日.
+        window : int
+            包含的天数. 默认为 1.
+        start : Optional[Union[str, pd.Timestamp]]
+            可选的起始边界. 默认为 None.
+        table : str
+            表后缀 (例如 'eodprices'). 默认为 'eodprices'.
+        **kwargs : Any
+            额外的关键字参数.
+
+        返回
+        ----
+        Union[pd.Series, pd.DataFrame]
+            请求的数据切片.
+        -----------------------------------------------------------------------
+        """
         self.window = window
         table = getattr(self, f"{self.portfolio_type}{table}")
         return table(start, end, window)
 
-    def shift(self, n=1, calendar='trade_days', table='eodprices'):
+    def shift(
+        self,
+        n: int = 1,
+        calendar: str = 'trade_days',
+        table: str = 'eodprices'
+    ) -> Union[pd.Series, pd.DataFrame]:
+        """
+        =======================================================================
+        Shifts the end day by n trading days and reads the corresponding data.
+
+        Parameters
+        ----------
+        n : int
+            The number of days to shift (negative for backward). Default is 1.
+        calendar : str
+            The calendar day set to use. Default is 'trade_days'.
+        table : str
+            The table suffix. Default is 'eodprices'.
+
+        Returns
+        -------
+        Union[pd.Series, pd.DataFrame]
+            The data slice ending at the shifted day.
+        -----------------------------------------------------------------------
+        将结束日期平移 n 个交易日后读取对应数据.
+
+        参数
+        ----
+        n : int
+            平移的天数 (负数表示向后). 默认为 1.
+        calendar : str
+            使用的日历日期集. 默认为 'trade_days'.
+        table : str
+            表后缀. 默认为 'eodprices'.
+
+        返回
+        ----
+        Union[pd.Series, pd.DataFrame]
+            以平移后日期结束的数据切片.
+        -----------------------------------------------------------------------
+        """
         last_day = max(getattr(self, f"{self.portfolio_type}{table}").internal_data.keys())
         if n >= 0:
             day_list = getattr(getattr(self, f"{self.portfolio_type}{table}").calendar, calendar).loc[last_day:]

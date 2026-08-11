@@ -8,7 +8,7 @@ Created on Fri Feb 27 16:50:12 2026
 import pandas as pd
 import numpy as np
 from functools import lru_cache
-from typing import Optional, Union, List, Any
+from typing import Optional, Union, List, Any, Tuple
 from ....config import settings
 from ....libs.utils._decorator import doc_inherit
 
@@ -48,7 +48,8 @@ class flow_extra():
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, df_obj: pd.DataFrame):
+    def __init__(self, df_obj: pd.DataFrame) -> None:
+        """Initializes the DataFrame accessor | 初始化 DataFrame 访问器"""
         self._obj = df_obj
 
     @doc_inherit(listing)
@@ -99,8 +100,8 @@ class flow_extra():
     @doc_inherit(trend)
     def trend(
         self,
-        periods=21
-    ):
+        periods: int = 21
+    ) -> pd.DataFrame:
         x = trend(self._obj, periods)
         return x
 
@@ -150,7 +151,7 @@ class flow_extra():
     @doc_inherit(ic)
     def ic(
         self,
-        shift = 1,
+        shift: int = 1,
         listing_limit: int = 126,
         drop_st: int = 1,
         tradestatus: bool = True,
@@ -172,7 +173,7 @@ class flow_extra():
     @doc_inherit(port)
     def port(
         self,
-        ret = None,
+        ret: Optional[pd.DataFrame] = None,
         listing_limit: int = 126,
         drop_st: int = 1,
         tradestatus: bool = True,
@@ -185,36 +186,35 @@ class flow_extra():
         return x
 
     @doc_inherit(corr)
-    def corr(self, others=None):
+    def corr(self, others: Optional[pd.DataFrame] = None) -> pd.Series:
         return corr(self._obj, others)
 
     @lru_cache(maxsize=2)
     @doc_inherit(Chain)
     def chain(
         self,
-        cash=10000,
-        trade_cost=True
-    ):
+        cash: float = 10000,
+        trade_cost: bool = True
+    ) -> Chain:
         return Chain(self._obj, cash, trade_cost)
 
-    @doc_inherit(Chain)
+    @doc_inherit(test)
     def test(
         self,
-        shift = 1
-    ):
+        shift: int = 1
+    ) -> 'test':
         return test(self._obj, shift)
-    
-    @doc_inherit(Chain)
+
+    @doc_inherit(concept)
     def concept(
         self,
-        label,
-        label_df=None,
-        expand=True,
-        how='sum',
-        w=None,
-        portfolio_type=None
-        
-    ):
+        label: str,
+        label_df: Optional[pd.DataFrame] = None,
+        expand: bool = True,
+        how: str = 'sum',
+        w: Optional[pd.DataFrame] = None,
+        portfolio_type: Optional[str] = None
+    ) -> pd.DataFrame:
         return concept(self._obj, label, label_df, expand, how, w, portfolio_type)
 
 
@@ -228,7 +228,8 @@ class flow_extra_series():
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, series_obj: pd.Series):
+    def __init__(self, series_obj: pd.Series) -> None:
+        """Initializes the Series accessor | 初始化 Series 访问器"""
         self._obj = series_obj
 
     @doc_inherit(series_info)
@@ -241,13 +242,14 @@ class flow_extra_series():
         return series_info(self._obj, column, portfolio_type, **kwargs)
 
     @doc_inherit(day_shift)
-    def day_shift(self, shift: int = 1, copy=True) -> pd.Series:
+    def day_shift(self, shift: int = 1, copy: bool = True) -> pd.Series:
         return day_shift(self._obj, shift, copy)
 
-    @doc_inherit(day_shift)
-    def ic_predict(self,
-        windows = (5,10,15,21,42,63),
-        diff = (1,),
-        periods = 42
-    ):
+    @doc_inherit(ic_predict)
+    def ic_predict(
+        self,
+        windows: Tuple[int, ...] = (5, 10, 15, 21, 42, 63),
+        diff: Tuple[int, ...] = (1,),
+        periods: int = 42
+    ) -> pd.DataFrame:
         return ic_predict(self._obj, windows, diff, periods)

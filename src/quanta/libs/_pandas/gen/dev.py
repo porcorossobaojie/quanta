@@ -14,7 +14,42 @@ from ..tools.core import fillna as fillna_func
 
 
 @njit(parallel=True, cache=True, nopython=True)
-def fast_rank(data_2d, rule):
+def fast_rank(
+    data_2d: np.ndarray,
+    rule: np.ndarray
+) -> np.ndarray:
+    """
+    ===========================================================================
+    Numba-compiled vectorized ranking of each row into bins defined by the
+    rule array, ignoring NaN values.
+
+    Parameters
+    ----------
+    data_2d : np.ndarray
+        A 2D array of values to rank per row.
+    rule : np.ndarray
+        Sorted bin edges (percentile thresholds).
+
+    Returns
+    -------
+    np.ndarray
+        Array of bin labels (1-based), NaN preserved.
+    ---------------------------------------------------------------------------
+    基于 Numba 编译的逐行向量化排名, 按 rule 数组定义的区间分箱, 忽略 NaN 值.
+
+    参数
+    ----
+    data_2d : np.ndarray
+        待逐行排名的二维数组.
+    rule : np.ndarray
+        排序后的分箱边界 (百分位阈值).
+
+    返回
+    ----
+    np.ndarray
+        分箱标签数组 (从 1 开始), 保留 NaN.
+    ---------------------------------------------------------------------------
+    """
     result = np.full(data_2d.shape, np.nan)
     for i in prange(data_2d.shape[0]):
         mask = ~np.isnan(data_2d[i])
@@ -34,6 +69,45 @@ def group(
     rule: Union[Dict, List],
     order: bool = True,
 ) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Groups and ranks a DataFrame based on specified rules, typically for
+    factor grouping and binning. Supports sequential ordering when multiple
+    keys are provided.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame to be grouped.
+    rule : Union[Dict, List]
+        A dictionary of rules for specific columns or a list for all columns.
+    order : bool
+        If True, grouping is applied sequentially based on previously binned
+        columns. Default is True.
+
+    Returns
+    -------
+    pd.DataFrame
+        The grouped and binned DataFrame.
+    ---------------------------------------------------------------------------
+    根据指定规则对 DataFrame 进行分组和排名, 通常用于因子分组和分箱. 当提供多个
+    键时支持顺序分组.
+
+    参数
+    ----
+    df : pd.DataFrame
+        要分组的 DataFrame.
+    rule : Union[Dict, List]
+        特定列的规则字典或适用于所有列的列表.
+    order : bool
+        如果为 True, 则基于之前已分箱的列顺序应用分组. 默认为 True.
+
+    返回
+    ----
+    pd.DataFrame
+        分组并分箱后的 DataFrame.
+    ---------------------------------------------------------------------------
+    """
     is_multi = bool(df.columns.nlevels - 1)
     rule = {i:np.array(j) for i,j in rule.items()} if isinstance(rule, dict) else np.array(rule)
 

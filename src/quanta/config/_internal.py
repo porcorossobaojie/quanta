@@ -10,17 +10,15 @@ from pathlib import Path
 from dotenv import load_dotenv, find_dotenv # Import dotenv functions
 from box import Box
 import yaml
+from typing import Optional, List
 
 # Load environment variables from .env file, searching from the current working directory
 load_dotenv(find_dotenv(usecwd=True))
 
 MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def _find_project_root_containing_env_folder():
-    """
-    Finds the project root by searching upwards from the current working directory
-    for a directory that contains a '.env' folder.
-    """
+def _find_project_root_containing_env_folder() -> Path:
+    """Finds the project root containing the '.env' folder | 查找包含 '.env' 文件夹的项目根目录"""
     current_dir = Path(os.getcwd())
     while True:
         if (current_dir / '.env').is_dir():
@@ -37,7 +35,8 @@ def _find_project_root_containing_env_folder():
 
 PROJECT_ROOT = _find_project_root_containing_env_folder()
 
-def _yaml_config(files):
+def _yaml_config(files: List[Path]) -> Box:
+    """Loads and merges YAML files into a Box config | 加载并合并 YAML 文件为 Box 配置"""
     config = Box(default_box=False, box_dots=True)
     for i in files:
         with open(str(i), 'r', encoding = 'utf-8') as f:
@@ -49,7 +48,42 @@ def _yaml_config(files):
 
 __all__ = ['settings', 'login_info']
 
-def settings(yaml_file, env_file=None):
+def settings(
+    yaml_file: str,
+    env_file: Optional[str] = None
+) -> Box:
+    """
+    ===========================================================================
+    Loads configuration from default and override YAML files.
+
+    Parameters
+    ----------
+    yaml_file : str
+        The base configuration file name (with or without '.yaml').
+    env_file : Optional[str]
+        The override file name in the project's '.env' folder.
+        Default is None (same as yaml_file).
+
+    Returns
+    -------
+    Box
+        The merged configuration object.
+    ---------------------------------------------------------------------------
+    从默认和覆盖 YAML 文件加载配置.
+
+    参数
+    ----
+    yaml_file : str
+        基础配置文件名 (可带或不带 '.yaml').
+    env_file : Optional[str]
+        项目 '.env' 文件夹中的覆盖文件名. 默认为 None (与 yaml_file 相同).
+
+    返回
+    ----
+    Box
+        合并后的配置对象.
+    ---------------------------------------------------------------------------
+    """
     if yaml_file[-5:].lower() != '.yaml':
         yaml_file = f"{yaml_file}.yaml"
 
@@ -72,7 +106,36 @@ def settings(yaml_file, env_file=None):
     base = _yaml_config(config_files)
     return base
 
-def login_info(env_file):
+def login_info(
+    env_file: str
+) -> Box:
+    """
+    ===========================================================================
+    Loads login credentials from the project's '.env' folder.
+
+    Parameters
+    ----------
+    env_file : str
+        The login info file name (with or without '.yaml').
+
+    Returns
+    -------
+    Box
+        The merged login credential configuration.
+    ---------------------------------------------------------------------------
+    从项目的 '.env' 文件夹加载登录凭据.
+
+    参数
+    ----
+    env_file : str
+        登录信息文件名 (可带或不带 '.yaml').
+
+    返回
+    ----
+    Box
+        合并后的登录凭据配置.
+    ---------------------------------------------------------------------------
+    """
     if env_file[-5:].lower() != '.yaml':
         env_file = f"{env_file}.yaml"
 

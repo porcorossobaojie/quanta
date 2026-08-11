@@ -21,7 +21,48 @@ from ....libs.utils import dict_to_dataclass
 
 __all__ = ['z', 'standard', 'OLS', 'const', 'neutral', 'expose']
 
-def z(df_obj, periods, min_periods=None):
+def z(
+    df_obj: Union[pd.Series, pd.DataFrame],
+    periods: Optional[int],
+    min_periods: Optional[int] = None
+) -> Union[pd.Series, pd.DataFrame]:
+    """
+    ===========================================================================
+    Calculates the z-score of data, either cross-sectionally or over a
+    rolling window.
+
+    Parameters
+    ----------
+    df_obj : Union[pd.Series, pd.DataFrame]
+        The input data.
+    periods : Optional[int]
+        The rolling window size. If None, uses full-sample statistics.
+    min_periods : Optional[int]
+        Minimum observations required in the rolling window.
+        Default is None (periods // 4).
+
+    Returns
+    -------
+    Union[pd.Series, pd.DataFrame]
+        The z-score transformed data.
+    ---------------------------------------------------------------------------
+    计算数据的 z-score, 支持截面或滚动窗口方式.
+
+    参数
+    ----
+    df_obj : Union[pd.Series, pd.DataFrame]
+        输入数据.
+    periods : Optional[int]
+        滚动窗口大小. 如果为 None, 则使用全样本统计量.
+    min_periods : Optional[int]
+        滚动窗口所需的最小观测数. 默认为 None (periods // 4).
+
+    返回
+    ----
+    Union[pd.Series, pd.DataFrame]
+        z-score 转换后的数据.
+    ---------------------------------------------------------------------------
+    """
     if periods is None:
         return df_obj.mean() / df_obj.std()
     else:
@@ -232,7 +273,47 @@ def const(
     return pd.get_dummies(df_obj, prefix=prefix, prefix_sep=sep, columns=columns)
 
 @njit(parallel=True, cache=True, nopython=True)
-def fast_wls_w3d(data_3d, weights, l2=0):
+def fast_wls_w3d(
+    data_3d: np.ndarray,
+    weights: np.ndarray,
+    l2: float = 0
+) -> np.ndarray:
+    """
+    ===========================================================================
+    Numba-compiled vectorized 3D Weighted Least Squares (WLS) regression
+    with optional L2 regularization.
+
+    Parameters
+    ----------
+    data_3d : np.ndarray
+        A 3D array: [features, slices, samples], first feature is dependent.
+    weights : np.ndarray
+        Weight array aligned with data_3d.
+    l2 : float
+        L2 regularization parameter. Default is 0.
+
+    Returns
+    -------
+    np.ndarray
+        Beta coefficients with shape [slices, samples - 1].
+    ---------------------------------------------------------------------------
+    基于 Numba 编译的向量化三维加权最小二乘 (WLS) 回归, 支持可选 L2 正则化.
+
+    参数
+    ----
+    data_3d : np.ndarray
+        三维数组: [特征, 切片, 样本], 第一个特征为因变量.
+    weights : np.ndarray
+        与 data_3d 对齐的权重数组.
+    l2 : float
+        L2 正则化参数. 默认为 0.
+
+    返回
+    ----
+    np.ndarray
+        形状为 [切片, 样本 - 1] 的贝塔系数.
+    ---------------------------------------------------------------------------
+    """
     n_cols = data_3d.shape[0]
     n_slices = data_3d.shape[1]
     k_samples = data_3d.shape[2]
@@ -273,7 +354,47 @@ def fast_wls_w3d(data_3d, weights, l2=0):
     return betas
 
 @njit(parallel=True, cache=True, nopython=True)
-def fast_ols_3d(data_3d, weights, l2=0):
+def fast_ols_3d(
+    data_3d: np.ndarray,
+    weights: Optional[np.ndarray],
+    l2: float = 0
+) -> np.ndarray:
+    """
+    ===========================================================================
+    Numba-compiled vectorized 3D Ordinary Least Squares (OLS) regression
+    with optional L2 regularization.
+
+    Parameters
+    ----------
+    data_3d : np.ndarray
+        A 3D array: [features, slices, samples], first feature is dependent.
+    weights : Optional[np.ndarray]
+        Reserved for API compatibility; not used in OLS.
+    l2 : float
+        L2 regularization parameter. Default is 0.
+
+    Returns
+    -------
+    np.ndarray
+        Beta coefficients with shape [slices, samples - 1].
+    ---------------------------------------------------------------------------
+    基于 Numba 编译的向量化三维普通最小二乘 (OLS) 回归, 支持可选 L2 正则化.
+
+    参数
+    ----
+    data_3d : np.ndarray
+        三维数组: [特征, 切片, 样本], 第一个特征为因变量.
+    weights : Optional[np.ndarray]
+        为保持 API 兼容而保留; OLS 中不使用.
+    l2 : float
+        L2 正则化参数. 默认为 0.
+
+    返回
+    ----
+    np.ndarray
+        形状为 [切片, 样本 - 1] 的贝塔系数.
+    ---------------------------------------------------------------------------
+    """
     n_cols = data_3d.shape[0]
     n_slices = data_3d.shape[1]
     k_samples = data_3d.shape[2]
@@ -302,14 +423,42 @@ def fast_ols_3d(data_3d, weights, l2=0):
     return betas
 
 @njit(parallel=True, cache=True, nopython=True, fastmath=True)
-def fast_std(arr):
+def fast_std(arr: np.ndarray) -> np.ndarray:
+    """
+    ===========================================================================
+    Computes the root mean square along the depth axis of a 3D array,
+    ignoring NaN values.
+
+    Parameters
+    ----------
+    arr : np.ndarray
+        A 3D input array.
+
+    Returns
+    -------
+    np.ndarray
+        Root mean square values with shape [rows, cols].
+    ---------------------------------------------------------------------------
+    计算三维数组深度轴上的均方根, 忽略 NaN 值.
+
+    参数
+    ----
+    arr : np.ndarray
+        三维输入数组.
+
+    返回
+    ----
+    np.ndarray
+        形状为 [行, 列] 的均方根值.
+    ---------------------------------------------------------------------------
+    """
     n_rows, n_cols, n_depth = arr.shape
     result = np.full((n_rows, n_cols), np.nan, dtype=arr.dtype)
     for i in prange(n_rows):
         for j in range(n_cols):
             sum_sq = 0.0
             count = 0
-            # 单次遍历，只累加非 NaN 的平方
+            # 单次遍历, 只累加非 NaN 的平方
             for k in range(n_depth):
                 val = arr[i, j, k]
                 if not np.isnan(val):
@@ -319,9 +468,54 @@ def fast_std(arr):
                 result[i, j] = np.sqrt(sum_sq / count)
     return result
 
-def fast_wls(data_3d, weights, l2):
+def fast_wls(
+    data_3d: np.ndarray,
+    weights: Optional[np.ndarray],
+    l2: float
+) -> np.ndarray:
+    """
+    ===========================================================================
+    Vectorized Weighted Least Squares (WLS) regression over a 3D array
+    without rolling windows, using pure NumPy mapping.
+
+    Parameters
+    ----------
+    data_3d : np.ndarray
+        A 3D array: [features, rows, samples], first feature is dependent.
+    weights : Optional[np.ndarray]
+        Weight array aligned with data_3d, or None for OLS.
+    l2 : float
+        L2 regularization parameter.
+
+    Returns
+    -------
+    np.ndarray
+        Beta coefficients with shape [rows, samples - 1].
+    ---------------------------------------------------------------------------
+    不使用滚动窗口, 通过纯 NumPy 映射对三维数组执行向量化加权最小二乘 (WLS) 回归.
+
+    参数
+    ----
+    data_3d : np.ndarray
+        三维数组: [特征, 行, 样本], 第一个特征为因变量.
+    weights : Optional[np.ndarray]
+        与 data_3d 对齐的权重数组, 或为 None 表示 OLS.
+    l2 : float
+        L2 正则化参数.
+
+    返回
+    ----
+    np.ndarray
+        形状为 [行, 样本 - 1] 的贝塔系数.
+    ---------------------------------------------------------------------------
+    """
     l2_bool = (l2 == 0)
-    def core_func(data_2d, w, l2):
+    def core_func(
+        data_2d: np.ndarray,
+        w: Optional[np.ndarray],
+        l2: float
+    ) -> np.ndarray:
+        """Solves WLS coefficients for a single 2D slice | 求解单个 2D 切片的 WLS 系数"""
         not_nan = ~np.isnan(data_2d).any(axis=1)
         m = data_2d[not_nan, :]
         if m.shape[0] > m.shape[1] * 2:
@@ -352,7 +546,7 @@ def neutral(
     w: Optional[np.ndarray] = None,
     l2: float = 0,
     resid: bool = False,
-    dtype = None,
+    dtype: Any = None,
     **key_factors: pd.DataFrame
 ) -> Any:
     """
@@ -432,7 +626,7 @@ def neutral(
             elif w.ndim == 2:
                 w = np.array(w)[np.newaxis, :, :].astype(dtype)
 
-    # 根据neu_axis及逆行转置
+    # 根据neu_axis进行转置
     trans_dic = {
         (0, 3, 0): [1, 2, 0],
         (1, 3, 0): [2, 1, 0],
@@ -539,7 +733,12 @@ def expose(
     ---------------------------------------------------------------------------
     """
     df_neu = df_obj.stats.neutral(**{i.__str__():j[0] for i,j in enumerate(xs)}).resid
-    def expose_1dim(y, x, v):
+    def expose_1dim(
+        y: pd.DataFrame,
+        x: pd.DataFrame,
+        v: float
+    ) -> pd.DataFrame:
+        """Adjusts exposure to a single factor dimension | 调整单一因子维度的风险暴露"""
         y = y.stats.neutral(fac=x).resid
         y_std = y.std(axis=1)
         beta = (y_std * v) / (x.std(axis=1) * (1 - v ** 2))

@@ -9,6 +9,15 @@ from typing import Any, Callable, Dict, List, Optional, Type
 from ....libs.utils import filter_class_attrs, merge_dicts, timing_decorator
 
 class main:
+    """
+    ===========================================================================
+    Base class for database engines, providing timing decorators, MRO
+    parameter merging, and instance update protocols.
+    ---------------------------------------------------------------------------
+    数据库引擎基类, 提供计时装饰器, MRO 参数合并和实例更新协议.
+    ---------------------------------------------------------------------------
+    """
+
     @classmethod
     def __timing_decorator__(
         cls,

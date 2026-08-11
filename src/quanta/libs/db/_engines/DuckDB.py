@@ -18,12 +18,22 @@ config = settings('libs').db.DuckDB
 
 
 class main(meta, type('', (), config.recommand_settings)):
+    """
+    ===========================================================================
+    DuckDB database engine implementation.
+    ---------------------------------------------------------------------------
+    DuckDB 数据库引擎实现.
+    ---------------------------------------------------------------------------
+    """
+
     @classmethod
-    def __setting__ (cls, **kwargs):
+    def __setting__ (cls, **kwargs: Any) -> None:
+        """Updates class settings with keyword arguments | 用关键字参数更新类设置"""
         [setattr(cls, i, j) for i,j in kwargs.items()]
 
     @classmethod
-    def __resetting__ (cls):
+    def __resetting__ (cls) -> None:
+        """Resets class settings to configured defaults | 将类设置重置为配置的默认值"""
         [setattr(cls, i, j) for i,j in  config.recommand_settings.items()]
 
     @classmethod
@@ -216,6 +226,7 @@ class main(meta, type('', (), config.recommand_settings)):
             schema=schema, table=table, show_time=show_time
         )
         def wraps_function() -> pd.DataFrame:
+            """Executes the timed read command | 执行带计时的读取命令"""
             columns = parameters.get('columns', None)
             columns = list(columns.keys()) if isinstance(columns, dict) else columns
             columns = self.__columns_connect__(columns)

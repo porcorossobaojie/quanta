@@ -35,7 +35,7 @@ class main():
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, portfolio_type: str = 'astock'):
+    def __init__(self, portfolio_type: str = 'astock') -> None:
         """
         =======================================================================
         Initializes the flow main instance for a specific portfolio type.
@@ -450,6 +450,7 @@ class main():
     
     @lru_cache(maxsize=8)
     def _aindex_listing(self, limit: int = 126) -> pd.DataFrame:
+        """Computes the listing mask for A-share indices | 计算 A 股指数的上市掩码"""
         x = self(config.trade_keys.returns)
         x = x.notnull().cumsum()
         x = x >= limit
@@ -488,7 +489,43 @@ class main():
         df = func(limit)
         return df
 
-    def code_standard(self, list_obj, source='internal'):
+    def code_standard(
+        self,
+        list_obj: List[str],
+        source: str = 'internal'
+    ) -> pd.CategoricalIndex:
+        """
+        =======================================================================
+        Standardizes security codes from internal or external sources.
+
+        Parameters
+        ----------
+        list_obj : List[str]
+            The security codes to standardize.
+        source : str
+            The standardization source ('internal' or 'external').
+            Default is 'internal'.
+
+        Returns
+        -------
+        pd.CategoricalIndex
+            The standardized categorical index of codes.
+        -----------------------------------------------------------------------
+        标准化来自内部或外部来源的证券代码.
+
+        参数
+        ----
+        list_obj : List[str]
+            要标准化的证券代码.
+        source : str
+            标准化来源 ('internal' 或 'external'). 默认为 'internal'.
+
+        返回
+        ----
+        pd.CategoricalIndex
+            标准化后的分类代码索引.
+        -----------------------------------------------------------------------
+        """
         if source == 'internal':
             x = [str(i).zfill(6) for i in list_obj]
             columns = self.listing(0).columns

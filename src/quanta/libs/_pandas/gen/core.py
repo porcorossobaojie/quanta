@@ -15,7 +15,42 @@ from ..tools.core import fillna as fillna_func
 __all__ = ['group', 'weight', 'portfolio', 'cut', 'roll_weight', 'd_cut']
 
 @njit(parallel=True, cache=True, nopython=True)
-def fast_rank(data_2d, rule):
+def fast_rank(
+    data_2d: np.ndarray,
+    rule: np.ndarray
+) -> np.ndarray:
+    """
+    ===========================================================================
+    Numba-compiled vectorized ranking of each row into bins defined by the
+    rule array, ignoring NaN values.
+
+    Parameters
+    ----------
+    data_2d : np.ndarray
+        A 2D array of values to rank per row.
+    rule : np.ndarray
+        Sorted bin edges (percentile thresholds).
+
+    Returns
+    -------
+    np.ndarray
+        Array of bin labels (1-based), NaN preserved.
+    ---------------------------------------------------------------------------
+    基于 Numba 编译的逐行向量化排名, 按 rule 数组定义的区间分箱, 忽略 NaN 值.
+
+    参数
+    ----
+    data_2d : np.ndarray
+        待逐行排名的二维数组.
+    rule : np.ndarray
+        排序后的分箱边界 (百分位阈值).
+
+    返回
+    ----
+    np.ndarray
+        分箱标签数组 (从 1 开始), 保留 NaN.
+    ---------------------------------------------------------------------------
+    """
     result = np.full(data_2d.shape, np.nan)
     for i in prange(data_2d.shape[0]):
         mask = ~np.isnan(data_2d[i])
@@ -35,6 +70,45 @@ def group(
     rule: Union[Dict, List],
     order: bool = True,
 ) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Groups and ranks a DataFrame based on specified rules, typically for
+    factor grouping and binning. Supports sequential ordering when multiple
+    keys are provided.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame to be grouped.
+    rule : Union[Dict, List]
+        A dictionary of rules for specific columns or a list for all columns.
+    order : bool
+        If True, grouping is applied sequentially based on previously binned
+        columns. Default is True.
+
+    Returns
+    -------
+    pd.DataFrame
+        The grouped and binned DataFrame.
+    ---------------------------------------------------------------------------
+    根据指定规则对 DataFrame 进行分组和排名, 通常用于因子分组和分箱. 当提供多个
+    键时支持顺序分组.
+
+    参数
+    ----
+    df : pd.DataFrame
+        要分组的 DataFrame.
+    rule : Union[Dict, List]
+        特定列的规则字典或适用于所有列的列表.
+    order : bool
+        如果为 True, 则基于之前已分箱的列顺序应用分组. 默认为 True.
+
+    返回
+    ----
+    pd.DataFrame
+        分组并分箱后的 DataFrame.
+    ---------------------------------------------------------------------------
+    """
     is_multi = bool(df.columns.nlevels - 1)
     rule = {i:np.array(j) for i,j in rule.items()} if isinstance(rule, dict) else np.array(rule)
 
@@ -368,7 +442,52 @@ def cut(
     lst = pd.DataFrame(np.vstack(lst), index=df_obj.index, columns=df_obj.columns)
     return lst
 
-def d_cut(df_obj, count, max_count, delay):
+def d_cut(
+    df_obj: pd.DataFrame,
+    count: Union[int, List[int]],
+    max_count: Union[int, List[int]],
+    delay: int
+) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Dynamic top-N selection with a mandatory holding period and buffer zone
+    to reduce turnover.
+
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        The input factor DataFrame.
+    count : Union[int, List[int]]
+        The maximum number of picks, either constant or per-period.
+    max_count : Union[int, List[int]]
+        The buffer count allowed beyond count, either constant or per-period.
+    delay : int
+        The minimum holding periods for newly selected assets.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with ranks for selected assets and 0 otherwise.
+    ---------------------------------------------------------------------------
+    带强制持有期和缓冲区的动态 Top-N 选择, 以降低换手率.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        输入的因子 DataFrame.
+    count : Union[int, List[int]]
+        最大选择数量, 可为常量或按周期变化的列表.
+    max_count : Union[int, List[int]]
+        count 之上允许的缓冲区数量, 可为常量或按周期变化的列表.
+    delay : int
+        新入选资产的最小持有周期数.
+
+    返回
+    ----
+    pd.DataFrame
+        选中资产返回排名值, 其余为 0 的 DataFrame.
+    ---------------------------------------------------------------------------
+    """
     val = df_obj.values.copy()
     result = np.zeros_like(val)
     mask = ~np.isnan(val[0])
