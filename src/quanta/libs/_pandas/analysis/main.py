@@ -23,7 +23,8 @@ class main():
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, pandas_obj: pd.Series):
+    def __init__(self, pandas_obj: pd.Series) -> None:
+        """Initializes the Series accessor | 初始化 Series 访问器"""
         self._obj = pandas_obj
 
     @doc_inherit(maxdown)
@@ -54,7 +55,8 @@ class main():
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, pandas_obj: pd.DataFrame):
+    def __init__(self, pandas_obj: pd.DataFrame) -> None:
+        """Initializes the DataFrame accessor | 初始化 DataFrame 访问器"""
         self._obj = pandas_obj
 
     @doc_inherit(maxdown)

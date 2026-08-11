@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 from functools import lru_cache
 
-def rsi(ret, periods):
+def rsi(ret: pd.Series, periods: int) -> pd.Series:
+    """Computes the Relative Strength Index (RSI) | 计算相对强弱指标 (RSI)"""
     ag = ret[ret > 0].rolling(periods).sum()
     al = ret[ret <= 0].rolling(periods).sum().replace(0, np.nan)
     rs = ag / al

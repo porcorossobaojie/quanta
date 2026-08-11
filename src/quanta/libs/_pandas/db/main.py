@@ -26,7 +26,8 @@ class main:
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, pandas_obj: pd.DataFrame):
+    def __init__(self, pandas_obj: pd.DataFrame) -> None:
+        """Initializes the DataFrame accessor | 初始化 DataFrame 访问器"""
         self._obj: pd.DataFrame = pandas_obj
 
     def write(

@@ -27,7 +27,7 @@ class main(db, type('recommand_settings', (), config.tables.recommand_settings.k
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         """
         =======================================================================
         Initializes the meta main instance, setting up the environment and

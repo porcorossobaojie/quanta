@@ -32,5 +32,6 @@ class main(meta):
     """
     engine_type = config.recommand_settings
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
+        """Initializes the database facade with keyword attributes | 用关键字属性初始化数据库门面"""
         [setattr(self, i, j) for i, j in kwargs.items()]

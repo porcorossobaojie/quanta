@@ -220,12 +220,13 @@ def dict_to_dataclass(
     ---------------------------------------------------------------------------
     """
     def instance_to_dict(self) -> Dict[str, Any]:
+        """Converts the dataclass instance to a nested dictionary | 将 dataclass 实例转换为嵌套字典"""
         result = {}
         for k, v in self.__dict__.items():
-            # 如果属性本身也是动态生成的 dataclass 实例，就递归调用它的 to_dict
+            # 如果属性本身也是动态生成的 dataclass 实例, 就递归调用它的 to_dict
             if hasattr(v, 'to_dict') and callable(v.to_dict):
                 result[k] = v.to_dict()
-            # 如果是 DataFrame，可以根据需求处理（这里选择保留原对象或转为字典）
+            # 如果是 DataFrame, 可以根据需求处理 (这里选择保留原对象或转为字典)
             elif isinstance(v, pd.DataFrame):
                 result[k] = v  # 或者 result[k] = v.to_dict() / v.to_dict(orient='records')
             else:

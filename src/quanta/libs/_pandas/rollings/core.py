@@ -31,7 +31,7 @@ class _meta():
         min_periods: int,
         ts_func: Callable,
         ascending: bool
-    ):
+    ) -> None:
         """
         =======================================================================
         Initializes the _meta class.
@@ -297,7 +297,7 @@ class _max(_meta):
         df_obj: pd.DataFrame,
         window: int,
         min_periods: int
-    ):
+    ) -> None:
         """
         =======================================================================
         Initializes the _max class.
@@ -474,7 +474,7 @@ class _min(_max, _meta):
         df_obj: pd.DataFrame,
         window: int,
         min_periods: int
-    ):
+    ) -> None:
         """
         =======================================================================
         Initializes the _min class.
@@ -517,7 +517,7 @@ class _rank(_meta):
         df_obj: pd.DataFrame,
         window: int,
         min_periods: int
-    ):
+    ) -> None:
         """
         =======================================================================
         Initializes the _rank class.
@@ -597,7 +597,7 @@ class _rolls():
         pandas_obj: pd.DataFrame,
         window: int,
         min_periods: Optional[int] = None
-    ):
+    ) -> None:
         """
         =======================================================================
         Initializes the _rolls class.

@@ -6,7 +6,7 @@ Created on Tue May 12 09:57:31 2026
 """
 
 from functools import lru_cache
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Dict, Any
 import numpy as np
 import pandas as pd
 
@@ -34,7 +34,8 @@ class main():
         return cls._base.bench(code, weight)
 
     @classmethod
-    def _group(cls, dic):
+    def _group(cls, dic: Dict[str, float]) -> pd.DataFrame:
+        """Aggregates weighted sub-factor groups | 聚合加权子因子组"""
         df = {i:getattr(cls, i)() * j for i,j in dic.items()}
         df = pd.concat(df, axis=1)
         df = df.groupby(df.columns.get_level_values(1), axis=1).sum(min_count=len(dic))
@@ -269,14 +270,18 @@ class main():
         return cls._base.dp()
 
     @classmethod
-    def summary(cls):
-        def residual_volatility():
+    def summary(cls) -> Any:
+        """Builds the grouped factor summary structure | 构建分组因子汇总结构"""
+        def residual_volatility() -> pd.DataFrame:
+            """Aggregates residual volatility sub-factors | 聚合残差波动率子因子"""
             return cls._group(cls._group_info['residual_volatility'])
 
-        def liquidity():
+        def liquidity() -> pd.DataFrame:
+            """Aggregates liquidity sub-factors | 聚合流动性子因子"""
             return cls._group(cls._group_info['liquidity'])
 
-        def leverage():
+        def leverage() -> pd.DataFrame:
+            """Aggregates leverage sub-factors | 聚合杠杆子因子"""
             return cls._group(cls._group_info['leverage'])
 
         dic = {
@@ -371,7 +376,8 @@ class main():
         return x
 
     @classmethod
-    def merge(cls, key):
+    def merge(cls, key: str) -> pd.DataFrame:
+        """Merges factor columns by a dotted key path | 按点分键路径合并因子列"""
         summary = cls.summary()
         keys = key.split('.')
         x = filter_class_attrs(getattr(getattr(summary, keys[0]), keys[1]))

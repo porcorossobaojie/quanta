@@ -29,7 +29,7 @@ class main:
     """
     system = settings('trade').system
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         """Initializes account settings | 初始化账户设置"""
         [setattr(self, f"_{i}", j) for i,j in kwargs.items()]
         self.__env_init__()

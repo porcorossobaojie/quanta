@@ -12,7 +12,7 @@ import time
 __all__ = ['timing_decorator', 'doc_inherit', 'lru_cache']
 
 
-def doc_inherit(source_func: Any):
+def doc_inherit(source_func: Any) -> Callable:
     """
     ===========================================================================
     A decorator that copies the docstring from a source function to the
@@ -41,7 +41,8 @@ def doc_inherit(source_func: Any):
         具有继承文档字符串的装饰方法.
     ---------------------------------------------------------------------------
     """
-    def decorator(target_func):
+    def decorator(target_func: Callable) -> Callable:
+        """Copies the source docstring to the target | 将源文档字符串复制到目标"""
         target_func.__doc__ = source_func.__doc__
         return target_func
     return decorator
@@ -51,7 +52,7 @@ def timing_decorator(
     schema: Optional[str] = None,
     table: Optional[str] = None,
     show_time: bool = False,
-):
+) -> Callable:
     """
     ===========================================================================
     A timer decorator that supports logging execution time for data
@@ -88,12 +89,14 @@ def timing_decorator(
         带有计时逻辑的装饰函数.
     ---------------------------------------------------------------------------
     """
-    def decorator(func):
+    def decorator(func: Callable) -> Callable:
+        """Wraps the function with timing logic | 用计时逻辑包装函数"""
         @wraps(func)
         def wrapper(
             *args: Any,
             **kwargs: Any
-        ):
+        ) -> Any:
+            """Executes the wrapped function, optionally timing it | 执行包装函数, 可选计时"""
             if show_time:
                 start_time = time.time()
                 result = func(*args, **kwargs)
@@ -117,14 +120,17 @@ def timing_decorator(
         return wrapper
     return decorator
 
-def lru_cache(maxsize=4):
-    def decorator(func):
-        # 闭包内的缓存字典：Key 为 (cls, args, kwargs)
+def lru_cache(maxsize: int = 4) -> Callable:
+    """Class-method-aware LRU cache decorator | 类方法感知的 LRU 缓存装饰器"""
+    def decorator(func: Callable) -> Callable:
+        """Wraps a classmethod with LRU caching | 用 LRU 缓存包装类方法"""
+        # 闭包内的缓存字典: Key 为 (cls, args, kwargs)
         _cache = {}
         
         @wraps(func)
-        def wrapper(cls, *args, **kwargs):
-            # 关键点：将 cls 本身作为 Key 的一部分
+        def wrapper(cls: Any, *args: Any, **kwargs: Any) -> Any:
+            """Returns the cached result, computing if absent | 返回缓存结果, 缺失时计算"""
+            # 关键点: 将 cls 本身作为 Key 的一部分
             key = (cls, args, tuple(sorted(kwargs.items())))
             
             if key not in _cache:

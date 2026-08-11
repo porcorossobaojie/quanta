@@ -29,7 +29,7 @@ class main(type('recommand_settings', (), config.public_keys.minfreq_settings.ke
     ---------------------------------------------------------------------------
     """
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         """
         =======================================================================
         Initializes the meta main instance, setting up the environment and
