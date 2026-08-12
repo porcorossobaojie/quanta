@@ -84,7 +84,7 @@ class main(meta):
         df = df[df.drop([self.trade_dt, self.code], axis=1, errors='ignore').notnull().any(axis=1)]
         df = df.set_index([self.trade_dt, self.code]).unstack(self.code).T.reset_index()
         return df
-    
+
     def daily(self, if_exists: Literal['append', 'replace'] = 'append') -> None:
         """
         =======================================================================
@@ -119,13 +119,13 @@ class main(meta):
             if os.path.exists(table_path):
                 shutil.rmtree(table_path)
         table_path.mkdir(parents=True, exist_ok=True)
-        
+
         id_key = [p for p in table_path.iterdir() if p.is_dir()]
         id_key = self.date_start if not len(id_key) else max(id_key).__str__().split('date=')[-1]
         days = self.trade_days[self.trade_days > id_key]
 
         for i in days:
-            if jq.get_query_count()['spare'] > 1000000:
+            if jq.get_query_count()['spare'] > 10000000:
                 print(f"Update to date: {i.date()}; Query count left: {jq.get_query_count()['spare']}")
                 df = self.pipeline(start_date= str(i.date()), end_date=str(i.date()))
                 self.__write_parquet__(df, path=table_path/f"date={i.date()}", log=True)
@@ -133,7 +133,7 @@ class main(meta):
                 print("not enough token...")
                 break
 
-'''        
+'''
 
 from quanta.config import settings as _settings
 _config = _settings('data').tables.minute_table
