@@ -130,7 +130,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         -----------------------------------------------------------------------
         """
         attr = f"{self.portfolio_type}_code"
-        return getattr(self, attr)
+        return attr
 
     @property
     def index_keys(self) -> List[str]:

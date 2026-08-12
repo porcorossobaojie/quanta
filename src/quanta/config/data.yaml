@@ -29,8 +29,7 @@ public_keys:
         key:
             <<: *base_key
             date_start: "2019-01-01"
-            database: "Locals_minfreq"
-            
+            time_bias: "0 hours"   
 
 tables:
     # =========================================================================
@@ -368,25 +367,14 @@ tables:
                 pre_close_adj: {'preclose_adj': ['double(18, 8)', '后复权昨收盘价(元)']}
                 returns: {'ret': ['double(10, 8)', '涨跌幅']}
             commands: >
-                pd.merge(
-                    jq.get_price(
-                        jq.get_all_securities('fund', date='{end_date}').query('type == "etf"').index.tolist(),
-                        fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close','paused'],
-                        start_date = '{start_date} : 00:00:00', 
-                        end_date = '{end_date} : 23:59:59', 
-                        fq = None,
-                        frequency = '1m',
-                        skip_paused = False),
-                    jq.get_price(
-                        jq.get_all_securities('fund', date='{end_date}').query('type == "etf"').index.tolist(),
-                        fields = ['factor', 'open', 'close', 'avg', 'pre_close'],
-                        start_date = '{start_date} : 00:00:00', 
-                        end_date = '{end_date} : 23:59:59', 
-                        fq = 'post',
-                        frequency = '1m',
-                        skip_paused = False),
-                    suffixes=('', '_adj'),
-                    on =['code', 'time'])
+                jq.get_price(
+                    jq.get_all_securities('fund', date='{end_date}').query('type == "etf"').index.tolist(),
+                    fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close','paused'],
+                    start_date = '{start_date} : 00:00:00', 
+                    end_date = '{end_date} : 23:59:59', 
+                    fq = None,
+                    frequency = '1m',
+                    skip_paused = False)
 
         astockeodprices:
             table: astockeodprices
@@ -416,7 +404,6 @@ tables:
                     frequency = '1m',
                     skip_paused = False)
   
-                    
         aindexeodprices:
             table: aindexeodprices
             periods: 1

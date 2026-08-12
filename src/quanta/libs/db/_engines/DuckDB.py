@@ -8,6 +8,7 @@ Created on Tue Feb 10 17:59:58 2026
 import inspect
 from typing import Literal, Optional, Union, List, Dict, Any, Tuple
 import pandas as pd
+from pathlib import Path
 import duckdb
 
 from ....config import settings
@@ -32,7 +33,7 @@ class main(meta, type('', (), config.recommand_settings)):
         [setattr(cls, i, j) for i,j in kwargs.items()]
 
     @classmethod
-    def __resetting__ (cls) -> None:
+    def __reset__ (cls) -> None:
         """Resets class settings to configured defaults | 将类设置重置为配置的默认值"""
         [setattr(cls, i, j) for i,j in  config.recommand_settings.items()]
 
@@ -244,7 +245,32 @@ class main(meta, type('', (), config.recommand_settings)):
             return x
 
         return wraps_function()
-
+    
+    @classmethod
+    def __read_parquet__(cls, path, file_name=None):
+        if file_name is not None:
+            if file_name.split('.')[-1] != 'parquet':
+                file_name = f"{file_name}.parquet"
+            command = f"SELECT * FROM READ_PARQUET('{path}/{file_name}')"
+        else:
+            command = f"SELECT * FROM READ_PARQUET('{path}')"
+        x = cls.__command__(command, read_only=True)
+        return x
+    
+    @classmethod
+    def __write_parquet__(cls, df, path, file_name=None, log=True):
+        file_name = 'data_0' if file_name is None else file_name
+        if file_name.split('.')[-1] != 'parquet':
+            file_name = f"{file_name}.parquet"
+        path = Path(path)
+        path.mkdir(parents=True, exist_ok=True)
+        with cls.__engine__() as con:
+            con.register('df_obj', df)
+            con.execute(f"COPY (SELECT * FROM 'df_obj') TO '{path}/{file_name}' (FORMAT parquet, OVERWRITE_OR_IGNORE true)")
+            con.close()
+        if log:
+            print(f"Written DataFrame to <{path}.{file_name}>: {df.shape[0]} records.")
+        
     def __table_exist__(
         self,
         schema: Optional[str] = None,
@@ -388,3 +414,5 @@ class main(meta, type('', (), config.recommand_settings)):
             con.close()
         if log:
             print("Written DataFrame to <{schema}.{table}>: {count} records.".format(count=len(df_obj), **parameters))
+            
+        

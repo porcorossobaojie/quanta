@@ -5,7 +5,7 @@ Created on Wed Feb  4 14:01:26 2026
 @author: Porco Rosso
 """
 
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Callable
 from functools import wraps
 import time
 
