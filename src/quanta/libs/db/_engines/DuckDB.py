@@ -78,6 +78,7 @@ class main(meta, type('', (), config.recommand_settings)):
     def __env_init__(cls) -> None:
         """Initializes database schema | 初始化数据库模式"""
         cls.__command__(f'CREATE SCHEMA IF NOT EXISTS {cls.schema}', read_only=False)
+        (Path(cls.path) / cls.parquet).mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def __command__(cls, command: str, **kwargs: Any) -> pd.DataFrame:
@@ -245,7 +246,7 @@ class main(meta, type('', (), config.recommand_settings)):
             return x
 
         return wraps_function()
-    
+
     @classmethod
     def __read_parquet__(cls, path, file_name=None):
         """
@@ -288,7 +289,7 @@ class main(meta, type('', (), config.recommand_settings)):
             command = f"SELECT * FROM READ_PARQUET('{path}')"
         x = cls.__command__(command, read_only=True)
         return x
-    
+
     @classmethod
     def __write_parquet__(cls, df, path, file_name=None, log=True):
         """
@@ -331,7 +332,7 @@ class main(meta, type('', (), config.recommand_settings)):
             con.close()
         if log:
             print(f"Written DataFrame to <{path}.{file_name}>: {df.shape[0]} records.")
-        
+
     def __table_exist__(
         self,
         schema: Optional[str] = None,
@@ -475,5 +476,3 @@ class main(meta, type('', (), config.recommand_settings)):
             con.close()
         if log:
             print("Written DataFrame to <{schema}.{table}>: {count} records.".format(count=len(df_obj), **parameters))
-            
-        

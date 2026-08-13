@@ -13,7 +13,7 @@ from ...db.main import main as db
 MODULE_DIR = __name__.split('.')[-2]
 # Registering the db main instance directly to pandas for generic access
 setattr(pd, MODULE_DIR, db())
-
+db.__env_init__()
 
 @pd.api.extensions.register_dataframe_accessor(MODULE_DIR)
 class main:
