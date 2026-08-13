@@ -2,7 +2,7 @@ from .libs import _pandas
 
 try:
     from .libs import _flow as flow
-    from .libs import _m as m
+    from .libs import _mins as m
     from .trade.account.main import main as account
     from .strategys import meta as strategys
     from . import config, libs, data
