@@ -90,6 +90,34 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         self, 
         date,
         ):
+        """
+        =======================================================================
+        Reads the daily data for a given date from the parquet store and pivots
+        it into a wide DataFrame indexed by the trading datetime.
+
+        Parameters
+        ----------
+        date : str
+            The trading date partition to read.
+
+        Returns
+        -------
+        pd.DataFrame
+            The pivoted DataFrame with datetime columns.
+        -----------------------------------------------------------------------
+        从 parquet 存储中读取指定日期的数据, 并将其透视为以交易时间为列的宽表.
+
+        参数
+        ----
+        date : str
+            需要读取的交易日期分区.
+
+        返回
+        ----
+        pd.DataFrame
+            透视后的 DataFrame, 列为交易时间.
+        -----------------------------------------------------------------------
+        """
         path = Path(self.path) / self.parquet / self.table /f"date={date}"
         df = self.__read_parquet__(path).iloc[:, :-1]
         for i in df.columns[:2]:

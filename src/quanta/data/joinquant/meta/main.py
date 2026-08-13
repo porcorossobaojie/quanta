@@ -81,24 +81,7 @@ class main(db, type('recommand_settings', (), config.tables.recommand_settings.k
 
     @property
     def code(self) -> str:
-        """
-        =======================================================================
-        Retrieves the standard asset code column name for the current
-        portfolio type.
-
-        Returns
-        -------
-        str
-            The code column name.
-        -----------------------------------------------------------------------
-        获取当前投资组合类型的标准资产代码列名.
-
-        返回
-        ----
-        str
-            代码列名.
-        -----------------------------------------------------------------------
-        """
+        """Retrieves the asset code column name for the current portfolio type | 获取当前投资组合类型的资产代码列名"""
         attr = f"{self.portfolio_type}_code"
         return getattr(self, attr)
 
@@ -338,23 +321,7 @@ class main(db, type('recommand_settings', (), config.tables.recommand_settings.k
         return id_key
 
     def table_exist(self) -> bool:
-        """
-        =======================================================================
-        Checks if the current table exists in the database.
-
-        Returns
-        -------
-        bool
-            True if the table exists, False otherwise.
-        -----------------------------------------------------------------------
-        检查数据库中是否存在当前表.
-
-        返回
-        ----
-        bool
-            如果表存在则为 True, 否则为 False.
-        -----------------------------------------------------------------------
-        """
+        """Checks if the current table exists in the database | 检查数据库中是否存在当前表"""
         return super().__table_exist__()
 
     def drop_table(self, **kwargs: Any) -> None:

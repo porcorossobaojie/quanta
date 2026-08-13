@@ -61,24 +61,7 @@ class main(type('recommand_settings', (), config.public_keys.minfreq_settings.ke
         
     @property
     def code(self) -> str:
-        """
-        =======================================================================
-        Retrieves the standard asset code column name for the current
-        portfolio type.
-
-        Returns
-        -------
-        str
-            The code column name.
-        -----------------------------------------------------------------------
-        获取当前投资组合类型的标准资产代码列名.
-
-        返回
-        ----
-        str
-            代码列名.
-        -----------------------------------------------------------------------
-        """
+        """Retrieves the asset code column name for the current portfolio type | 获取当前投资组合类型的资产代码列名"""
         attr = f"{self.portfolio_type}_code"
         return getattr(self, attr)    
 

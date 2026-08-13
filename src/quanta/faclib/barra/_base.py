@@ -24,23 +24,7 @@ class main(meta):
     @classmethod
     @lru_cache(maxsize=1)
     def bm(cls) -> pd.DataFrame:
-        """
-        =======================================================================
-        Calculate the book-to-market factor, neutralized against size.
-
-        Returns
-        -------
-        pd.DataFrame
-            The residuals of book-to-market ratio against the size factor.
-        -----------------------------------------------------------------------
-        计算账面市值比因子, 并针对市值进行中性化处理.
-
-        返回
-        ----
-        pd.DataFrame
-            账面市值比相对于市值因子的残差.
-        -----------------------------------------------------------------------
-        """
+        """Calculate the book-to-market factor, neutralized against size | 计算账面市值比因子, 并针对市值进行中性化处理"""
         x = flow.astock(cls.finance.pb) ** -1
         x = x.stats.neutral(fac=cls.size()).resid
         return x
@@ -48,24 +32,7 @@ class main(meta):
     @classmethod
     @lru_cache(maxsize=1)
     def non_size(cls) -> pd.DataFrame:
-        """
-        =======================================================================
-        Calculate the non-linear size factor by taking the residuals of
-        size^3 against size.
-
-        Returns
-        -------
-        pd.DataFrame
-            The calculated non-linear size factor.
-        -----------------------------------------------------------------------
-        通过计算市值三次方相对于市值的残差来计算非线性市值因子.
-
-        返回
-        ----
-        pd.DataFrame
-            计算得到的非线性市值因子.
-        -----------------------------------------------------------------------
-        """
+        """Calculate the non-linear size factor (size^3 residual against size) | 计算非线性市值因子 (市值三次方对市值的残差)"""
         df = cls.size()
         df = (df ** 3).stats.neutral(me=df, weight=(df ** 0.5)).resid.tools.log().stats.standard()
         return df

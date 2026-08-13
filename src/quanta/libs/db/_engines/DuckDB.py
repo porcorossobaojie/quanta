@@ -248,6 +248,38 @@ class main(meta, type('', (), config.recommand_settings)):
     
     @classmethod
     def __read_parquet__(cls, path, file_name=None):
+        """
+        =======================================================================
+        Reads a parquet file into a DataFrame via DuckDB.
+
+        Parameters
+        ----------
+        path : str
+            The directory or file path of the parquet data.
+        file_name : str, optional
+            The parquet file name; when provided, path is treated as a
+            directory. Default is None.
+
+        Returns
+        -------
+        pd.DataFrame
+            The DataFrame loaded from the parquet file.
+        -----------------------------------------------------------------------
+        通过 DuckDB 将 parquet 文件读取为 DataFrame.
+
+        参数
+        ----
+        path : str
+            parquet 数据的目录或文件路径.
+        file_name : str, optional
+            parquet 文件名; 提供时 path 被视为目录. 默认 None.
+
+        返回
+        ----
+        pd.DataFrame
+            从 parquet 文件加载的 DataFrame.
+        -----------------------------------------------------------------------
+        """
         if file_name is not None:
             if file_name.split('.')[-1] != 'parquet':
                 file_name = f"{file_name}.parquet"
@@ -259,6 +291,35 @@ class main(meta, type('', (), config.recommand_settings)):
     
     @classmethod
     def __write_parquet__(cls, df, path, file_name=None, log=True):
+        """
+        =======================================================================
+        Writes a DataFrame to a parquet file under the given path.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            The DataFrame to persist.
+        path : str
+            The destination directory for the parquet file.
+        file_name : str, optional
+            The parquet file name; defaults to 'data_0' when None.
+        log : bool
+            Whether to print a write summary. Default is True.
+        -----------------------------------------------------------------------
+        将 DataFrame 写入指定路径下的 parquet 文件.
+
+        参数
+        ----
+        df : pd.DataFrame
+            需要持久化的 DataFrame.
+        path : str
+            parquet 文件的输出目录.
+        file_name : str, optional
+            parquet 文件名; 为 None 时默认 'data_0'.
+        log : bool
+            是否打印写入摘要. 默认 True.
+        -----------------------------------------------------------------------
+        """
         file_name = 'data_0' if file_name is None else file_name
         if file_name.split('.')[-1] != 'parquet':
             file_name = f"{file_name}.parquet"
