@@ -22,7 +22,36 @@ from quanta.config import settings, login_info
 config = settings('data')
 
 class main(type('recommand_settings', (), config.public_keys.minfreq_settings.key), db):
+    """
+    ===========================================================================
+    Minute-frequency metadata and connection class for JoinQuant data
+    extraction, extending the base with a trading calendar and security
+    universe.
+    ---------------------------------------------------------------------------
+    用于 JoinQuant 数据提取的分钟频元数据和连接类, 在基类基础上增加了交易日历
+    和证券池.
+    ---------------------------------------------------------------------------
+    """
+
     def __init__(self, **kwargs: Any) -> None:
+        """
+        =======================================================================
+        Initializes the minute-frequency meta instance, setting up the
+        environment, trading calendar, and security universe.
+
+        Parameters
+        ----------
+        **kwargs : Any
+            Initial configuration and table parameters.
+        -----------------------------------------------------------------------
+        初始化分钟频元主实例, 设置环境, 交易日历和证券池.
+
+        参数
+        ----
+        **kwargs : Any
+            初始配置和表参数.
+        -----------------------------------------------------------------------
+        """
         super().__init__(**kwargs)
         self.__env_init__()
         self.calendar = calendar(self.date_start, daily_bias=self.time_bias, name=self.trade_dt)
@@ -33,6 +62,7 @@ class main(type('recommand_settings', (), config.public_keys.minfreq_settings.ke
         
     @property
     def trade_days(self):
+        """Retrieves the trading days from the internal calendar | 获取内部日历的交易日期"""
         return self.calendar.trade_days
     
     @property
