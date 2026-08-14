@@ -70,7 +70,7 @@ class main():
                 table_instance.window = v
                 setattr(self, i, table_instance)
             self._window = v
-
+        
     def __call__(
         self,
         end: Union[str, pd.Timestamp],

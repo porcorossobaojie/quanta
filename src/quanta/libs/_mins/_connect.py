@@ -131,18 +131,27 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
     @property
     def window(self) -> int:
         """Returns the current rolling window size | 返回当前滚动窗口大小"""
-        if not hasattr(self, '_window'):
-            self._window = 1
-        return self._window
+        if not hasattr(self, '_internal_data'):
+            self._internal_data = LRUCache(1)   
+            return 1
+        else:
+            return self._internal_data.maxsize
 
     @window.setter
     def window(self, v: int) -> None:
         """Sets the window size and resizes the internal cache | 设置窗口大小并调整内部缓存"""
-        if v != self.window:
-            self._window = v
+        if  (v is not None) & (v != self.window):
             x = self.internal_data
             self._internal_data = LRUCache(v)
             self._internal_data.update(x)
+
+    @property
+    def start(self):
+        return min(self._internal_data.keys()) if len(self._internal_data.keys()) else None
+    
+    @property
+    def end(self):
+        return max(self._internal_data.keys()) if len(self._internal_data.keys()) else None
 
     @property
     def internal_data(self) -> LRUCache:
@@ -162,6 +171,11 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
             if j is None:
                 j = self.__read_from_db__(pd.to_datetime(i).date())
             dic[i] = j
+        if not hasattr(self, '_internal_data'):
+            self._internal_data = LRUCache(max([len(dic.keys()), 1]))
+        else:
+            if self._internal_data.maxsize < len(dic):
+                self._internal_data = LRUCache(len(dic))
         self._internal_data.update(dic)
         return dic
 
@@ -208,7 +222,8 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         """
         dates = self.calendar.units(start, end, window)
         x = self.__read_from_internal__(dates)
-        x = pd.concat(x.values())
+        x = list(x.values())
+        x = x[0] if len(x) == 1 else pd.concat(x)
         self.window = window
         return x        
         
