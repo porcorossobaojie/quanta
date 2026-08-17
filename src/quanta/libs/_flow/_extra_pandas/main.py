@@ -216,6 +216,10 @@ class flow_extra():
         portfolio_type: Optional[str] = None
     ) -> pd.DataFrame:
         return concept(self._obj, label, label_df, expand, how, w, portfolio_type)
+    
+    @doc_inherit(at)
+    def at(self, start=None, end=None, head=1):
+        return at(self._obj, start, end, head)
 
 
 @pd.api.extensions.register_series_accessor(config.extra_pandas_attrname)

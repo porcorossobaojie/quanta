@@ -7,6 +7,7 @@ Created on Fri Feb 20 15:40:15 2026
 
 import numpy as np
 import pandas as pd
+
 from dataclasses import dataclass, make_dataclass
 from functools import lru_cache
 from typing import Optional, Union, List, Dict, Any, Tuple
@@ -1253,3 +1254,13 @@ def concept(
         x = x.f.expand()
         x = x.groupby(x.columns.names[1], axis=1).mean()
     return x
+
+def at(df_obj, start=None, end=None, head=1):
+    if head == 1:
+        x = df_obj.groupby(df_obj.index.date).nth(slice(start, end))
+    else:
+        x = df_obj.groupby([df_obj.index.date, np.where(df_obj.index.hour <= 12, 'AM', 'PM')]).nth(slice(start, end))
+    return x
+        
+        
+    
