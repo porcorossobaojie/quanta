@@ -81,6 +81,11 @@ class main:
         -----------------------------------------------------------------------
         """
         db().write(self._obj, table_name=table_name, if_exists=if_exists, index=index, log=log, **kwargs)
-
-    def write_parquet(self, path, file_name=None, log=True):
-        db().__write_parquet__(self._obj, path, file_name, log)
+        
+    def write_parquet(
+        self,
+        path,
+        file_name=None,
+        log=True
+    ):
+        db().__write_parquet__(self._obj, path=path, file_name=file_name, log=log)

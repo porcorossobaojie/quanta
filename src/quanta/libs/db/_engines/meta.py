@@ -7,6 +7,9 @@ Created on Tue Feb 10 20:00:09 2026
 import pandas as pd
 from pathlib import Path
 
+from pathlib import Path
+import pandas as pd
+
 from typing import Any, Callable, Dict, List, Optional, Type
 from ....libs.utils import filter_class_attrs, merge_dicts, timing_decorator
 
@@ -154,7 +157,7 @@ class main:
             return self.__class__(**parameters)
         else:
             [setattr(self, i, j) for i, j in parameters.items()]
-
+        
     @classmethod
     def __read_parquet__(cls, path, file_name=None):
         """
@@ -194,7 +197,7 @@ class main:
                 file_name = f"{file_name}.parquet"
             x = pd.read_parquet(f"{path}/{file_name}")
         else:
-            x = pd.read_parquet(path)
+            x = pd.read_parquet(f"{path}")
         return x
 
     @classmethod
