@@ -119,12 +119,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         -----------------------------------------------------------------------
         """
         path = Path(self.path) / self.parquet / self.table /f"date={date}"
-        df = self.__read_parquet__(path).iloc[:, :-1]
-        for i in df.columns[:2]:
-            df[i] = pd.CategoricalIndex(df[i])
-        df = df.set_index(df.columns[:2].to_list())
-        df.columns = pd.to_datetime(df.columns)
-        df.columns.name = self.trade_dt
+        df = self.__read_parquet__(path)
         df = df.T
         return df
     

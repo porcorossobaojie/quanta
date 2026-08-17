@@ -10,14 +10,14 @@ import jqdatasdk as jq
 from typing import Any, Literal, Optional, Union, Dict
 import pandas as pd
 from pathlib import Path
-
+"""
 from ..meta.mins import main as meta
 from ....config import settings
 
 """
 from quanta.data.joinquant.meta.mins import main as meta
 from quanta.config import settings
-"""
+
 config = settings('data')
 
 class main(meta):
@@ -82,7 +82,10 @@ class main(meta):
             except Exception:
                 df[ret_key] = df['close'] / df['preclose'] - 1
         df = df[df.drop([self.trade_dt, self.code], axis=1, errors='ignore').notnull().any(axis=1)]
-        df = df.set_index([self.trade_dt, self.code]).unstack(self.code).T.reset_index()
+        df.columns.name = 'values'
+        df.columns = pd.CategoricalIndex(df.columns)
+        df[self.code] = pd.CategoricalIndex(df[self.code])
+        df = df.set_index([self.trade_dt, self.code]).unstack(self.code).T.sort_index()
         return df
 
     def daily(self, if_exists: Literal['append', 'replace'] = 'append') -> None:
@@ -128,7 +131,7 @@ class main(meta):
             if jq.get_query_count()['spare'] > 10000000:
                 print(f"Update to date: {i.date()}; Query count left: {jq.get_query_count()['spare']}")
                 df = self.pipeline(start_date= str(i.date()), end_date=str(i.date()))
-                self.__write_parquet__(df, path=table_path/f"date={i.date()}", log=True)
+                df.db.write_parquet(path=table_path/f"date={i.date()}", log=True)
             else:
                 print("not enough token...")
                 break
