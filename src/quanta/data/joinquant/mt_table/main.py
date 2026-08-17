@@ -82,7 +82,10 @@ class main(meta):
             except Exception:
                 df[ret_key] = df['close'] / df['preclose'] - 1
         df = df[df.drop([self.trade_dt, self.code], axis=1, errors='ignore').notnull().any(axis=1)]
-        df = df.set_index([self.trade_dt, self.code]).unstack(self.code).T.reset_index()
+        df.columns = pd.CategoricalIndex(df.columns, name='values')
+        df[self.code] = pd.CategoricalIndex(df[self.code])
+        df[self.trade_dt] = pd.to_datetime(df[self.trade_dt])
+        df = df.set_index([self.trade_dt, self.code]).unstack(self.code).T.sort_index()
         return df
 
     def daily(self, if_exists: Literal['append', 'replace'] = 'append') -> None:

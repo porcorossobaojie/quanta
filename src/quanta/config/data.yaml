@@ -29,7 +29,7 @@ public_keys:
         key:
             <<: *base_key
             date_start: "2019-01-01"
-            time_bias: "0 hours"   
+            time_bias: "0 hours"
 
 tables:
     # =========================================================================
@@ -342,7 +342,7 @@ tables:
     # -------------------------------------------------------------------------
     # 按交易日期索引的表配置 (分钟级).
     # -------------------------------------------------------------------------
-    minute_table:           
+    minute_table:
         afundeodprices:
             table: afundeodprices
             periods: 1
@@ -370,8 +370,8 @@ tables:
                 jq.get_price(
                     jq.get_all_securities('fund', date='{end_date}').query('type == "etf"').index.tolist(),
                     fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close','paused'],
-                    start_date = '{start_date} : 00:00:00', 
-                    end_date = '{end_date} : 23:59:59', 
+                    start_date = '{start_date} : 00:00:00',
+                    end_date = '{end_date} : 23:59:59',
                     fq = None,
                     frequency = '1m',
                     skip_paused = False)
@@ -392,18 +392,17 @@ tables:
                 low_limit: {'low_limit': ['double(12, 2)', '跌停价(元)']}
                 avg: {'avgprice': ['double(12, 2)', 'VWAP(元)']}
                 pre_close: {'preclose': ['double(12, 2)', '昨收盘价(元)']}
-                paused: {'tradestatus': ['int(1)', '交易状态']}
                 returns: {'ret': ['double(10, 8)', '涨跌幅']}
             commands: >
                 jq.get_price(
                     jq.get_all_securities('stock', date='{end_date}').index.tolist(),
-                    fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close','paused'],
-                    start_date = '{start_date} : 00:00:00', 
-                    end_date = '{end_date} : 23:59:59', 
+                    fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close'],
+                    start_date = '{start_date} : 00:00:00',
+                    end_date = '{end_date} : 23:59:59',
                     fq = None,
                     frequency = '1m',
                     skip_paused = False)
-  
+
         aindexeodprices:
             table: aindexeodprices
             periods: 1
@@ -423,11 +422,9 @@ tables:
             commands: >
                 jq.get_price(
                     jq.get_all_securities('index', date='{end_date}').index.tolist(),
-                    fields = self.fields, 
-                    start_date = '{start_date} : 00:00:00', 
-                    end_date = '{end_date} : 23:59:59', 
-                    fq=None, 
-                    frequency = '1m', 
-                    skip_paused=False)        
-
-                 
+                    fields = self.fields,
+                    start_date = '{start_date} : 00:00:00',
+                    end_date = '{end_date} : 23:59:59',
+                    fq=None,
+                    frequency = '1m',
+                    skip_paused=False)

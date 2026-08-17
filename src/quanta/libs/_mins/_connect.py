@@ -87,7 +87,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         return attr
 
     def __read_from_db__(
-        self, 
+        self,
         date,
         ):
         """
@@ -119,20 +119,15 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         -----------------------------------------------------------------------
         """
         path = Path(self.path) / self.parquet / self.table /f"date={date}"
-        df = self.__read_parquet__(path).iloc[:, :-1]
-        for i in df.columns[:2]:
-            df[i] = pd.CategoricalIndex(df[i])
-        df = df.set_index(df.columns[:2].to_list())
-        df.columns = pd.to_datetime(df.columns)
-        df.columns.name = self.trade_dt
+        df = self.__read_parquet__(path)
         df = df.T
         return df
-    
+
     @property
     def window(self) -> int:
         """Returns the current rolling window size | 返回当前滚动窗口大小"""
         if not hasattr(self, '_internal_data'):
-            self._internal_data = LRUCache(1)   
+            self._internal_data = LRUCache(1)
             return 1
         else:
             return self._internal_data.maxsize
@@ -148,7 +143,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
     @property
     def start(self):
         return min(self._internal_data.keys()) if len(self._internal_data.keys()) else None
-    
+
     @property
     def end(self):
         return max(self._internal_data.keys()) if len(self._internal_data.keys()) else None
@@ -159,7 +154,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         if not hasattr(self, '_internal_data'):
             self._internal_data = LRUCache(1)
         return self._internal_data
-        
+
     def __read_from_internal__(
         self,
         dates: pd.Series
@@ -225,7 +220,4 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         x = list(x.values())
         x = x[0] if len(x) == 1 else pd.concat(x)
         self.window = window
-        return x        
-        
-        
-        
+        return x
