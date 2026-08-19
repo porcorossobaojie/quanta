@@ -18,7 +18,7 @@ from ...db._data_type_standard import data_trans
 config = settings('libs').db.DuckDB
 
 
-class main(meta, type('', (), config.recommand_settings)):
+class main(meta, type('', (), config.recommend_settings)):
     """
     ===========================================================================
     DuckDB database engine implementation.
@@ -35,7 +35,7 @@ class main(meta, type('', (), config.recommand_settings)):
     @classmethod
     def __reset__ (cls) -> None:
         """Resets class settings to configured defaults | 将类设置重置为配置的默认值"""
-        [setattr(cls, i, j) for i,j in  config.recommand_settings.items()]
+        [setattr(cls, i, j) for i,j in  config.recommend_settings.items()]
 
     @classmethod
     def __engine__(cls, **kwargs: Any) -> duckdb.DuckDBPyConnection:
@@ -110,7 +110,7 @@ class main(meta, type('', (), config.recommand_settings)):
     @classmethod
     def __data_trans__(cls, str_obj: str) -> str:
         """Translates data types to DuckDB standard | 将数据类型转换为 DuckDB 标准"""
-        return data_trans(str_obj, recommand_settings='DuckDB')
+        return data_trans(str_obj, recommend_settings='DuckDB')
 
     def __columns_connect__(
         cls,

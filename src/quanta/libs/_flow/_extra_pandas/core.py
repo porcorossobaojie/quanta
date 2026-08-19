@@ -14,8 +14,8 @@ from quanta.libs._flow._main import __instance__
 from quanta.config import settings
 from quanta.libs.utils import dict_to_dataclass
 
-col_info = settings('data').public_keys.recommand_settings.key
-portfolio_types = settings('data').public_keys.recommand_settings.portfolio_types
+col_info = settings('data').public_keys.recommend_settings.key
+portfolio_types = settings('data').public_keys.recommend_settings.portfolio_types
 config = settings('flow')
 
 @lru_cache(maxsize=4)

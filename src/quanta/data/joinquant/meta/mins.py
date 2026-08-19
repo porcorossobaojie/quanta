@@ -16,7 +16,7 @@ from ....config import settings
 
 config = settings('data')
 
-class main(common, type('recommand_settings', (), config.public_keys.minfreq_settings.key), db):
+class main(common, type('recommend_settings', (), config.public_keys.minfreq_settings.key), db):
     """
     ===========================================================================
     Minute-frequency metadata and connection class for JoinQuant data

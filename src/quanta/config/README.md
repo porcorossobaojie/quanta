@@ -39,7 +39,7 @@ Implementation
         
         # Access data settings
         data_cfg = settings('data')
-        trade_dt = data_cfg.public_keys.recommand_settings.key.trade_dt
+        trade_dt = data_cfg.public_keys.recommend_settings.key.trade_dt
 
 ---
 
@@ -83,4 +83,4 @@ libs.yaml
         
         # 访问数据配置
         data_cfg = settings('data')
-        trade_dt = data_cfg.public_keys.recommand_settings.key.trade_dt
+        trade_dt = data_cfg.public_keys.recommend_settings.key.trade_dt

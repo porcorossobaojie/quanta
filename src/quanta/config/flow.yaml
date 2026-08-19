@@ -79,7 +79,7 @@ cap:
     settle_price: close
     unit_types: [weight, share, assets]
     state_types: [signal, order, trade, settle]
-    recommand_settings:
+    recommend_settings:
         is_adj: True
         trade_cost: 0.00075
         untrade_limit: 0.01

@@ -11,7 +11,7 @@ from ...config import settings
 
 config = settings('libs').db
 ENGINES = {'DuckDB': DuckDB, 'MySQL': MySQL}
-meta = ENGINES.get(config.recommand_settings)
+meta = ENGINES.get(config.recommend_settings)
 
 __all__ = ['main']
 
@@ -30,7 +30,7 @@ class main(meta):
     此类根据配置的设置动态地将调用分派给相应的数据库实现 (MySQL 或 DuckDB).
     ---------------------------------------------------------------------------
     """
-    engine_type = config.recommand_settings
+    engine_type = config.recommend_settings
 
     def __init__(self, **kwargs) -> None:
         """Initializes the database facade with keyword attributes | 用关键字属性初始化数据库门面"""

@@ -19,7 +19,7 @@ from .._data_type_standard import data_trans
 
 config = settings('libs').db.MySQL
 
-class main(meta, type('', (), config.recommand_settings)):
+class main(meta, type('', (), config.recommend_settings)):
     """
     ===========================================================================
     MySQL database engine implementation.
@@ -81,7 +81,7 @@ class main(meta, type('', (), config.recommand_settings)):
             fetchall() 的结果.
         -----------------------------------------------------------------------
         """
-        parameters = {i: config.recommand_settings[i] for i in ['host', 'port', 'user', 'password', 'charset', 'schema']}
+        parameters = {i: config.recommend_settings[i] for i in ['host', 'port', 'user', 'password', 'charset', 'schema']}
         parameters.update(kwargs)
         parameters['db'] = parameters.pop('schema')
 
@@ -117,7 +117,7 @@ class main(meta, type('', (), config.recommand_settings)):
     @classmethod
     def __data_trans__(cls, str_obj: str) -> str:
         """Translates data types to MySQL standard | 将数据类型转换为 MySQL 标准"""
-        return data_trans(str_obj, recommand_settings='MySQL')
+        return data_trans(str_obj, recommend_settings='MySQL')
 
     def __columns_connect__(
         cls,

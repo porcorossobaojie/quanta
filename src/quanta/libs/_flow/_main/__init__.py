@@ -1,5 +1,5 @@
 from ....config import settings as _settings
-_portfolio_types = _settings('data').public_keys.recommand_settings.portfolio_types
+_portfolio_types = _settings('data').public_keys.recommend_settings.portfolio_types
 
 from ._base import main as _meta
 from ._connect import main as _calendar

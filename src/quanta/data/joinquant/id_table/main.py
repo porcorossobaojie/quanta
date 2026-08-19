@@ -97,7 +97,7 @@ class main(meta):
         """
         df = self.__data_standard__(df, date=self.report_period)
         df = df.rename({self.report_period: self.trade_dt}, axis=1)
-        df[self.trade_dt] = pd.to_datetime(df[self.trade_dt]) + pd.Timedelta(config.tables.recommand_settings.time_bias)
+        df[self.trade_dt] = pd.to_datetime(df[self.trade_dt]) + pd.Timedelta(config.tables.recommend_settings.time_bias)
         return df
 
     def daily(self, if_exists: Literal['append', 'replace'] = 'append') -> None:

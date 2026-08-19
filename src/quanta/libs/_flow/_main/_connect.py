@@ -15,10 +15,10 @@ from ...utils import calendar as cal
 
 
 config = settings('data').public_keys
-columns_info = config.recommand_settings.key
+columns_info = config.recommend_settings.key
 
 
-class main(db, type('public_keys', (), config.recommand_settings.key)):
+class main(db, type('public_keys', (), config.recommend_settings.key)):
     """
     ===========================================================================
     A specialized database connection class for financial data flow,
@@ -27,11 +27,11 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
     用于金融数据流的专用数据库连接类, 继承自基础数据库类和动态公共键.
     ---------------------------------------------------------------------------
     """
-    time_bias = pd.Timedelta(config.recommand_settings.time_bias)
-    start_date = pd.to_datetime(settings('flow').start_date) + pd.Timedelta(config.recommand_settings.time_bias)
+    time_bias = pd.Timedelta(config.recommend_settings.time_bias)
+    start_date = pd.to_datetime(settings('flow').start_date) + pd.Timedelta(config.recommend_settings.time_bias)
     calendar = cal(
         start = pd.to_datetime(settings('flow').start_date), 
-        daily_bias = config.recommand_settings.time_bias,
+        daily_bias = config.recommend_settings.time_bias,
         name = columns_info.trade_dt,
         baktable = 'aindexeodprices'
     )
@@ -100,7 +100,7 @@ class main(db, type('public_keys', (), config.recommand_settings.key)):
             识别出的投资组合类型 (例如 'astock', 'afund').
         -----------------------------------------------------------------------
         """
-        for i in config.recommand_settings.portfolio_types:
+        for i in config.recommend_settings.portfolio_types:
             if i in self.table:
                 return i
         return None

@@ -13,7 +13,7 @@ from quanta.libs._mins._connect import main as meta_table
 from quanta.config import settings
 
 TABLE_DIC = {i: {} for i in settings('data').public_keys.minfreq_settings.portfolio_types}
-table_info = settings('libs').db.DuckDB.recommand_settings
+table_info = settings('libs').db.DuckDB.recommend_settings
 TABLES = [i.name for i in (Path(table_info.path) / table_info.parquet).iterdir() if i.is_dir()]
 
 for table in TABLES:

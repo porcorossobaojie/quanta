@@ -14,7 +14,7 @@ from quanta.trade import pipeline
 from quanta.config import settings
 
 #char = settings('trade').strategy_001.BJ_13611823855
-config = settings('data').public_keys.recommand_settings
+config = settings('data').public_keys.recommend_settings
 
 __all__ = ['main']
 

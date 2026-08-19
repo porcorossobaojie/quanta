@@ -84,7 +84,7 @@ class Unit:
             是否计算交易成本. 默认为 True.
         -----------------------------------------------------------------------
         """
-        series_instance = Series._config.recommand_settings.to_dict()
+        series_instance = Series._config.recommend_settings.to_dict()
         series_instance.update(
             {k: v for k, v in [('cash', cash), ('trade_cost', trade_cost)] if v is not None}
         )

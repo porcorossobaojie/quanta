@@ -69,7 +69,7 @@ class main(meta):
         -----------------------------------------------------------------------
         """
         df = self.__data_standard__(df, **kwargs)
-        df[self.trade_dt] = pd.to_datetime(kwargs.get('start_date')) + pd.Timedelta(pd.Timedelta(config.tables.recommand_settings.time_bias))
+        df[self.trade_dt] = pd.to_datetime(kwargs.get('start_date')) + pd.Timedelta(pd.Timedelta(config.tables.recommend_settings.time_bias))
         df[list(self.columns_information.get('weight').keys())[0]] = df[list(self.columns_information.get('weight').keys())[0]] / 100
         return df
 

@@ -13,7 +13,7 @@ __all__ = ['data_trans']
 
 def data_trans(
     data_type: str,
-    recommand_settings: Optional[str] = None
+    recommend_settings: Optional[str] = None
 ) -> str:
     """
     ===========================================================================
@@ -23,7 +23,7 @@ def data_trans(
     ----------
     data_type : str
         The source data type, possibly with a size argument (e.g., 'VARCHAR(10)').
-    recommand_settings : Optional[str]
+    recommend_settings : Optional[str]
         The target engine name. Default is None (configured engine).
 
     Returns
@@ -37,7 +37,7 @@ def data_trans(
     ----
     data_type : str
         源数据类型, 可能带大小参数 (例如 'VARCHAR(10)').
-    recommand_settings : Optional[str]
+    recommend_settings : Optional[str]
         目标引擎名称. 默认为 None (配置的引擎).
 
     返回
@@ -48,8 +48,8 @@ def data_trans(
     """
     parts = data_type.split('(')
     base_type = parts[0].upper()
-    recommand_settings = config.recommand_settings if recommand_settings is None else recommand_settings
-    dic = config[recommand_settings].data_type.to_dict()
+    recommend_settings = config.recommend_settings if recommend_settings is None else recommend_settings
+    dic = config[recommend_settings].data_type.to_dict()
     translated_type = dic.get(base_type, dic['UNDIFINED'])
     if len(parts) > 1 and (translated_type in dic['MPS']):
         return f"{translated_type}({parts[1]}"

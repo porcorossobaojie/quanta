@@ -50,7 +50,7 @@ class common:
             投资组合类型 (例如 'astock', 'afund').
         -----------------------------------------------------------------------
         """
-        for i in config.public_keys.recommand_settings.portfolio_types:
+        for i in config.public_keys.recommend_settings.portfolio_types:
             if i in self.table:
                 return i
         return 'other'

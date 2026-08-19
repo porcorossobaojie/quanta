@@ -11,7 +11,7 @@ db:
     # -------------------------------------------------------------------------
     # 默认全局数据库设置.
     # -------------------------------------------------------------------------
-    recommand_settings: None
+    recommend_settings: None
 
     # =========================================================================
     # Configuration for DuckDB local analytical database.
@@ -19,7 +19,7 @@ db:
     # DuckDB 本地分析型数据库配置.
     # -------------------------------------------------------------------------
     DuckDB:
-        recommand_settings:
+        recommend_settings:
             path: None
             database: Locals
             schema: jq_data
@@ -52,7 +52,7 @@ db:
     # MySQL 生产数据库配置.
     # -------------------------------------------------------------------------
     MySQL:
-        recommand_settings:
+        recommend_settings:
             user: user
             password: password
             mysql_connect: 'mysql+pymysql://'

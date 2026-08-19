@@ -21,7 +21,7 @@ from ....libs.utils import calendar as cal
 config = settings('data').public_keys
 columns_info = config.minfreq_settings.key
 
-class main(type('recommand_settings', (), config.minfreq_settings.key), db):
+class main(type('recommend_settings', (), config.minfreq_settings.key), db):
     """
     ===========================================================================
     A specialized database connection class for financial data flow,
@@ -57,7 +57,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
             识别出的投资组合类型 (例如 'astock', 'afund').
         -----------------------------------------------------------------------
         """
-        for i in config.recommand_settings.portfolio_types:
+        for i in config.recommend_settings.portfolio_types:
             if i in self.table:
                 return i
         return 'other'

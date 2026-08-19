@@ -47,7 +47,7 @@ class Series(pd.Series):
     """
     _internal_names = pd.Series._internal_names + []
     _internal_names_set = set(_internal_names)
-    _metadata = pd.Series._metadata  + [f'_{i}' for i in config.recommand_settings.keys()]
+    _metadata = pd.Series._metadata  + [f'_{i}' for i in config.recommend_settings.keys()]
     _config = config
 
     def __repr__(self) -> str:
@@ -80,7 +80,7 @@ class Series(pd.Series):
         init_config = settings('flow').cap
         cls._config.clear()
         cls._config.update(init_config)
-        cls._metadata = pd.Series._metadata + [f'_{i}' for i in cls._config.recommand_settings.keys()]
+        cls._metadata = pd.Series._metadata + [f'_{i}' for i in cls._config.recommend_settings.keys()]
 
     @classmethod
     @lru_cache(maxsize=16)
@@ -279,7 +279,7 @@ class Series(pd.Series):
         **kwargs: Any
     ) -> None:
         """Initializes Series with data and attributes | 使用数据和属性初始化 Series"""
-        params = config.recommand_settings.to_dict() | kwargs
+        params = config.recommend_settings.to_dict() | kwargs
         [setattr(self, f'_{i}',j) for i,j in params.items()]
         super().__init__(data, index, dtype, name, copy, fastpath)
 

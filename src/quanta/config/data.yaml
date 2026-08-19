@@ -11,7 +11,7 @@ public_keys:
     # -------------------------------------------------------------------------
     # 推荐的公共键设置, 用于跨模块数据对齐.
     # -------------------------------------------------------------------------
-    recommand_settings: &recommand_settings
+    recommend_settings: &recommend_settings
         portfolio_types: [astock, afund, aindex]
         date_start:  "2010-01-01"
         time_bias: "15 hours"
@@ -37,8 +37,8 @@ tables:
     # -------------------------------------------------------------------------
     # 全局表管理设置, 包括主键和分区规则.
     # -------------------------------------------------------------------------
-    recommand_settings:
-        <<: *recommand_settings
+    recommend_settings:
+        <<: *recommend_settings
         key:
             <<: *base_key
             id_key: id_key

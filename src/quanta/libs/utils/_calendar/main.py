@@ -84,7 +84,7 @@ class main():
         except Exception:
             trade_days = db().__read__(
                 table = self.baktable,
-                columns = name).iloc[:, 0] - pd.Timedelta(settings('data').public_keys.recommand_settings.time_bias)
+                columns = name).iloc[:, 0] - pd.Timedelta(settings('data').public_keys.recommend_settings.time_bias)
             trade_days = pd.to_datetime(
                 sorted(
                     trade_days[trade_days >= pd.to_datetime(start)].unique()

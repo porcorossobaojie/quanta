@@ -16,7 +16,7 @@ from ....config import settings
 config = settings('data')
 
 
-class main(common, db, type('recommand_settings', (), config.tables.recommand_settings.key)):
+class main(common, db, type('recommend_settings', (), config.tables.recommend_settings.key)):
     """
     ===========================================================================
     Base metadata and connection class for JoinQuant data extraction,
@@ -52,7 +52,7 @@ class main(common, db, type('recommand_settings', (), config.tables.recommand_se
         _fund = jq.get_all_securities('fund', date=None)
         self._fund = _fund[_fund.iloc[:, -1] == 'etf'].index.tolist()
         self._index = jq.get_all_securities('index', date=None).index.tolist()
-        _trade_days = pd.to_datetime(jq.get_trade_days('2005-01-01')) + pd.Timedelta(config.tables.recommand_settings.time_bias)
+        _trade_days = pd.to_datetime(jq.get_trade_days('2005-01-01')) + pd.Timedelta(config.tables.recommend_settings.time_bias)
         self._trade_days = _trade_days[_trade_days <= pd.Timestamp.today() - pd.Timedelta(4, 'h')]
 
     def __data_standard__(self, df: pd.DataFrame, **kwargs: Any) -> pd.DataFrame:
@@ -93,10 +93,10 @@ class main(common, db, type('recommand_settings', (), config.tables.recommand_se
         # add time bias on trade_dt or ann_dt
         for i in [self.ann_dt, self.trade_dt]:
             if i in df.columns:
-                df[i] = pd.to_datetime(df[i]) + pd.Timedelta(config.tables.recommand_settings.time_bias)
+                df[i] = pd.to_datetime(df[i]) + pd.Timedelta(config.tables.recommend_settings.time_bias)
             if (i not in df.columns) and i in self.columns.keys():
                 try:
-                    df[i] = pd.to_datetime(kwargs['start_date']) + pd.Timedelta(config.tables.recommand_settings.time_bias)
+                    df[i] = pd.to_datetime(kwargs['start_date']) + pd.Timedelta(config.tables.recommend_settings.time_bias)
                 except KeyError:
                     pass
         # replace nan and standard codes
@@ -155,7 +155,7 @@ class main(common, db, type('recommand_settings', (), config.tables.recommand_se
 
         if id_key is None:
             if 'DATE' in self.columns.get(columns, ['None'])[0].upper():
-                id_key = pd.to_datetime(getattr(self, 'date_start', config.tables.recommand_settings.date_start))
+                id_key = pd.to_datetime(getattr(self, 'date_start', config.tables.recommend_settings.date_start))
             else:
                 id_key = 0
         return id_key
@@ -227,7 +227,7 @@ class main(common, db, type('recommand_settings', (), config.tables.recommand_se
                 if self.trade_dt not in self.columns.keys()
                 else self.trade_dt
             )
-            partition = None if keys != self.trade_dt else {self.trade_dt: eval(config.tables.recommand_settings.key.partition)}
+            partition = None if keys != self.trade_dt else {self.trade_dt: eval(config.tables.recommend_settings.key.partition)}
             parameters = (
                 self.__parameters__()
                 | {'keys': keys, 'partition': partition}

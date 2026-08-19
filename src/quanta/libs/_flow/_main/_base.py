@@ -12,7 +12,7 @@ from typing import Optional, Union, List, Dict, Any
 from ._connect import main as meta_table
 from ....config import settings
 
-table_info = settings('data').public_keys.recommand_settings
+table_info = settings('data').public_keys.recommend_settings
 config = settings('flow')
 
 # Global dictionary to map portfolio types to their respective tables
@@ -224,7 +224,7 @@ class main():
         else:
             for i in range(0, df.columns.nlevels, -1):
                 if df.columns.get_level_values(i).unique() == 1:
-                    df.columns = df.colums.droplevel(i)
+                    df.columns = df.columns.droplevel(i)
             return df
 
     def finance(
