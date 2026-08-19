@@ -5,12 +5,11 @@ Created on Wed Feb  4 14:01:26 2026
 @author: Porco Rosso
 """
 
-from typing import Optional, Dict, Any, List, Tuple, Callable
+from typing import Optional, Any, Callable
 from functools import wraps
 import time
 
 __all__ = ['timing_decorator', 'doc_inherit', 'lru_cache']
-
 
 def doc_inherit(source_func: Any) -> Callable:
     """
@@ -46,7 +45,6 @@ def doc_inherit(source_func: Any) -> Callable:
         target_func.__doc__ = source_func.__doc__
         return target_func
     return decorator
-
 
 def timing_decorator(
     schema: Optional[str] = None,

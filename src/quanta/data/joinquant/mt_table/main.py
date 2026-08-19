@@ -7,7 +7,7 @@ Created on Wed Aug 12 14:13:20 2026
 import shutil
 import os
 import jqdatasdk as jq
-from typing import Any, Literal, Optional, Union, Dict
+from typing import Any, Literal
 import pandas as pd
 from pathlib import Path
 """

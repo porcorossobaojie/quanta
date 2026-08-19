@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from numba import njit, prange
 from itertools import product
-from typing import Optional, Dict, List, Union
+from typing import Dict, List, Union
 
 from ..tools.core import fillna as fillna_func
 

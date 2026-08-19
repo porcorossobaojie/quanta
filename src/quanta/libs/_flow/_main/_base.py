@@ -5,8 +5,7 @@ Created on Sat Feb 14 14:51:56 2026
 @author: Porco Rosso
 """
 import pandas as pd
-import numpy as np
-from functools import reduce
+
 from functools import lru_cache
 from typing import Optional, Union, List, Dict, Any
 

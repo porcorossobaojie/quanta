@@ -5,7 +5,6 @@ Created on Wed Feb  4 17:59:34 2026
 @author: Porco Rosso
 """
 
-import numpy as np
 import pandas as pd
 from .core import *
 from ...utils._decorator import doc_inherit

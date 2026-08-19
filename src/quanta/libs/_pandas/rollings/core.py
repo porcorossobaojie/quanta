@@ -7,12 +7,11 @@ Created on Wed Feb  4 22:19:47 2026
 
 import numpy as np
 import pandas as pd
-from typing import Optional, Dict, Any, List, Union, Callable
+from typing import Optional, Any, Callable
 
-from .base import ts_argsort_unit, ts_rank_unit, ts_sort_unit
+from .base import ts_rank_unit, ts_sort_unit
 
 __all__ = ['_rolls']
-
 
 class _meta():
     """
@@ -282,7 +281,6 @@ class _meta():
         """
         return self._rolling_obj(array_obj, pct=None, group_func=group_func, **kwargs)
 
-
 class _max(_meta):
     """
     ===========================================================================
@@ -459,7 +457,6 @@ class _max(_meta):
         x = self._rolling_obj(self._masked_obj, False, None)
         return x
 
-
 class _min(_max, _meta):
     """
     ===========================================================================
@@ -501,7 +498,6 @@ class _min(_max, _meta):
         -----------------------------------------------------------------------
         """
         _meta.__init__(self, df_obj, window, min_periods, ts_sort_unit, True)
-
 
 class _rank(_meta):
     """
@@ -580,7 +576,6 @@ class _rank(_meta):
         x = x.reindex(self._obj.index)
         x = x[self._min_periods_mask >= self.min_periods]
         return x
-
 
 class _rolls():
     """

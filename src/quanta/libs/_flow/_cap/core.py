@@ -8,7 +8,7 @@ Created on Fri Mar  6 10:52:40 2026
 from box import Box
 import pandas as pd
 from functools import lru_cache
-from typing import Optional, Union, Dict, Any
+from typing import Optional, Union, Dict
 from .base import Series, DataFrame
 
 __all__ = ['Series', 'DataFrame', 'Unit', 'Chain']
@@ -116,7 +116,6 @@ class Unit:
                 cash = 0
             )
         self.signal = signal
-
 
         if target is not None and not isinstance(target, Series):
             target = Series(target, cash=0, unit='weight', state='settle')
@@ -526,7 +525,6 @@ class Chain:
             self._internal_data = dic
         print(unit_obj.settle.name, round(unit_obj.settle.total_assets(), 4))
         return dic
-
 
     @property
     @lru_cache(maxsize=1)

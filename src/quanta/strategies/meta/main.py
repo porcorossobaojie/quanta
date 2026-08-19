@@ -5,16 +5,13 @@ Created on Fri Mar 20 11:36:01 2026
 @author: Porco Rosso
 """
 
-import numpy as np
 import pandas as pd
 from typing import Optional, List
 from quanta.libs.utils import lru_cache
 
-from quanta import flow, faclib
-from quanta.config import settings
+from quanta import faclib
 #char = settings('trade').strategy_001.BJ_13611823855
 from quanta.trade import account
-
 
 class main:
     """

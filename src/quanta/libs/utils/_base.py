@@ -8,10 +8,9 @@ Created on Wed Feb  4 13:58:29 2026
 from pprint import pformat
 import pandas as pd
 from typing import Dict, List, Any, Type
-from dataclasses import dataclass, make_dataclass
+from dataclasses import make_dataclass
 
 __all__ = ['filter_class_attrs', 'filter_parents_class_attrs', 'merge_dicts', 'flatten_list', 'dict_to_dataclass']
-
 
 def filter_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
     """
@@ -51,7 +50,6 @@ def filter_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
         if not check_double_underscore(i)
     }
     return dic
-
 
 def filter_parents_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
     """
@@ -104,7 +102,6 @@ def filter_parents_class_attrs(class_object: Type[Any]) -> Dict[str, Any]:
 
     return all_attrs
 
-
 def merge_dicts(*dicts: Dict[str, Any]) -> Dict[str, Any]:
     """
     ===========================================================================
@@ -148,7 +145,6 @@ def merge_dicts(*dicts: Dict[str, Any]) -> Dict[str, Any]:
     return {
         key: get_non_none_value(key) for key in all_keys
     }
-
 
 def flatten_list(lst: List[Any]) -> List[Any]:
     """

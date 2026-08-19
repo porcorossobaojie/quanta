@@ -5,7 +5,6 @@ Created on Thu Mar 19 15:17:07 2026
 @author: Porco Rosso
 """
 
-import numpy as np
 import pandas as pd
 
 from quanta.config import settings

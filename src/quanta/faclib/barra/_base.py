@@ -5,7 +5,6 @@ Created on Fri Mar 13 13:31:33 2026
 @author: Porco Rosso
 """
 from functools import lru_cache
-import numexpr as ne
 import numpy as np
 import pandas as pd
 
@@ -759,8 +758,3 @@ class main(meta):
         """Calculate dividend payout. | 计算股息支付."""
         df = flow.astock(cls.finance.dividend)
         return df
-
-    # Deprecated aliases for backward compatibility | 向后兼容的旧拼写别名
-    annul_weight_turnover = annual_weight_turnover
-    relative_strengh = relative_strength
-    long_relative_strengh = long_relative_strength

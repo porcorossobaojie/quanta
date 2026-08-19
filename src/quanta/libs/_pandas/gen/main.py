@@ -7,12 +7,11 @@ Created on Wed Feb  4 21:49:44 2026
 
 import numpy as np
 import pandas as pd
-from typing import Union, Optional, Any, List, Dict
+from typing import Union, Optional, List, Dict
 from .core import *
 from ...utils._decorator import doc_inherit
 
 MODULE_DIR = __name__.split('.')[-2]
-
 
 @pd.api.extensions.register_dataframe_accessor(MODULE_DIR)
 class main():

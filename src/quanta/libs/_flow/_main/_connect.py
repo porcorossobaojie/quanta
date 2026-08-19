@@ -6,19 +6,12 @@ Created on Fri Feb 13 14:11:56 2026
 """
 
 from functools import lru_cache
-from typing import Literal, Optional, Union, List, Dict, Any, Tuple
+from typing import Optional, Union, List, Dict, Any
 import pandas as pd
-import numpy as np
 
 from ...db.main import main as db
-from ....config import settings, login_info
+from ....config import settings
 from ...utils import calendar as cal
-
-"""
-from quanta.libs.db.main import main as db
-from quanta.config import settings, login_info
-from quanta.libs.utils import calendar as cal
-"""
 
 
 config = settings('data').public_keys

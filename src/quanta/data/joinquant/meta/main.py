@@ -5,14 +5,13 @@ Created on Thu Feb 12 15:43:22 2026
 @author: Porco Rosso
 """
 
-from typing import Any, Dict, List, Union, Optional
+from typing import Any, Union
 import numpy as np
 import pandas as pd
 import jqdatasdk as jq
-from ....libs.utils import merge_dicts
 from ....libs.db.main import main as db
 from ._common import common
-from ....config import settings, login_info
+from ....config import settings
 
 config = settings('data')
 

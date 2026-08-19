@@ -4,21 +4,15 @@ Created on Wed Aug 12 12:30:31 2026
 
 @author: Porco Rosso
 """
-from typing import Any, Dict, List, Union, Optional
+from typing import Any
 import numpy as np
 import pandas as pd
 import jqdatasdk as jq
 
-from ....libs.utils import merge_dicts, calendar
+from ....libs.utils import calendar
 from ....libs.db.main import main as db
 from ._common import common
-from ....config import settings, login_info
-
-"""
-from quanta.libs.utils import merge_dicts, calendar
-from quanta.libs.db.main import main as db
-from quanta.config import settings, login_info
-"""
+from ....config import settings
 
 config = settings('data')
 

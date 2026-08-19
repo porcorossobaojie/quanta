@@ -7,7 +7,7 @@ Created on Tue Feb 10 17:59:58 2026
 
 import inspect
 from datetime import datetime
-from typing import Literal, Optional, Union, List, Dict, Any, Tuple
+from typing import Literal, Optional, Union, List, Dict, Any
 import pandas as pd
 from sqlalchemy import create_engine
 import pymysql
@@ -18,7 +18,6 @@ from .._engines.meta import main as meta
 from .._data_type_standard import data_trans
 
 config = settings('libs').db.MySQL
-
 
 class main(meta, type('', (), config.recommand_settings)):
     """

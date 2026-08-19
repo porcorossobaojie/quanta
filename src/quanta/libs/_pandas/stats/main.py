@@ -8,11 +8,10 @@ Created on Wed Feb  4 22:29:28 2026
 import statsmodels as sm
 import numpy as np
 import pandas as pd
-from typing import Optional, Union, Tuple, List, Dict, Any, Callable
+from typing import Optional, Union, Tuple, List, Dict, Any
 from .core import *
 from ...utils._decorator import doc_inherit
 MODULE_DIR = __name__.split('.')[-2]
-
 
 @pd.api.extensions.register_dataframe_accessor(MODULE_DIR)
 class main():

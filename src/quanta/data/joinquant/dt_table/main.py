@@ -6,7 +6,7 @@ Created on Fri Feb  6 15:33:11 2026
 """
 
 import jqdatasdk as jq
-from typing import Any, Literal, Optional, Union, Dict
+from typing import Any, Literal
 import pandas as pd
 
 from ..meta.main import main as meta

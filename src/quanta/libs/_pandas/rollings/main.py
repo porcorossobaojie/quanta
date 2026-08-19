@@ -5,14 +5,11 @@ Created on Wed Feb  4 22:19:29 2026
 @author: Porco Rosso
 """
 
-import numpy as np
 import pandas as pd
-from typing import Union, Optional
+from typing import Optional
 from .core import _rolls as rolls
-from ....libs.utils._decorator import doc_inherit
 
 MODULE_DIR = __name__.split('.')[-2]
-
 
 @pd.api.extensions.register_series_accessor(MODULE_DIR)
 class main:
@@ -66,7 +63,6 @@ class main:
         """
         x = rolls(self._obj, window, min_periods)
         return x
-
 
 @pd.api.extensions.register_dataframe_accessor(MODULE_DIR)
 class main():

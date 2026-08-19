@@ -8,9 +8,8 @@ Created on Fri Feb 20 15:40:15 2026
 import numpy as np
 import pandas as pd
 
-from dataclasses import dataclass, make_dataclass
 from functools import lru_cache
-from typing import Optional, Union, List, Dict, Any, Tuple
+from typing import Optional, Union, Dict, Any, Tuple
 from quanta.libs._flow._main import __instance__
 from quanta.config import settings
 from quanta.libs.utils import dict_to_dataclass
@@ -18,7 +17,6 @@ from quanta.libs.utils import dict_to_dataclass
 col_info = settings('data').public_keys.recommand_settings.key
 portfolio_types = settings('data').public_keys.recommand_settings.portfolio_types
 config = settings('flow')
-
 
 @lru_cache(maxsize=4)
 def industry(code: str) -> Dict[str, pd.DataFrame]:
@@ -93,7 +91,6 @@ def listing(
     ins = __instance__.get(portfolio_type).listing(listing_limit)
     return ins
 
-
 @lru_cache(maxsize=8)
 def not_st(
     value: int = 1,
@@ -132,7 +129,6 @@ def not_st(
     """
     ins = __instance__.get(portfolio_type).not_st(value)
     return ins
-
 
 @lru_cache(maxsize=8)
 def enstatus(
@@ -181,7 +177,6 @@ def enstatus(
         min_periods = periods // 2 if min_periods is None else min_periods
         ins = ins & (ins.rolling(periods, min_periods=1).sum() > min_periods)
     return ins
-
 
 @lru_cache(maxsize=8)
 def filtered(
@@ -252,7 +247,6 @@ def filtered(
     dic = dic >= count
     return dic
 
-
 @lru_cache(maxsize=8)
 def index_members(index_code: Optional[str] = None) -> pd.DataFrame:
     """
@@ -292,7 +286,6 @@ def index_members(index_code: Optional[str] = None) -> pd.DataFrame:
             raise ValueError(f'Undefined index_code: {index_code}')
         x = __instance__.get('aindex').multilize(col_info.astock_code)[code]
     return x
-
 
 def label(
     code: Optional[str] = None,
@@ -345,7 +338,6 @@ def label(
         x = x.notnull()
     return x
 
-
 def expand(
     df: pd.DataFrame,
     target_df: pd.DataFrame,
@@ -392,7 +384,6 @@ def expand(
     x.columns = target_df.columns
     return x
 
-
 def info(
     df_obj: pd.DataFrame,
     column: str,
@@ -436,7 +427,6 @@ def info(
     portfolio_type = df_obj.columns.name.split('_')[0] if portfolio_type is None else portfolio_type
     df = __instance__.get(portfolio_type)(column).reindex_like(df_obj)
     return df
-
 
 def series_info(
     series_obj: pd.Series,
@@ -486,7 +476,6 @@ def series_info(
     except Exception:
         df = __instance__.get(portfolio_type)(column, **kwargs).reindex(series_obj.index, axis=1)
     return df
-
 
 def day_shift(
     series_obj: pd.Series,
@@ -542,7 +531,6 @@ def day_shift(
         series_obj.name = day
         return series_obj
 
-
 def parameter_standard(
     parameters: pd.DataFrame,
     sub: float = 0.95,
@@ -585,7 +573,6 @@ def parameter_standard(
     """
     x = (np.exp(parameters) - sub) / (1 + np.exp(parameters))
     return x
-
 
 def merge(
     *factors: pd.DataFrame,
@@ -647,7 +634,6 @@ def merge(
         factors_dict[i] = factors_dict[i].mul(parameters, axis=0)
     factors_merged = pd.concat(factors_dict, axis=1).groupby(factors[0].columns.name, axis=1).mean()
     return factors_merged
-
 
 def port(
     df_obj: pd.DataFrame,
@@ -712,7 +698,6 @@ def port(
     x = df_obj.gen.group().gen.portfolio(ret).loc['2017':]
     return x
 
-
 def trend(
     df_obj: pd.DataFrame,
     periods: int = 21
@@ -752,7 +737,6 @@ def trend(
     x = pd.DataFrame(np.tile(range(df_obj.shape[0]), (df_obj.shape[1], 1)).T, index=df_obj.index, columns=df_obj.columns)
     x = df_obj.rolling(periods, min_periods=periods//4).corr(x)
     return x
-
 
 def ic(
     df_obj: pd.DataFrame,

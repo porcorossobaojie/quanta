@@ -12,9 +12,8 @@ import numpy as np
 import pandas as pd
 from functools import partial
 import statsmodels.api as sm
-from typing import Optional, Union, Tuple, List, Dict, Any, Callable
+from typing import Optional, Union, Tuple, List, Dict, Any
 
-import numba
 from numba import njit, prange
 from numpy.lib.stride_tricks import sliding_window_view
 from ....libs.utils import dict_to_dataclass
@@ -68,7 +67,6 @@ def z(
     else:
         x = df_obj.rolling(periods, min_periods=(periods // 4) if min_periods is None else periods)
         return x.mean() / x.std()
-
 
 def standard(
     df_obj: Union[pd.Series, pd.DataFrame],
@@ -223,7 +221,6 @@ def OLS(
         if len(results) == 1:
             return results[0]
         return results
-
 
 def const(
     df_obj: Union[pd.Series, pd.DataFrame],
@@ -755,9 +752,6 @@ def expose(
     for i,j in enumerate(xs):
         print(f"factor_{i+1}: expose -> <{round(df_neu.corrwith(j[0], axis=1).mean(), 4)}> with hope <{j[1]}>")
     return df_neu
-
-
-
 
 '''
 import quanta
