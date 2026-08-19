@@ -175,7 +175,7 @@ class main:
         """Writes the trade signal to the account pipeline | 将交易信号写入账户管道"""
         df = self.signal()
         df.index = [i.split('.')[0] for i in df.index]
-        self.account.pipline.write(
+        self.account.pipeline.write(
             df = df.to_frame().reset_index(), 
             path = str(self.account.__order_path__/str(df.name.date()))
         )

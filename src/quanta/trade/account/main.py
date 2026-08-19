@@ -37,14 +37,10 @@ class main:
     @property
     def pipeline(self) -> Any:
         """Returns the trading pipeline instance | 返回交易流水线实例"""
-        # Supports both 'pipline' (legacy) and 'pipeline' config keys | 同时支持 'pipline' (旧) 和 'pipeline' 配置键
-        name = getattr(self, '_pipeline', None) or getattr(self, '_pipline', None)
+        name = getattr(self, '_pipeline', None)
         x = getattr(pipeline, name)
         x = x(broker=self._broker)
         return x
-
-    # Deprecated alias for backward compatibility | 向后兼容的旧拼写别名
-    pipline = pipeline
 
     @property
     def portfolio_type(self) -> str:

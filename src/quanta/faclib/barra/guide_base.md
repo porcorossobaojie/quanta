@@ -18,7 +18,7 @@ Core Base Factors & Utilities
 
     II  Turnover & Growth Factors:
         -- `month_turnover()` / `quarter_turnover()` / `annual_turnover()`: Liquidity metrics.
-        -- `annul_weight_turnover()`: Annual weighted turnover.
+        -- `annual_weight_turnover()`: Annual weighted turnover.
         -- `short_term_reversal()`: Short-term price reversal factor.
         -- `seasonal(...)`: Seasonal trend factor.
         -- `industry_momentum(...)`: Momentum aggregated at the industry level.
@@ -51,7 +51,7 @@ Core Base Factors & Utilities
 
     II  换手率与增长因子:
         -- `month_turnover()` / `quarter_turnover()` / `annual_turnover()`: 流动性指标.
-        -- `annul_weight_turnover()`: 年度加权换手率.
+        -- `annual_weight_turnover()`: 年度加权换手率.
         -- `short_term_reversal()`: 短期价格反转因子.
         -- `seasonal(...)`: 季节性趋势因子.
         -- `industry_momentum(...)`: 行业层面动量.

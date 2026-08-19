@@ -1,8 +1,8 @@
-# Strategies (strategys)
+# Strategies (strategies)
 
 Summary
 -------
-    The `strategys` module serves as the primary workspace for implementing 
+    The `strategies` module serves as the primary workspace for implementing 
     and backtesting quantitative trading strategies. It provides the 
     foundational structures and interfaces needed to define investment logic 
     that interacts with the broader `quanta` framework.
@@ -21,7 +21,7 @@ Implementation
     Strategies inherit from the meta-framework to ensure they are compatible
     with the `quanta` data pipelines and trade management tools.
 
-        from quanta.strategys.meta import main as StrategyBase
+        from quanta.strategies.meta import main as StrategyBase
 
         class MyMomentumStrategy(StrategyBase):
             @classmethod
@@ -34,11 +34,11 @@ Implementation
 
 ---
 
-# 策略 (strategys)
+# 策略 (strategies)
 
 概要
 ----
-    `strategys` 模块是实现和回测量化交易策略的主要工作区. 它提供了定义
+    `strategies` 模块是实现和回测量化交易策略的主要工作区. 它提供了定义
     投资逻辑所需的基础结构和接口, 这些逻辑与更广泛的 `quanta` 框架进行
     交互.
 
@@ -55,7 +55,7 @@ Implementation
     策略继承自元框架, 以确保它们与 `quanta` 数据流水线和交易管理工具
     兼容.
 
-        from quanta.strategys.meta import main as StrategyBase
+        from quanta.strategies.meta import main as StrategyBase
 
         class MyMomentumStrategy(StrategyBase):
             @classmethod

@@ -9,8 +9,7 @@ import numpy as np
 import pandas as pd
 
 from quanta.config import settings
-# Supports both 'pipline' (legacy) and 'pipeline' config keys | 同时支持 'pipline' (旧) 和 'pipeline' 配置键
-config = settings('trade').get('pipeline', settings('trade').get('pipline')).tonghua
+config = settings('trade').pipeline.tonghua
 
 class main():
     """
@@ -105,9 +104,3 @@ class main():
                 path = '.'.join([path, self.order.dtype])
                 df.columns = list(self.order.columns.values())
                 getattr(df, func[0])(path, **func[1])
-
-
-
-
-
-
