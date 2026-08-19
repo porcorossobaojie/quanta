@@ -1,15 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Shared meta-class hooks for JoinQuant data extraction.
-
-Provides the common attribute and pipeline methods shared by the daily
-(`meta/main.py`) and minute-frequency (`meta/mins.py`) table handlers.
---------------------------------------
-JoinQuant 数据提取的共享元类钩子.
-
-提供日频 (`meta/main.py`) 与分钟频 (`meta/mins.py`) 表处理器共用的属性
-与流水线方法.
-"""
 
 from typing import Any, Dict, List
 import jqdatasdk as jq
