@@ -244,7 +244,6 @@ class main(meta, type('', (), config.recommand_settings)):
                 print(command)
             x = self.__command__(command, read_only=True, **parameters)
             return x
-
         return wraps_function()
 
     def __table_exist__(

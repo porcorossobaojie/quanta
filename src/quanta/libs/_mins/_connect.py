@@ -87,7 +87,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         return attr
 
     def __read_from_db__(
-        self, 
+        self,
         date,
         ):
         """
@@ -122,12 +122,12 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         df = self.__read_parquet__(path)
         df = df.T
         return df
-    
+
     @property
     def window(self) -> int:
         """Returns the current rolling window size | 返回当前滚动窗口大小"""
         if not hasattr(self, '_internal_data'):
-            self._internal_data = LRUCache(1)   
+            self._internal_data = LRUCache(1)
             return 1
         else:
             return self._internal_data.maxsize
@@ -144,7 +144,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
     def start(self) -> Optional[pd.Timestamp]:
         """Returns the earliest cached date | 返回缓存中的最早日期"""
         return min(self._internal_data.keys()) if len(self._internal_data.keys()) else None
-    
+
     @property
     def end(self) -> Optional[pd.Timestamp]:
         """Returns the latest cached date | 返回缓存中的最晚日期"""
@@ -156,7 +156,7 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         if not hasattr(self, '_internal_data'):
             self._internal_data = LRUCache(1)
         return self._internal_data
-        
+
     def __read_from_internal__(
         self,
         dates: pd.Series
@@ -222,7 +222,4 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
         x = list(x.values())
         x = x[0] if len(x) == 1 else pd.concat(x)
         self.window = window
-        return x        
-        
-        
-        
+        return x
