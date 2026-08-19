@@ -10,11 +10,6 @@ import jqdatasdk as jq
 from typing import Any, Literal
 import pandas as pd
 from pathlib import Path
-"""
-from ..meta.mins import main as meta
-from ....config import settings
-
-"""
 from quanta.data.joinquant.meta.mins import main as meta
 from quanta.config import settings
 
@@ -136,9 +131,3 @@ class main(meta):
                 print("not enough token...")
                 break
 
-'''
-
-from quanta.config import settings as _settings
-_config = _settings('data').tables.minute_table
-self = main(**list(_config.values())[0])
-'''
