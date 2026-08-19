@@ -2,12 +2,12 @@
 [project]
 name = "python-quanta" # 你的项目名称，建议与你的顶级包名（例如 src/quanta）一致
 version = "0.9.0" # 项目版本号
-description = "A quantitative analysis project for financial data." # 项目的简短描述
+description = "A local-first quantitative research framework for financial data analysis." # 项目的简短描述
 readme = "README.md" # 指向你的 README 文件
 requires-python = ">=3.9" # 项目所需的 Python 版本
-#license = { text = "MIT" } # 示例许可证，你可以改为你的实际许可证，或指向 "LICENSE" 文件
+license = { text = "MIT" } # 示例许可证，你可以改为你的实际许可证，或指向 "LICENSE" 文件
 
-keywords = ["quantitative", "finance", "data-analysis"] # 关键词，方便搜索
+keywords = ["quantitative", "finance", "data-analysis", "factor", "barra", "duckdb"] # 关键词，方便搜索
 
 # 项目的作者信息
 authors = [
@@ -15,7 +15,7 @@ authors = [
 ]
 
 # 项目主页（可选）
-urls = { Homepage = "https://github.com/porcorossobaojie/quanta.git" }
+urls = { Homepage = "https://github.com/porcorossobaojie/quanta", Repository = "https://github.com/porcorossobaojie/quanta.git", Issues = "https://github.com/porcorossobaojie/quanta/issues" }
 
 # 项目运行时依赖
 dependencies = [

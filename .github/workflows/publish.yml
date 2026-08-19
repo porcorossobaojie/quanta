@@ -1,13 +1,13 @@
 name: Publish to PyPI
 
-# 触发条件：当你推送到 main 分支时触发（也可以改为推送到特定标签时）
+# 触发条件：仅在推送版本标签 (v*) 时发布，避免每次 push main 都发版
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
 
 jobs:
-  build-n-publish:
+  build-and-publish:
     name: Build and publish to PyPI
     runs-on: ubuntu-latest
 
@@ -25,8 +25,18 @@ jobs:
         python -m pip install --upgrade pip
         pip install build twine
 
+    - name: Validate package metadata
+      run: |
+        python -m pip install tomlkit
+        python -c "import tomlkit; tomlkit.parse(open('pyproject.toml', encoding='utf-8').read()); print('pyproject.toml OK')"
+
     - name: Build package
       run: python -m build
+
+    - name: Verify sdist/wheel contents
+      run: |
+        python -m pip install dist/*.whl
+        python -c "import quanta; print('import quanta OK, version:', quanta.__version__)"
 
     - name: Publish to PyPI
       env:
