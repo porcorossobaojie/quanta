@@ -34,9 +34,9 @@ How Initial Local Settings
         libs.yaml
         ----
         db:
-            recommand_settings: DuckDB            # recommand database type
+            recommend_settings: DuckDB            # recommend database type
             DuckDB:
-                recommand_settings:
+                recommend_settings:
                     path: 'E:/ProgramData/DuckDB' # path of database file
                     database: Locals              # name of database file
                     schema: jq_data               # schema name
@@ -175,9 +175,9 @@ How Initial Local Settings
         libs.yaml
         ----
         db:
-            recommand_settings: DuckDB            # 推荐使用的存储引擎
+            recommend_settings: DuckDB            # 推荐使用的存储引擎
             DuckDB:
-                recommand_settings:
+                recommend_settings:
                     path: 'E:/ProgramData/DuckDB' # 本地数据库存放路径
                     database: Locals              # 数据库文件名
                     schema: jq_data               # Schema 名称
