@@ -9,7 +9,8 @@ import numpy as np
 import pandas as pd
 
 from quanta.config import settings
-config = settings('trade').pipline.tonghua
+# Supports both 'pipline' (legacy) and 'pipeline' config keys | 同时支持 'pipline' (旧) 和 'pipeline' 配置键
+config = settings('trade').get('pipeline', settings('trade').get('pipline')).tonghua
 
 class main():
     """

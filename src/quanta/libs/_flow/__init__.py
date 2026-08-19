@@ -4,5 +4,5 @@ from ._main import *
 try:
     import jqdatasdk as jq
     __JQ__ = True
-except:
+except Exception:
     __JQ__ = False

@@ -84,7 +84,7 @@ class main():
             if weight is not None:
                 try:
                     weight = flow.astock(weight).reindex(x)[x.notnull()]
-                except:
+                except Exception:
                     weight = flow.afund(weight).reindex(x)[x.notnull()]
                 x = (x * weight ** 0.5).sum(axis=1, min_count=1) / weight.sum(axis=1, min_count=1)
             else:

@@ -309,19 +309,19 @@ class Unit:
         if actual:
             try:
                 x = round(self.entrade.assets().abs().sum() / self.settle.total_assets(), 5)
-            except:
+            except Exception:
                 x = 0
             dic['actual'] = x
         if theory:
             try:
                 x = round(self.trade.assets().abs().sum() / self.settle.total_assets(), 5)
-            except:
+            except Exception:
                 x = 0
             dic['theory'] = x
         if order:
             try:
                 x = round(self.order.assets().abs().sum() / self.settle.total_assets(), 5)
-            except:
+            except Exception:
                 x = 0
             dic['order'] = x
         return dic
@@ -371,19 +371,19 @@ class Unit:
         if actual:
             try:
                 x = round(self.roll().total_assets() / self.settle.total_assets() - 1, 5)
-            except:
+            except Exception:
                 x = 0
             dic['actual'] = x
         if theory:
             try:
                 x = round(((self.settle + self.trade).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 5)
-            except:
+            except Exception:
                 x = 0
             dic['theory'] = x
         if order:
             try:
                 x = round(((self.settle + self.order).total_assets() - self.trade.trade_cost() if self._trade_cost else 0)/ self.settle.total_assets() - 1, 5)
-            except:
+            except Exception:
                 x = 0
             dic['order'] = x
         return dic

@@ -51,7 +51,7 @@ How Initial Local Settings
             settle: settle
         strategy_001:
             YOUR_ID:
-                pipline: tonghua                 # broker pipeline name
+                pipeline: tonghua                # broker pipeline name
                 broker: guotai                   # broker name (e.g., guotai, pingan)
                 id: 'your_account_id'
                 password: 'your_account_password'
@@ -127,7 +127,7 @@ Why python-quanta
     VI strategy development & trading workflow
         The strategy meta-framework and trading account provide a complete
         factor-driven research-to-execution pipeline:
-        -- quanta.strategys.meta.main             # base strategy class with factor, pool, ranker,
+        -- quanta.strategies.meta.main             # base strategy class with factor, pool, ranker,
                                                    rebalance, signal, and order-writing hooks
         -- quanta.account                         # trading account managing order/settlement paths
                                                    and broker pipelines (e.g., tonghua)
@@ -192,7 +192,7 @@ How Initial Local Settings
             settle: settle
         strategy_001:
             YOUR_ID:
-                pipline: tonghua                 # 经纪商流水线名称
+                pipeline: tonghua                # 经纪商流水线名称
                 broker: guotai                   # 经纪商名称 (如 guotai, pingan)
                 id: 'your_account_id'
                 password: 'your_account_password'
@@ -267,7 +267,7 @@ Why python-quanta
 
     VI 策略研发与交易工作流
         策略元框架与交易账户提供完整的因子驱动研究到执行流水线:
-        -- quanta.strategys.meta.main             # 基础策略类, 提供因子, 股票池, 排序, 再平衡,
+        -- quanta.strategies.meta.main             # 基础策略类, 提供因子, 股票池, 排序, 再平衡,
                                                    信号及下单写入等钩子方法
         -- quanta.account                         # 交易账户, 管理订单/结算路径及经纪商流水线
                                                    (如 tonghua)

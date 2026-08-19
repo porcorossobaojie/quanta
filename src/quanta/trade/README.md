@@ -18,7 +18,7 @@ Key Components
             the local directory structure for orders and settlement files 
             and provides methods for reading position data.
 
-    II  Trading Pipelines (`pipline/`)
+    II  Trading Pipelines (`pipeline/`)
         -- Provides broker-specific implementations (e.g., `tonghua/`) for 
             reading and writing trade data. 
         -- Ensures that data formats from different brokers are standardized 
@@ -53,7 +53,7 @@ Workflow
         -- `main`: 管理特定策略的交易账户. 它处理订单和结算文件的本地
             目录结构, 并提供读取持仓数据的方法.
 
-    II  交易流水线 (`pipline/`)
+    II  交易流水线 (`pipeline/`)
         -- 提供针对特定经纪商 (如 `tonghua/`) 的实现, 用于读取和写入
             交易数据. 
         -- 确保在被账户管理器调用之前, 来自不同经纪商的数据格式已得到

@@ -10,7 +10,7 @@ from typing import Any, List, Optional
 from pathlib import Path
 
 from quanta import flow
-from quanta.trade import pipline
+from quanta.trade import pipeline
 from quanta.config import settings
 
 #char = settings('trade').strategy_001.BJ_13611823855
@@ -35,11 +35,16 @@ class main:
         self.__env_init__()
 
     @property
-    def pipline(self) -> Any:
+    def pipeline(self) -> Any:
         """Returns the trading pipeline instance | 返回交易流水线实例"""
-        x = getattr(pipline, self._pipline)
+        # Supports both 'pipline' (legacy) and 'pipeline' config keys | 同时支持 'pipline' (旧) 和 'pipeline' 配置键
+        name = getattr(self, '_pipeline', None) or getattr(self, '_pipline', None)
+        x = getattr(pipeline, name)
         x = x(broker=self._broker)
         return x
+
+    # Deprecated alias for backward compatibility | 向后兼容的旧拼写别名
+    pipline = pipeline
 
     @property
     def portfolio_type(self) -> str:
@@ -105,7 +110,7 @@ class main:
             file_name_by_date = [file_name_by_date]
         if len(file_name_by_date):
             file_name_by_date = max(self.__get_files_name__(self.__settle_path__)).split('.')[0]
-            x = self.pipline.read(str(self.__settle_path__ / file_name_by_date))
+            x = self.pipeline.read(str(self.__settle_path__ / file_name_by_date))
             x = x.set_index(x.columns[0])
             x = x.iloc[:, 0]
             x.index = getattr(flow, self.portfolio_type).code_standard(x.index)

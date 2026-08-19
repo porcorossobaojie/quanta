@@ -292,7 +292,7 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=4)
-    def annul_weight_turnover(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
+    def annual_weight_turnover(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
         """Calculate annual weighted turnover. | 计算年度加权换手率."""
         df = getattr(flow, portfolio_type)(cls.finance.turnover).f.tradestatus() / 100
         w = pd.tools.halflife(periods, halflife=periods // 4)
@@ -423,7 +423,7 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=4)
-    def relative_strengh(cls, periods: int = 252, shift: int = 11) -> pd.DataFrame:
+    def relative_strength(cls, periods: int = 252, shift: int = 11) -> pd.DataFrame:
         """Calculate relative strength. | 计算相对强度."""
         w = pd.tools.halflife(periods, periods // 2)
         ret = flow.astock(cls.trade.returns).f.tradestatus()
@@ -712,7 +712,7 @@ class main(meta):
 
     @classmethod
     @lru_cache(maxsize=1)
-    def long_relative_strengh(cls, periods: int = 252 * 4, shift: int = 11) -> pd.DataFrame:
+    def long_relative_strength(cls, periods: int = 252 * 4, shift: int = 11) -> pd.DataFrame:
         """Calculate long-term relative strength. | 计算长期相对强度."""
         w = pd.tools.halflife(periods, periods // 4)
         ret = flow.astock(cls.trade.returns).f.tradestatus()
@@ -759,3 +759,8 @@ class main(meta):
         """Calculate dividend payout. | 计算股息支付."""
         df = flow.astock(cls.finance.dividend)
         return df
+
+    # Deprecated aliases for backward compatibility | 向后兼容的旧拼写别名
+    annul_weight_turnover = annual_weight_turnover
+    relative_strengh = relative_strength
+    long_relative_strengh = long_relative_strength

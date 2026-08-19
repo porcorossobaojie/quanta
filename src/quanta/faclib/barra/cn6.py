@@ -24,7 +24,7 @@ class main():
     trade = _base.trade
     _group_info = {
         'residual_volatility': {'dastd': 0.74, 'cmra': 0.16, 'hsigma': 0.10},
-        'liquidity': {'month_turnover': 0.25, 'quarter_turnover': 0.25, 'annual_turnover': 0.25, 'annul_weight_turnover': 0.25},
+        'liquidity': {'month_turnover': 0.25, 'quarter_turnover': 0.25, 'annual_turnover': 0.25, 'annual_weight_turnover': 0.25},
         'leverage': {'market_leverage': 0.38, 'debt_to_asset_ratio': 0.35, 'book_leverage': 0.27}
         }
 
@@ -108,9 +108,9 @@ class main():
         return cls._base.annual_turnover(periods=periods, portfolio_type=portfolio_type)
 
     @classmethod
-    @doc_inherit(meta.annul_weight_turnover)
-    def annul_weight_turnover(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
-        return cls._base.annul_weight_turnover(periods=periods, portfolio_type=portfolio_type)
+    @doc_inherit(meta.annual_weight_turnover)
+    def annual_weight_turnover(cls, periods: int = 252, portfolio_type: str = 'astock') -> pd.DataFrame:
+        return cls._base.annual_weight_turnover(periods=periods, portfolio_type=portfolio_type)
 
     @classmethod
     @doc_inherit(meta.short_term_reversal)
@@ -139,9 +139,9 @@ class main():
         return cls._base.industry_momentum(periods=periods, industry_code=industry_code, mv_rebalance=mv_rebalance)
 
     @classmethod
-    @doc_inherit(meta.relative_strengh)
-    def relative_strengh(cls, periods: int = 252, shift: int = 11) -> pd.DataFrame:
-        return cls._base.relative_strengh(periods=periods, shift=shift)
+    @doc_inherit(meta.relative_strength)
+    def relative_strength(cls, periods: int = 252, shift: int = 11) -> pd.DataFrame:
+        return cls._base.relative_strength(periods=periods, shift=shift)
 
     @classmethod
     @doc_inherit(meta.historical_alpha)
@@ -245,9 +245,9 @@ class main():
         return cls._base.enterprise()
 
     @classmethod
-    @doc_inherit(meta.long_relative_strengh)
-    def long_relative_strengh(cls, periods: int = 252 * 4, shift: int = 11) -> pd.DataFrame:
-        return cls._base.long_relative_strengh(periods=periods, shift=shift)
+    @doc_inherit(meta.long_relative_strength)
+    def long_relative_strength(cls, periods: int = 252 * 4, shift: int = 11) -> pd.DataFrame:
+        return cls._base.long_relative_strength(periods=periods, shift=shift)
 
     @classmethod
     @doc_inherit(meta.long_historical_alpha)
@@ -305,7 +305,7 @@ class main():
                     'month_turnover': cls.month_turnover,
                     'quarter_turnover': cls.quarter_turnover,
                     'annual_turnover': cls.annual_turnover,
-                    'annul_weight_turnover': cls.annul_weight_turnover,
+                    'annual_weight_turnover': cls.annual_weight_turnover,
                     '_group': liquidity}
             },
             'momentum': {
@@ -316,7 +316,7 @@ class main():
                 'industry_momentum': {
                     'industry_momentum': cls.industry_momentum},
                 'momentum': {
-                    'relative_strengh': cls.relative_strengh,
+                    'relative_strength': cls.relative_strength,
                     'historical_alpha': cls.historical_alpha}
             },
             'quality': {
@@ -349,10 +349,10 @@ class main():
                     'cp': cls.cp,
                     'enterprise': cls.enterprise},
                 'long_reversal': {
-                    'long_relative_strengh': cls.long_relative_strengh,
+                    'long_relative_strength': cls.long_relative_strength,
                     'long_historical_alpha': cls.long_historical_alpha},
             },
-            'grwoth': {
+            'growth': {
                 'growth': {
                     'historical_alpha': cls.historical_alpha,
                     'ep_growth': cls.ep_growth}

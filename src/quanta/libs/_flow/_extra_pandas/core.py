@@ -483,7 +483,7 @@ def series_info(
     portfolio_type = series_obj.index.name.split('_')[0] if portfolio_type is None else portfolio_type
     try:
         df = __instance__.get(portfolio_type)(column).loc[series_obj.name].reindex(series_obj.index)
-    except:
+    except Exception:
         df = __instance__.get(portfolio_type)(column, **kwargs).reindex(series_obj.index, axis=1)
     return df
 
