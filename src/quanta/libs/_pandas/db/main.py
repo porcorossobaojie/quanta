@@ -7,7 +7,7 @@ Created on Wed Feb  4 21:30:52 2026
 
 import numpy as np
 import pandas as pd
-from typing import Literal, Any
+from typing import Literal, Optional, Any
 from ...db.main import main as db
 
 MODULE_DIR = __name__.split('.')[-2]
@@ -84,8 +84,41 @@ class main:
         
     def write_parquet(
         self,
-        path,
-        file_name=None,
-        log=True
-    ):
+        path: str,
+        file_name: Optional[str] = None,
+        log: bool = True
+    ) -> None:
+        """
+        =======================================================================
+        Writes the DataFrame to a parquet file under the given path.
+
+        Parameters
+        ----------
+        path : str
+            The destination directory for the parquet file.
+        file_name : str, optional
+            The parquet file name; defaults to 'data_0' when None.
+        log : bool
+            Whether to log the operation details. Default is True.
+
+        Returns
+        -------
+        None
+        -----------------------------------------------------------------------
+        将 DataFrame 写入指定路径下的 parquet 文件.
+
+        参数
+        ----
+        path : str
+            parquet 文件的输出目录.
+        file_name : str, optional
+            parquet 文件名; 为 None 时默认为 'data_0'.
+        log : bool
+            是否记录操作详情. 默认 True.
+
+        返回
+        ----
+        None
+        -----------------------------------------------------------------------
+        """
         db().__write_parquet__(self._obj, path=path, file_name=file_name, log=log)

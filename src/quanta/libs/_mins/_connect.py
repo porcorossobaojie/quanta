@@ -141,11 +141,13 @@ class main(type('recommand_settings', (), config.minfreq_settings.key), db):
             self._internal_data.update(x)
 
     @property
-    def start(self):
+    def start(self) -> Optional[pd.Timestamp]:
+        """Returns the earliest cached date | 返回缓存中的最早日期"""
         return min(self._internal_data.keys()) if len(self._internal_data.keys()) else None
     
     @property
-    def end(self):
+    def end(self) -> Optional[pd.Timestamp]:
+        """Returns the latest cached date | 返回缓存中的最晚日期"""
         return max(self._internal_data.keys()) if len(self._internal_data.keys()) else None
 
     @property

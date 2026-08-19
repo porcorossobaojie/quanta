@@ -199,7 +199,13 @@ class main:
         return x
 
     @classmethod
-    def __write_parquet__(cls, df, path, file_name=None, log=True):
+    def __write_parquet__(
+        cls,
+        df: pd.DataFrame,
+        path: str,
+        file_name: Optional[str] = None,
+        log: bool = True
+    ) -> None:
         """
         =======================================================================
         Writes a DataFrame to a parquet file under the given path.

@@ -1255,7 +1255,54 @@ def concept(
         x = x.groupby(x.columns.names[1], axis=1).mean()
     return x
 
-def at(df_obj, start=None, end=None, head=1):
+def at(
+    df_obj: pd.DataFrame,
+    start: Optional[int] = None,
+    end: Optional[int] = None,
+    head: int = 1
+) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Selects rows by position within each date group, optionally splitting the
+    day into morning and afternoon sessions.
+
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        The input DataFrame indexed by datetime.
+    start : int, optional
+        The start position (inclusive) within each group. Default is None.
+    end : int, optional
+        The end position (exclusive) within each group. Default is None.
+    head : int
+        If 1, groups by calendar date only; otherwise groups by date and
+        trading session (AM/PM). Default is 1.
+
+    Returns
+    -------
+    pd.DataFrame
+        The selected rows from each group.
+    ---------------------------------------------------------------------------
+    按位置在每个日期分组内选取行, 可选按上午/下午时段进行日内分组.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        以日期时间为索引的输入 DataFrame.
+    start : int, optional
+        每个分组内的起始位置 (含). 默认为 None.
+    end : int, optional
+        每个分组内的结束位置 (不含). 默认为 None.
+    head : int
+        如果为 1, 仅按自然日分组; 否则按日期和交易时段 (上午/下午) 分组.
+        默认为 1.
+
+    返回
+    ----
+    pd.DataFrame
+        从每个分组中选取的行.
+    ---------------------------------------------------------------------------
+    """
     if head == 1:
         x = df_obj.groupby(df_obj.index.date).nth(slice(start, end))
     else:
