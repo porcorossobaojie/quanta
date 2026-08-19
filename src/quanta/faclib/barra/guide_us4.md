@@ -1,8 +1,8 @@
-# Barra USA4 Factor Guide (guide_us4.py)
+# Barra USA4 Factor Guide (us4.py)
 
 Summary
 -------
-    This guide covers the `guide_us4.py` implementation, which exposes the 
+    This guide covers the `us4.py` implementation, which exposes the 
     core Barra USA4 style factors and risk modeling interfaces.
 
 Publicly Exposed Factors
@@ -23,11 +23,11 @@ Publicly Exposed Factors
 
 ---
 
-# Barra USA4 因子指南 (guide_us4.py)
+# Barra USA4 因子指南 (us4.py)
 
 概要
 ----
-    本指南涵盖 `guide_us4.py` 的实现, 该模块暴露了用于风险建模和策略对比的
+    本指南涵盖 `us4.py` 的实现, 该模块暴露了用于风险建模和策略对比的
     核心 Barra USA4 风格因子.
 
 公开暴露因子

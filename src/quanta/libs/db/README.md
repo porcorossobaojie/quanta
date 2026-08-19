@@ -31,14 +31,14 @@ Key Components
 
 Core API
 --------
-    -- `read()`: Executes SQL queries and returns a Pandas DataFrame. Supports 
+    -- `__read__()`: Executes SQL queries and returns a Pandas DataFrame. Supports 
         automatic parameterization and performance timing.
-    -- `write()`: Persists a DataFrame to a table. Handles table creation, 
+    -- `__write__()`: Persists a DataFrame to a table. Handles table creation, 
         existence checks, and data type mapping.
-    -- `command()`: Executes raw SQL commands.
-    -- `table_exist()`: Checks for the existence of a specific table in the 
+    -- `__command__()`: Executes raw SQL commands.
+    -- `__table_exist__()`: Checks for the existence of a specific table in the 
         schema.
-    -- `create_table()` / `drop_table()`: DDL operations for table management.
+    -- `__create_table__()` / `__drop_table__()`: DDL operations for table management.
 
 ---
 
@@ -72,10 +72,10 @@ Core API
 
 核心 API
 --------
-    -- `read()`: 执行 SQL 查询并返回 Pandas DataFrame. 支持自动参数化
+    -- `__read__()`: 执行 SQL 查询并返回 Pandas DataFrame. 支持自动参数化
         和性能计时.
-    -- `write()`: 将 DataFrame 持久化到表中. 处理表创建, 存在性检查和
+    -- `__write__()`: 将 DataFrame 持久化到表中. 处理表创建, 存在性检查和
         数据类型映射.
-    -- `command()`: 执行原始 SQL 命令.
-    -- `table_exist()`: 检查模式中是否存在指定表.
-    -- `create_table()` / `drop_table()`: 用于表管理的 DDL 操作.
+    -- `__command__()`: 执行原始 SQL 命令.
+    -- `__table_exist__()`: 检查模式中是否存在指定表.
+    -- `__create_table__()` / `__drop_table__()`: 用于表管理的 DDL 操作.

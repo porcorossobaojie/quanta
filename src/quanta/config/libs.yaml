@@ -23,6 +23,7 @@ db:
             path: None
             database: Locals
             schema: jq_data
+            parquet: minute_freq
         data_type:
             TINYINT: 'TINYINT'
             SMALLINT: 'SMALLINT'

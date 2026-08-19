@@ -21,6 +21,7 @@ How Initial Local Settings
         |-- .env                                 <-- build by user
              |-- account.yaml                    <-- build by user if you have
              |-- libs.yaml                       <-- must build
+             |-- trade.yaml                      <-- build by user if you trade
 
     II if having join quant account, create file <account.yaml>:
         account.yaml
@@ -39,6 +40,26 @@ How Initial Local Settings
                     path: 'E:/ProgramData/DuckDB' # path of database file
                     database: Locals              # name of database file
                     schema: jq_data               # schema name
+                    parquet: minute_freq          # sub-directory for minute-freq parquet files
+
+    IV if using the trading workflow, create file <trade.yaml>:
+        trade.yaml
+        ----
+        system:
+            path: 'd:/strategys'                 # root path of strategy files
+            order: order
+            settle: settle
+        strategy_001:
+            YOUR_ID:
+                pipline: tonghua                 # broker pipeline name
+                broker: guotai                   # broker name (e.g., guotai, pingan)
+                id: 'your_account_id'
+                password: 'your_account_password'
+                init_assets: 1_000_000
+                strategy: strategy_001
+                portfolio_count: 40
+                portfolio_range: 250
+                status: running
 
     For technical details on the underlying database abstraction and supported engines, see:
     [Database Abstraction Layer](src/quanta/libs/db/README.md)
@@ -51,10 +72,11 @@ Why python-quanta
 
     I provide local database construct automatically
         all you need is just running:
-            -- quanta.data.daily()
+            -- quanta.data.daily()               # daily-frequency data
+            -- quanta.data.minute()              # minute-frequency data
         including:
-            -- trading data: stock, index(not in CSI), etf
-            -- finance data: stock
+            -- trading data: stock, index, etf
+            -- finance data: stock statements, fund shares & targets
 
         For details on data provider integration and table logic, see:
         [Data Management](src/quanta/data/README.md)
@@ -92,13 +114,23 @@ Why python-quanta
         -- quanta.flow.astock.help("keyword")    # fuzzy search within metadata (e.g., "oper" for operating data)
 
         For a deep dive into research interfaces and Pandas extensions, see:
-        [Research Flow Layer](src/quanta/libs/_flow/README.md) --> _extra_pandas
+        [Research Flow Layer](src/quanta/libs/_flow/README.md) --> _main
 
     V standard factor library (faclib)
         Benchmark factors for risk modeling and strategy comparison:
-        -- Barra USA4 Style Factors (Completed): 
+        -- Barra USA4 Style Factors (Completed):
            Size, Beta, Momentum, Residual Volatility, Liquidity, Earnings Yield, Growth, Leverage, etc.
+        -- Barra CN6 Style Factors (Completed):
+           Size, Beta, Volatility, Liquidity, Momentum, Quality, Value, Growth, Dividend, etc.
         -- Alpha 101 (Roadmap)
+
+    VI strategy development & trading workflow
+        The strategy meta-framework and trading account provide a complete
+        factor-driven research-to-execution pipeline:
+        -- quanta.strategys.meta.main             # base strategy class with factor, pool, ranker,
+                                                   rebalance, signal, and order-writing hooks
+        -- quanta.account                         # trading account managing order/settlement paths
+                                                   and broker pipelines (e.g., tonghua)
 
 Notices
 -------
@@ -130,6 +162,7 @@ How Initial Local Settings
         |-- .env                                 <-- 环境变量配置文件
              |-- account.yaml                    <-- 聚宽账户凭据 (可选)
              |-- libs.yaml                       <-- 数据库配置 (必填)
+             |-- trade.yaml                      <-- 交易账户配置 (如需交易)
 
     II 若有聚宽账户, 创建 <account.yaml>:
         account.yaml
@@ -148,6 +181,26 @@ How Initial Local Settings
                     path: 'E:/ProgramData/DuckDB' # 本地数据库存放路径
                     database: Locals              # 数据库文件名
                     schema: jq_data               # Schema 名称
+                    parquet: minute_freq          # 分钟频 parquet 文件存放子目录
+
+    IV 若使用交易工作流, 创建 <trade.yaml>:
+        trade.yaml
+        ----
+        system:
+            path: 'd:/strategys'                 # 策略文件根目录
+            order: order
+            settle: settle
+        strategy_001:
+            YOUR_ID:
+                pipline: tonghua                 # 经纪商流水线名称
+                broker: guotai                   # 经纪商名称 (如 guotai, pingan)
+                id: 'your_account_id'
+                password: 'your_account_password'
+                init_assets: 1_000_000
+                strategy: strategy_001
+                portfolio_count: 40
+                portfolio_range: 250
+                status: running
 
     有关底层数据库抽象及支持引擎的技术详情, 请参阅:
     [数据库抽象层详解](src/quanta/libs/db/README.md)
@@ -160,10 +213,11 @@ Why python-quanta
 
     I 提供自动化本地数据库构建
         仅需运行以下指令即可全自动同步 ETL:
-            -- quanta.data.daily()
+            -- quanta.data.daily()               # 日频数据
+            -- quanta.data.minute()              # 分钟频数据
         包含数据:
-            -- 交易数据: 股票, 指数(非中证系列), ETF.
-            -- 财务数据: 全量股票财务报表.
+            -- 交易数据: 股票, 指数, ETF.
+            -- 财务数据: 股票财务报表, 基金份额及目标.
 
         有关数据供应商集成及表逻辑的详细说明, 请参阅:
         [数据管理详解](src/quanta/data/README.md)
@@ -206,8 +260,17 @@ Why python-quanta
     V 标准因子库 (faclib)
         持续集成行业标准因子以供对比与测试:
         -- Barra USA4 风格因子 (已完成): 
-           包含市值、贝塔、动量、残差波动率、流动性、盈利、成长、杠杆等 10 大风格因子.
+           包含市值, 贝塔, 动量, 残差波动率, 流动性, 盈利, 成长, 杠杆等 10 大风格因子.
+        -- Barra CN6 风格因子 (已完成): 
+           包含市值, 贝塔, 波动率, 流动性, 动量, 质量, 价值, 成长, 红利等风格因子.
         -- Alpha 101 系列因子 (发展路线).
+
+    VI 策略研发与交易工作流
+        策略元框架与交易账户提供完整的因子驱动研究到执行流水线:
+        -- quanta.strategys.meta.main             # 基础策略类, 提供因子, 股票池, 排序, 再平衡,
+                                                   信号及下单写入等钩子方法
+        -- quanta.account                         # 交易账户, 管理订单/结算路径及经纪商流水线
+                                                   (如 tonghua)
 
 Notices
 -------

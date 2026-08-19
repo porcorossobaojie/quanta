@@ -16,8 +16,8 @@ Key Functions
             or specified boundaries. Supports sequential grouping.
         -- `.gen.cut()`: Selects assets based on rank with a hysteresis 
             mechanism (buffer zones) to stabilize portfolio membership.
-        -- `.gen.part_cut()`: Phased version of `cut` to further spread 
-            turnover over time.
+        -- `.gen.d_cut()`: Dynamic top-N selection with a mandatory holding 
+            period and buffer zone to reduce turnover.
 
     II  Portfolio Construction
         -- `.gen.weight()`: Applies asset weights with support for 
@@ -54,8 +54,8 @@ Examples
             支持顺序分组.
         -- `.gen.cut()`: 基于带有迟滞机制 (缓冲带) 的排名选择资产, 
             以稳定组合成员.
-        -- `.gen.part_cut()`: `cut` 的分阶段版本, 以进一步随时间分散
-            换手率.
+        -- `.gen.d_cut()`: 带强制持有期和缓冲区的动态 Top-N 选择, 
+            以降低换手率.
 
     II  投资组合构建
         -- `.gen.weight()`: 应用资产权重, 支持归一化和前向填充.

@@ -25,7 +25,7 @@ Core Base Factors & Utilities
 
     III Specialized Financial Factors:
         -- `market_leverage()` / `book_leverage()` / `debt_to_asset_ratio()`: Leverage metrics.
-        -- `variation_in_sales()` / `variation_to_earnings()` / `variation_to_cashflow()`: Metric volatility.
+        -- `variation_in_sales()` / `variation_in_earnings()` / `variation_in_cashflow()`: Metric volatility.
         -- `accr_balancesheet()` / `accr_cashflow()`: Accruals calculations.
         -- `asset_turnover()` / `gross_profit()` / `roa()`: Performance metrics.
         -- `asset_growth()` / `invest_growth()`: Growth metrics.
@@ -58,7 +58,7 @@ Core Base Factors & Utilities
 
     III 专业财务因子:
         -- `market_leverage()` / `book_leverage()` / `debt_to_asset_ratio()`: 杠杆指标.
-        -- `variation_in_sales()` / `variation_to_earnings()` / `variation_to_cashflow()`: 指标波动度.
+        -- `variation_in_sales()` / `variation_in_earnings()` / `variation_in_cashflow()`: 指标波动度.
         -- `accr_balancesheet()` / `accr_cashflow()`: 应计项目计算.
         -- `asset_turnover()` / `gross_profit()` / `roa()`: 绩效指标.
         -- `asset_growth()` / `invest_growth()`: 增长指标.

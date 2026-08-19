@@ -97,7 +97,7 @@ Core Interface Examples
     I   因子中性化与标准化:
         
         # 对因子进行标准化, 并针对行业和市值进行中性化处理
-        factor = df.stats.standard().stats.neutral(ind=ind_df, size=size_df).resid
+        factor = df.stats.standard().stats.neutral(industry=ind_df, size=size_df).resid
 
     II  滚动窗口分析:
 

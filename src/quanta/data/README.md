@@ -17,7 +17,8 @@ Key Components
         -- `dt_table/`: Handles time-series and trade-date related tables 
             (e.g., price data, index weights, industry classifications).
         -- `id_table/`: Manages static or infrequently updated data 
-            organized by security ID (e.g., IPO information).
+            organized by security ID (e.g., financial statements, fund 
+            shares).
         -- `meta/`: Base meta-class providing standardized hooks for 
             data transformation, table management, and update logic.
 
@@ -61,7 +62,7 @@ Engineering Standards
         -- `dt_table/`: 处理时间序列和交易日期相关的表 (如价格数据, 
             指数权重, 行业分类).
         -- `id_table/`: 管理按证券 ID 组织的静态或不常更新的数据 
-            (如 IPO 信息).
+            (如财务报表, 基金份额).
         -- `meta/`: 基础元类, 为数据变换, 表管理和更新逻辑提供标准
             化钩子.
 

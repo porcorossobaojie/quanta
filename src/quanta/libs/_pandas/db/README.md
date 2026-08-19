@@ -16,6 +16,8 @@ Key Functions
         -- `.db.write()`: Writes the DataFrame to a database table. Supports 
             'append', 'replace', and 'fail' modes for existing tables. 
             Handles automatic schema mapping through the underlying engine.
+        -- `.db.write_parquet()`: Persists the DataFrame to a parquet file 
+            under the given path, bypassing the database engine.
 
 Examples
 --------
@@ -43,6 +45,8 @@ Examples
         -- `.db.write()`: 将 DataFrame 写入数据库表. 对于已存在的表, 
             支持 'append' (追加), 'replace' (替换) 和 'fail' (失败) 
             模式. 通过底层引擎处理自动模式映射.
+        -- `.db.write_parquet()`: 将 DataFrame 持久化至指定路径下的 parquet 
+            文件, 绕过数据库引擎.
 
 示例
 ----
