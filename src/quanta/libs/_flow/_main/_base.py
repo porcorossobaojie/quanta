@@ -11,6 +11,7 @@ from typing import Optional, Union, List, Dict, Any
 
 from ._connect import main as meta_table
 from ....config import settings
+from quanta.libs.utils import calendar
 
 table_info = settings('data').public_keys.recommend_settings
 config = settings('flow')
@@ -407,9 +408,14 @@ class main():
                 .set_index(config.listing.astock_delisting_date, append=True)[config.listing.astock_listing_date]).unstack(0)
             df = df.reindex(pd.date_range(df.index.min(), df.index.max(), freq='d')).bfill().dropna(how='all', axis=1)
             df.index = df.index + pd.Timedelta(meta_table.time_bias)
-            df = df.reindex(meta_table.calendar.trade_days)
-            x = df[df.sub(df.index, axis=0).astype('int64') <= 0].notnull().cumsum()
-            setattr(self, '_internal_listing_result', x)
+            df = df.reindex(calendar(df.index[0]).trade_days)
+            x = df.sub(df.index, axis=0).astype('int64') / (3600 * 24 * 1e9)
+            x = (x[x < 0] * -1)
+            x = x[x.notnull().cumsum() == 1]
+            x1 = x.ffill().notnull().cumsum() - 1
+            x1 = x.ffill().add(x1, fill_value=0)
+            x1 = x1[x1 > 0]
+            setattr(self, '_internal_listing_result', x1)
         x = getattr(self, '_internal_listing_result')
         x = x >= limit
         return x
