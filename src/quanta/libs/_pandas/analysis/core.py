@@ -9,8 +9,129 @@ import pandas as pd
 
 __all__ = ['maxdown', 'sharpe', 'effective']
 
+try:
+    from numba import njit
+    HAS_NUMBA = True
+except ImportError:
+    HAS_NUMBA = False
 
-def maxdown(
+if HAS_NUMBA:
+    @njit(cache=True)
+    def _maxdown_numba(vals, start_pos, end_pos, start_val, end_val, pct):
+        n, k = vals.shape
+        for j in range(k):
+            peak = -np.inf
+            best_dd, best_i, peak_at_best = np.inf, -1, np.nan
+            for i in range(n):
+                v = vals[i, j]
+                if v != v:                       # NaN
+                    continue
+                if v > peak:
+                    peak = v
+                dd = v / peak - 1.0
+                if dd < best_dd:
+                    best_dd, best_i, peak_at_best = dd, i, peak
+            if best_i == -1:                     # 全 NaN 列
+                start_pos[j] = end_pos[j] = -1
+                start_val[j] = end_val[j] = pct[j] = np.nan
+                continue
+            up_i = -1
+            for i in range(best_i + 1):          # running max 首次达到谷底峰值的位置
+                if vals[i, j] == peak_at_best:
+                    up_i = i
+                    break
+            start_pos[j], end_pos[j] = up_i, best_i
+            start_val[j], end_val[j] = peak_at_best, vals[best_i, j]
+            pct[j] = best_dd
+
+def _maxdown_numpy(vals):
+    n, k = vals.shape
+    nan = np.isnan(vals)
+    fill = vals.copy(); fill[nan] = -np.inf
+    np.maximum.accumulate(fill, axis=0, out=fill)          # fill = running peak
+    with np.errstate(divide='ignore', invalid='ignore'):
+        dd = vals / fill - 1.0
+    with np.errstate(invalid='ignore'):
+        dd_min = np.nanmin(dd, axis=0)
+    valid = ~np.isnan(dd_min); vi = np.nonzero(valid)[0]
+    start_pos = np.full(k, -1, dtype=np.int64); end_pos = np.full(k, -1, dtype=np.int64)
+    start_val = np.full(k, np.nan); end_val = np.full(k, np.nan)
+    if vi.size:
+        end_pos[vi] = np.argmax(dd[:, valid] == dd_min[valid][None, :], axis=0)
+        peak_at_bottom = fill[end_pos[vi], vi]
+        start_val[vi], end_val[vi] = peak_at_bottom, vals[end_pos[vi], vi]
+        for j in vi:                                        # 峰值单调 -> 二分
+            start_pos[j] = np.searchsorted(fill[:, j], peak_at_bottom[j], side='left')
+    return start_pos, end_pos, start_val, end_val, dd_min
+
+def maxdown(df_obj: pd.DataFrame, iscumprod: bool = True) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Calculates the maximum drawdown and related statistics for each column
+    in a DataFrame.
+
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        The input data, typically cumulative returns or periodic returns.
+    iscumprod : bool
+        If False, the input is treated as periodic returns and converted to
+        cumulative returns. Default is True.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing start/end dates, values, and percentage
+        drawdown for each column.
+    ---------------------------------------------------------------------------
+    计算 DataFrame 中每一列的最大回撤及相关统计指标.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        输入数据, 通常为累计收益率或周期性收益率.
+    iscumprod : bool
+        如果为 False, 则将输入视为周期性收益并转换为累计收益. 默认为 True.
+
+    返回
+    ----
+    pd.DataFrame
+        包含每一列的起始/结束日期, 数值以及最大回撤百分比的 DataFrame.
+    ---------------------------------------------------------------------------
+    """
+    if not iscumprod:
+        x = df_obj.add(1, fill_value=0).cumprod()
+        x[df_obj.isnull()] = pd.NA
+    else:
+        x = df_obj
+
+    idx, cols = x.index, x.columns
+    vals = x.to_numpy(dtype='float64', na_value=np.nan)     # pd.NA -> NaN; float64 时零拷贝
+    k = vals.shape[1]
+
+    if HAS_NUMBA:
+        start_pos = np.empty(k, dtype=np.int64); end_pos = np.empty(k, dtype=np.int64)
+        start_val = np.empty(k); end_val = np.empty(k); pct = np.empty(k)
+        _maxdown_numba(vals, start_pos, end_pos, start_val, end_val, pct)
+    else:
+        start_pos, end_pos, start_val, end_val, pct = _maxdown_numpy(vals)
+
+    start_dates = np.full(k, np.nan, dtype=object)
+    end_dates = np.full(k, np.nan, dtype=object)
+    ok = start_pos >= 0
+    start_dates[ok] = idx[start_pos[ok]]
+    end_dates[ok] = idx[end_pos[ok]]
+
+    return pd.DataFrame(
+        [start_dates, start_val, end_dates, end_val, pct],
+        columns=cols,
+        index=['start', 'start_value', 'end', 'end_value', 'pct']
+    )
+
+
+
+
+def maxdown_old(
     df_obj: pd.DataFrame,
     iscumprod: bool = True
 ) -> pd.DataFrame:

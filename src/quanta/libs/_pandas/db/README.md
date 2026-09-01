@@ -22,10 +22,10 @@ Key Functions
 Examples
 --------
     # Write factor results to a DuckDB table
-    factor_df.db.write(table_name='alpha_momentum', if_exists='append')
+    factor_df.db.write(table='alpha_momentum', if_exists='append')
 
     # Overwrite an existing configuration table
-    config_df.db.write(table_name='strategy_params', if_exists='replace')
+    config_df.db.write(table='strategy_params', if_exists='replace')
 
 ---
 
@@ -51,7 +51,7 @@ Examples
 示例
 ----
     # 将因子结果写入 DuckDB 表
-    factor_df.db.write(table_name='alpha_momentum', if_exists='append')
+    factor_df.db.write(table='alpha_momentum', if_exists='append')
 
     # 覆盖现有的配置表
-    config_df.db.write(table_name='strategy_params', if_exists='replace')
+    config_df.db.write(table='strategy_params', if_exists='replace')

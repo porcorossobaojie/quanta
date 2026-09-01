@@ -21,9 +21,9 @@ TABLE_DIC = {i: {} for i in table_info.portfolio_types}
 TABLES = meta_table.table_info()['table_name'].unique()
 
 for table in TABLES:
-    x = meta_table(table=table)
-    TABLE_DIC[x.portfolio_type].update({table: x})
-
+        x = meta_table(table=table)
+        if x.portfolio_type in TABLE_DIC.keys():
+            TABLE_DIC[x.portfolio_type].update({table: x})
 
 class main():
     """

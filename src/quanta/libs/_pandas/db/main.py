@@ -31,7 +31,7 @@ class main:
 
     def write(
         self,
-        table_name: str,
+        table: str,
         if_exists: Literal['fail', 'replace', 'append'] = 'append',
         index: bool = False,
         log: bool = True,
@@ -43,7 +43,7 @@ class main:
 
         Parameters
         ----------
-        table_name : str
+        table : str
             The name of the target table in the database.
         if_exists : Literal['fail', 'replace', 'append']
             How to behave if the table already exists. Default is 'append'.
@@ -63,7 +63,7 @@ class main:
 
         参数
         ----
-        table_name : str
+        table : str
             数据库中的目标表名.
         if_exists : Literal['fail', 'replace', 'append']
             如果表已存在时的处理方式. 默认为 'append'.
@@ -79,7 +79,7 @@ class main:
         None
         -----------------------------------------------------------------------
         """
-        db().write(self._obj, table_name=table_name, if_exists=if_exists, index=index, log=log, **kwargs)
+        db().__write__(self._obj, table=table, if_exists=if_exists, index=index, log=log, **kwargs)
         
     def write_parquet(
         self,
