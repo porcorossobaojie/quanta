@@ -519,7 +519,7 @@ def day_shift(
     """
     if n != 0:
         days = __instance__.get('trade_days')
-        day = days.get_loc(series_obj.name) + n
+        day = days.index.get_loc(series_obj.name) + n
         day = days[day]
     else:
         day = series_obj.name

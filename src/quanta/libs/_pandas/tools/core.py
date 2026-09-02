@@ -15,57 +15,17 @@ from ...utils import flatten_list
 __all__ = ['fillna', 'shift', 'log', 'halflife', 'array_roll']
 
 
-def fillna(
-    df_obj: pd.DataFrame,
-    fill_list: List[Any]
-) -> pd.DataFrame:
-    """
-    ===========================================================================
-    Forward fills a DataFrame based on a new index, effectively extending it.
-
-    Parameters
-    ----------
-    df_obj : pd.DataFrame
-        The source DataFrame to be filled.
-    fill_list : List[Any]
-        A list of new index labels to be included in the result.
-
-    Returns
-    -------
-    pd.DataFrame
-        A new DataFrame with the combined and forward-filled index.
-    ---------------------------------------------------------------------------
-    根据新索引前向填充 DataFrame, 有效地扩展它.
-
-    参数
-    ----
-    df_obj : pd.DataFrame
-        要填充的源 DataFrame.
-    fill_list : List[Any]
-        要包含在结果中的新索引标签列表.
-
-    返回
-    ----
-    pd.DataFrame
-        具有合并和前向填充索引的新 DataFrame.
-    ---------------------------------------------------------------------------
-    """
+def fillna(df_obj: pd.DataFrame, fill_list: List[Any]) -> pd.DataFrame:
     df_obj = df_obj.sort_index()
-    old_idx = df_obj.index.to_list()
     index = sorted(fill_list)
-    if index[-1] >= old_idx[0]:
-        values = df_obj.values
-        lst = []
+    if index and len(df_obj) and index[-1] >= df_obj.index[0]:
         new_idx = sorted(set(df_obj.index) | set(index))
-        position = [new_idx.index(i) for i in old_idx]
-        position.append(len(new_idx))
-        for i, j in enumerate(position[:-1]):
-            repeat = position[i+1] - j
-            array = values[i]
-            array = array.repeat(repeat)
-            lst.append(array.reshape(df_obj.shape[1], -1).T if repeat != 1 else array.reshape(1, -1))
-        lst = np.concatenate(lst)
-        lst = pd.DataFrame(lst, columns=df_obj.columns, index=new_idx[position[0]:]).reindex(index)
+        pos = {v: i for i, v in enumerate(new_idx)}          # O(1) lookup
+        position = [pos[i] for i in df_obj.index] + [len(new_idx)]
+        repeats = np.diff(position)                          # rows to repeat per old row
+        arr = np.repeat(df_obj.values, repeats, axis=0)
+        lst = pd.DataFrame(arr, columns=df_obj.columns,
+                           index=new_idx[position[0]:]).reindex(index)
     else:
         lst = pd.DataFrame(np.nan, index=index, columns=df_obj.columns)
 

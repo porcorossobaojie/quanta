@@ -14,272 +14,184 @@ from ..tools.core import fillna as fillna_func
 
 __all__ = ['group', 'weight', 'portfolio', 'cut', 'roll_weight', 'd_cut']
 
+@njit(cache=True, nopython=True)
+def _bin_table(n_cols: int, rule: np.ndarray) -> np.ndarray:
+    """table[c, j] = bin label of the (j+1)-th smallest value in a group of size c."""
+    n_rule = rule.shape[0]
+    table = np.empty((n_cols + 1, n_cols), dtype=np.int64)
+    for c in range(1, n_cols + 1):
+        for j in range(c):
+            pct = (j + 1) / c
+            b = np.searchsorted(rule, pct, side='left')
+            b = max(min(b, n_rule - 1), 1)
+            table[c, j] = b
+    return table
+
+
 @njit(parallel=True, cache=True, nopython=True)
-def fast_rank(
-    data_2d: np.ndarray,
-    rule: np.ndarray
-) -> np.ndarray:
+def fast_rank(data_2d: np.ndarray, rule: np.ndarray) -> np.ndarray:
     """
-    ===========================================================================
-    Numba-compiled vectorized ranking of each row into bins defined by the
-    rule array, ignoring NaN values.
+    Rank each row into percentile bins defined by `rule`; NaN preserved.
 
-    Parameters
-    ----------
-    data_2d : np.ndarray
-        A 2D array of values to rank per row.
-    rule : np.ndarray
-        Sorted bin edges (percentile thresholds).
-
-    Returns
-    -------
-    np.ndarray
-        Array of bin labels (1-based), NaN preserved.
-    ---------------------------------------------------------------------------
-    基于 Numba 编译的逐行向量化排名, 按 rule 数组定义的区间分箱, 忽略 NaN 值.
-
-    参数
-    ----
-    data_2d : np.ndarray
-        待逐行排名的二维数组.
-    rule : np.ndarray
-        排序后的分箱边界 (百分位阈值).
-
-    返回
-    ----
-    np.ndarray
-        分箱标签数组 (从 1 开始), 保留 NaN.
-    ---------------------------------------------------------------------------
+    Same semantics as the original fast_rank, but uses a single argsort per row
+    (rank of a value only depends on its sorted position) plus a lookup table
+    instead of a second argsort and per-element searchsorted.
     """
+    n_rows, n_cols = data_2d.shape
+    table = _bin_table(n_cols, rule)
     result = np.full(data_2d.shape, np.nan)
-    for i in prange(data_2d.shape[0]):
-        mask = ~np.isnan(data_2d[i])
-        slice_data = data_2d[i][mask]
-        if len(slice_data):
-            count = slice_data.shape[0]
-            slice_data = slice_data.argsort().argsort() + 1
-            slice_data = slice_data / count
-            slice_data = np.searchsorted(rule, slice_data, side='left')
-            slice_data = np.fmax(1, np.fmin(len(rule) - 1, slice_data))
-            result[i, mask] = slice_data
+    for i in prange(n_rows):
+        row = data_2d[i]
+        mask = ~np.isnan(row)
+        pos = np.flatnonzero(mask)
+        n = pos.shape[0]
+        if n:
+            order = np.argsort(row[mask])       # order[j] = original col of j-th smallest
+            result[i, pos[order]] = table[n, :n]
     return result
 
 
-def group(
-    df: pd.DataFrame,
-    rule: Union[Dict, List],
-    order: bool = True,
-) -> pd.DataFrame:
+@njit(parallel=True, cache=True, nopython=True)
+def _fast_rank_grouped(values: np.ndarray, codes: np.ndarray, valid: np.ndarray,
+                       rule: np.ndarray) -> np.ndarray:
     """
-    ===========================================================================
-    Groups and ranks a DataFrame based on specified rules, typically for
-    factor grouping and binning. Supports sequential ordering when multiple
-    keys are provided.
+    For each row, rank `values` across the column axis within groups defined by
+    `codes` (only where `valid` and value is not NaN), then map ranks to bins.
 
-    Parameters
-    ----------
-    df : pd.DataFrame
-        The DataFrame to be grouped.
-    rule : Union[Dict, List]
-        A dictionary of rules for specific columns or a list for all columns.
-    order : bool
-        If True, grouping is applied sequentially based on previously binned
-        columns. Default is True.
+    Excluded cells are set to 0.0 -- replicating the original np.nansum(...,0)
+    behaviour where an all-NaN slice sums to 0 instead of NaN. 0 is never a
+    legal bin; downstream logic treats it as "no rank".
+    """
+    n_rows, n_cols = values.shape
+    table = _bin_table(n_cols, rule)
+    result = np.zeros(values.shape)             # 0.0 = "no rank"
+    for r in prange(n_rows):
+        vbuf = np.empty(n_cols, np.float64)
+        cbuf = np.empty(n_cols, np.int64)
+        pbuf = np.empty(n_cols, np.int64)
+        n = 0
+        for c in range(n_cols):
+            if valid[r, c] and not np.isnan(values[r, c]):
+                vbuf[n] = values[r, c]
+                cbuf[n] = codes[r, c]
+                pbuf[n] = c
+                n += 1
+        if n == 0:
+            continue
+        # sort by (code, value): key = code * n + rank_of_value (no np.lexsort in numba)
+        o1 = np.argsort(vbuf[:n])
+        rank = np.empty(n, dtype=np.int64)
+        rank[o1] = np.arange(n)
+        order = np.argsort(cbuf[:n] * np.int64(n) + rank)
+        k = 0
+        while k < n:
+            code = cbuf[order[k]]
+            g0 = k
+            k += 1
+            while k < n and cbuf[order[k]] == code:
+                k += 1
+            gsize = k - g0
+            for j in range(g0, k):
+                result[r, pbuf[order[j]]] = table[gsize, j - g0]
+    return result
 
-    Returns
-    -------
-    pd.DataFrame
-        The grouped and binned DataFrame.
-    ---------------------------------------------------------------------------
-    根据指定规则对 DataFrame 进行分组和排名, 通常用于因子分组和分箱. 当提供多个
-    键时支持顺序分组.
 
-    参数
-    ----
-    df : pd.DataFrame
-        要分组的 DataFrame.
-    rule : Union[Dict, List]
-        特定列的规则字典或适用于所有列的列表.
-    order : bool
-        如果为 True, 则基于之前已分箱的列顺序应用分组. 默认为 True.
+def _join_labels(arrays: np.ndarray, bin_counts: np.ndarray) -> np.ndarray:
+    """
+    'b0_b1_...' strings per cell; cells with any NaN key become '-1_...'
+    (dropped later). Labels are packed into ints, deduplicated, formatted only
+    for unique combos, then gathered back -- no per-element string work on the
+    full matrix.
+    """
+    n_rows, n_cols, n_keys = arrays.shape
+    strides = np.empty(n_keys, dtype=np.int64)
+    s = 1
+    for j in range(n_keys):
+        strides[j] = s
+        s *= bin_counts[j] + 2
+    codes = np.zeros((n_rows, n_cols), dtype=np.int64)
+    for j in range(n_keys):
+        a = arrays[:, :, j]
+        codes += (np.where(np.isnan(a), -1.0, a).astype(np.int64) + 1) * strides[j]
+    uniq, inv = np.unique(codes, return_inverse=True)
+    strings = np.empty(uniq.shape[0], dtype='U64')
+    for idx, c in enumerate(uniq.tolist()):
+        parts = []
+        for j in range(n_keys):
+            b = (c // strides[j]) % (bin_counts[j] + 2) - 1
+            parts.append(str(b))
+        strings[idx] = '_'.join(parts)
+    return strings[inv].reshape(n_rows, n_cols)
 
-    返回
-    ----
-    pd.DataFrame
-        分组并分箱后的 DataFrame.
-    ---------------------------------------------------------------------------
+
+def group(df: pd.DataFrame, rule: Union[Dict, List], order: bool = True) -> pd.DataFrame:
+    """
+    Group / rank a DataFrame into percentile bins; see module docstring for
+    details on the exact behavioural compatibility.
     """
     is_multi = bool(df.columns.nlevels - 1)
-    rule = {i:np.array(j) for i,j in rule.items()} if isinstance(rule, dict) else np.array(rule)
+    rule = {k: np.asarray(v) for k, v in rule.items()} if isinstance(rule, dict) else np.asarray(rule)
 
     if not is_multi:
-        df = pd.DataFrame(fast_rank(df.values, rule), index=df.index, columns=df.columns)
+        return pd.DataFrame(fast_rank(df.values, rule), index=df.index, columns=df.columns)
+
+    if isinstance(rule, np.ndarray):
+        rule = {i: rule for i in df.columns.get_level_values(0).unique()}
+
+    keys = list(rule.keys())
+    x = df.sort_index(axis=1)
+    cnt = x.columns.get_level_values(-1).value_counts()
+    cols = cnt[cnt == len(keys)].index
+    x = x.loc[:, x.columns.get_level_values(-1).isin(cols)]
+
+    n_rows, n_cols, n_keys = x.shape[0], len(cols), len(keys)
+
+    # contiguous value blocks per key, all in the same (cols) column order
+    values_stack = np.empty((n_keys, n_rows, n_cols), dtype=np.float64)
+    for i, k in enumerate(keys):
+        values_stack[i] = np.ascontiguousarray(x[k].values)
+
+    # strides to pack the bins of keys[0..i-1] into a single group code
+    bin_counts = np.array([len(rule[k]) - 1 for k in keys], dtype=np.int64)
+    strides = np.empty(n_keys, dtype=np.int64)
+    total = 1
+    for i in range(n_keys):
+        strides[i] = total
+        total *= bin_counts[i]
+
+    arrays = np.empty((n_rows, n_cols, n_keys), dtype=np.float64)
+    if order:
+        arrays[:, :, 0] = fast_rank(values_stack[0], rule[keys[0]])
+        for i in range(1, n_keys):
+            codes = np.zeros((n_rows, n_cols), dtype=np.int64)
+            valid = np.ones((n_rows, n_cols), dtype=np.bool_)
+            for j in range(i):
+                b = arrays[:, :, j]
+                m = b >= 1.0          # legal bins >= 1; NaN / 0 (no rank) excluded
+                valid &= m
+                codes += (np.where(m, b, 1.0).astype(np.int64) - 1) * strides[j]
+            arrays[:, :, i] = _fast_rank_grouped(values_stack[i], codes, valid, rule[keys[i]])
     else:
-        if isinstance(rule, np.ndarray):
-            rule = {i: rule for i in df.columns.get_level_values(0).unique()}
-        keys = list(rule.keys())
-        x = df.sort_index(axis=1)
-        cols = x.columns.get_level_values(-1).value_counts() == len(keys)
-        cols = cols[cols].index
-        x = x.loc[:, x.columns.get_level_values(-1).isin(cols)]
-        arrays = np.full((x.index.shape[0], cols.shape[0], len(keys)), np.nan)
-        if order:
-            arrays[:, :, 0] = fast_rank(x[keys[0]].values, rule[keys[0]])
-            ruled = [range(1, len(rule[keys[0]]))]
-            for i in range(1, len(keys)):
-                flat_values = arrays[:, :, :i]
-                unique_keys = np.array(list(product(*ruled)))
-                result = (flat_values[:, :, np.newaxis, :] == unique_keys[np.newaxis, np.newaxis, :, :])
-                result = result.all(axis=-1)
-                result = np.where(result, x[keys[i]].values[:, :, np.newaxis], np.nan)
-                result = result.transpose(2, 0, 1).reshape(-1, result.shape[1])
-                result = fast_rank(result, rule[keys[i]])
-                result = result.reshape(len(unique_keys), -1, result.shape[-1])
-                result = np.nansum(result, axis=0)
-                arrays[:, :, i] = result
-                ruled.append(range(1, len(rule[keys[i]])))
-        else:
-            for i in range(len(keys)):
-                arrays[:, :, i] =fast_rank(x[keys[i]].values, rule[keys[i]])
-        df = pd.DataFrame(arrays.reshape(-1, len(keys))).fillna(-1).astype(int).astype(str)
-        df = pd.Series(df.values.tolist()).str.join('_')
-        df = pd.DataFrame(df.values.reshape(x.shape[0], -1), index=x.index, columns=cols)
-        df = df.stack()
-        df = df[~df.str.contains('-1',  regex=False)].unstack()
-    return df
+        for i in range(n_keys):
+            arrays[:, :, i] = fast_rank(values_stack[i], rule[keys[i]])
 
-def group_old(
-    df: pd.DataFrame,
-    rule: Union[Dict, List],
-    pct: bool = True,
-    order: bool = False,
-    nlevels: Optional[List[Union[int, str]]] = None
-) -> pd.DataFrame:
-    """
-    ===========================================================================
-    Groups and ranks a DataFrame based on specified rules, typically for
-    factor grouping and binning.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        The DataFrame to be grouped.
-    rule : Union[Dict, List]
-        A dictionary of rules for specific columns or a list for all columns.
-    pct : bool
-        Whether to use percentage-based ranking. Default is True.
-    order : bool
-        If True, grouping is applied sequentially based on previously binned
-        columns. Default is False.
-    nlevels : Optional[List[Union[int, str]]]
-        Column levels to be preserved during the stacking process.
-
-    Returns
-    -------
-    pd.DataFrame
-        The grouped and binned DataFrame.
-    ---------------------------------------------------------------------------
-    根据指定规则对 DataFrame 进行分组和排名, 通常用于因子分组和分箱.
-
-    参数
-    ----
-    df : pd.DataFrame
-        要分组的 DataFrame.
-    rule : Union[Dict, List]
-        特定列的规则字典或适用于所有列的列表.
-    pct : bool
-        是否使用基于百分比的排名. 默认为 True.
-    order : bool
-        如果为 True, 则基于之前已分箱的列顺序应用分组. 默认为 False.
-    nlevels : Optional[List[Union[int, str]]]
-        在堆叠过程中要保留的列层级.
-
-    返回
-    ----
-    pd.DataFrame
-        分组并分箱后的 DataFrame.
-    ---------------------------------------------------------------------------
-    """
-    if isinstance(rule, dict):
-        df.index.names = [i if i is not None else 'level_i' + str(j) for j, i in enumerate(df.index.names)]
-        df.columns.names = [i if i is not None else 'level_c' + str(j) for j, i in enumerate(df.columns.names)]
-        ind_keys = list(df.index.names)
-        col_nlevels = [0] if nlevels is None else nlevels
-        col_nlevels = [i if isinstance(i, int) else df.columns.name.index(i) for i in col_nlevels]
-        df = df.stack(sorted(set(range(df.columns.nlevels)) - set(col_nlevels)))
-        df = df.loc[:, list(rule.keys())]
-        used_keys = []
-        for k, i in enumerate(df.columns):
-            df[i] = df.groupby(ind_keys + used_keys)[i].rank(pct=pct)
-            df[i] = pd.cut(df[i], rule[i], labels=[str([rule[i][j], rule[i][j+1]]) for j in range(len(rule[i]) - 1)])
-            if order:
-                used_keys.append(i)
-        df = df.unstack(list(range(df.index.nlevels)[-1 * len(col_nlevels):]))
-    else:
-        df = df.rank(axis=1, pct=pct).round(9)
-        col_nlevels = df.columns.nlevels
-        df = df.stack(list(range(col_nlevels)))
-        df = pd.cut(df, rule, labels=[str([rule[i], rule[i+1]]) for i in range(len(rule) - 1)])
-        df = df.unstack(list(range(df.index.nlevels)[-1 * col_nlevels:]))
-    return df
+    joined = _join_labels(arrays, bin_counts)
+    has_nan = np.isnan(arrays).any(axis=2)
+    out = pd.DataFrame(joined, index=x.index, columns=cols)
+    return out.where(~has_nan, other=np.nan)
 
 
-def weight(
-    df: pd.DataFrame,
-    w_df: Optional[pd.DataFrame] = None,
-    fillna: bool = True,
-    pct: bool = True,
-) -> pd.DataFrame:
-    """
-    ===========================================================================
-    Applies weights to a DataFrame, supporting forward-filling and
-    normalization.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        The DataFrame to be weighted.
-    w_df : Optional[pd.DataFrame]
-        The DataFrame of weights. Default is None.
-    fillna : bool
-        Whether to forward-fill weights to match the index of df.
-        Default is True.
-    pct : bool
-        If True, normalizes weights to sum to 1 across columns.
-        Default is True.
-
-    Returns
-    -------
-    pd.DataFrame
-        The weighted DataFrame.
-    ---------------------------------------------------------------------------
-    将权重应用于 DataFrame, 支持前向填充和归一化.
-
-    参数
-    ----
-    df : pd.DataFrame
-        要加权的 DataFrame.
-    w_df : Optional[pd.DataFrame]
-        权重 DataFrame. 默认为 None.
-    fillna : bool
-        是否前向填充权重以匹配 df 的索引. 默认为 True.
-    pct : bool
-        如果为 True, 则将权重归一化为行总和为 1. 默认为 True.
-
-    返回
-    ----
-    pd.DataFrame
-        加权后的 DataFrame.
-    ---------------------------------------------------------------------------
-    """
+def weight(df: pd.DataFrame, w_df: Optional[pd.DataFrame] = None,
+           fillna: bool = True, pct: bool = True) -> pd.DataFrame:
     if w_df is not None:
         if fillna:
             w_df = fillna_func(w_df, df.index)
         w_df = w_df.reindex_like(df)
-        w_df[df.isnull()] = pd.NA
+        v = np.where(df.notnull().values, w_df.values, np.nan)   # float64 mask (orig used pd.NA -> object)
         if pct:
-            w_df = w_df.div(w_df.sum(axis=1), axis=0)
-        return df * w_df
+            with np.errstate(divide='ignore', invalid='ignore'):
+                v = v / np.nansum(v, axis=1, keepdims=True)
+        return df * v
     else:
         if pct:
             return df.div(df.notnull().sum(axis=1), axis=0)
@@ -287,79 +199,58 @@ def weight(
             return df
 
 
-def portfolio(
-    df_obj: pd.DataFrame,
-    returns: pd.DataFrame,
-    weight: Optional[pd.DataFrame] = None,
-    shift: int = 1,
-    roll: int = 1,
-    fillna: bool = False
-) -> pd.DataFrame:
-    """
-    ===========================================================================
-    Calculates group returns (portfolio returns) based on group assignments
-    and asset returns.
+def portfolio(df_obj: pd.DataFrame, returns: pd.DataFrame,
+              weight: Optional[pd.DataFrame] = None,
+              shift: int = 1, roll: int = 1, fillna: bool = False) -> pd.DataFrame:
+    returns = returns.sort_index()
+    if roll > 1:
+        returns = returns.rolling(roll).mean().shift(-(roll - 1))
 
-    Parameters
-    ----------
-    df_obj : pd.DataFrame
-        The DataFrame containing group labels (e.g., output of group()).
-    returns : pd.DataFrame
-        The DataFrame of asset returns.
-    weight : Optional[pd.DataFrame]
-        The weights of assets. Default is None.
-    shift : int
-        The number of periods to shift group assignments forward.
-        Default is 1.
-    roll : int
-        The rolling window for asset returns. Default is 1.
-    fillna : bool
-        Whether to forward-fill group assignments and weights.
-        Default is False.
-
-    Returns
-    -------
-    pd.DataFrame
-        A DataFrame containing average or weighted returns for each group.
-    ---------------------------------------------------------------------------
-    根据分组分配和资产收益率计算组收益 (组合收益).
-
-    参数
-    ----
-    df_obj : pd.DataFrame
-        包含分组标签的 DataFrame (例如 group() 的输出).
-    returns : pd.DataFrame
-        资产收益率的 DataFrame.
-    weight : Optional[pd.DataFrame]
-        资产的权重. 默认为 None.
-    shift : int
-        将分组分配前移的周期数. 默认为 1.
-    roll : int
-        资产收益率的滚动窗口大小. 默认为 1.
-    fillna : bool
-        是否前向填充分组分配和权重. 默认为 False.
-
-    返回
-    ----
-    pd.DataFrame
-        包含每个组的平均或加权收益率的 DataFrame.
-    ---------------------------------------------------------------------------
-    """
-    returns = returns.sort_index().rolling(roll).mean().shift(-1 * (roll-1)) if roll > 1 else returns.sort_index()
     df_obj = (fillna_func(df_obj.sort_index(), returns.index) if fillna else df_obj).shift(shift)
+    df_obj = df_obj.reindex(index=returns.index, columns=returns.columns)   # same alignment as pd.concat
     if weight is not None:
-        weight = (fillna_func(weight, returns.index) if fillna else weight).reindex_like(returns)[returns.notnull()]
+        weight = (fillna_func(weight, returns.index) if fillna else weight).reindex_like(returns)
 
-    df = {i: j for i, j in {'portfolio': df_obj, '1': returns, '2': weight}.items() if j is not None}
-    df = pd.concat(df, axis=1).stack().set_index('portfolio', append=True)
+    r = np.ascontiguousarray(returns.values, dtype=np.float64)   # (n_rows, n_cols)
+    n_rows, n_cols = r.shape
+    lab = df_obj.values.ravel()                                  # labels (str/float/...), NaN = missing
+
+    codes, uniques = pd.factorize(lab)
+    n_codes = len(uniques)
+    if n_codes == 0:
+        return pd.DataFrame(dtype='float64')
+
+    # column order: sorted labels (matches groupby-sort + sort_index(axis=1))
+    sorted_uniques = np.sort(uniques)
+    pos = np.searchsorted(sorted_uniques, uniques)               # appearance-order -> sorted-order
+
+    lab_ok = codes >= 0
+    rf = r.ravel()
+    valid = lab_ok & ~np.isnan(rf)
     if weight is not None:
-        df['1'] = df['1'] * df['2']
-        group_obj = df.groupby([df.index.names[0], df.index.names[2]])
-        df = group_obj['1'].sum() / group_obj['2'].sum()
+        wf = np.ascontiguousarray(weight.values, dtype=np.float64).ravel()
+        valid &= ~np.isnan(wf)
+        rw = rf * wf
+
+    row_ids = np.repeat(np.arange(n_rows), n_cols)
+    key = row_ids[valid] * n_codes + pos[codes[valid]]
+    if weight is not None:
+        num = np.bincount(key, weights=rw[valid], minlength=n_rows * n_codes)
+        den = np.bincount(key, weights=wf[valid], minlength=n_rows * n_codes)
     else:
-        df = df['1'].groupby([df.index.names[0], df.index.names[2]]).mean()
-    df = df.unstack().astype('float64').sort_index(axis=0).sort_index(axis=1)
-    return df
+        num = np.bincount(key, weights=rf[valid], minlength=n_rows * n_codes)
+        den = np.bincount(key, minlength=n_rows * n_codes)
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        res = num / den
+    res = res.reshape(n_rows, n_codes)
+
+    # pandas>=2.1 stack() keeps label-only cells, so a date stays in the output
+    # as long as it has >= 1 valid group label (its returns may be all NaN)
+    keep = lab_ok.reshape(n_rows, n_cols).any(axis=1)
+    res = res[keep]
+    cols = pd.Index(sorted_uniques, name='portfolio')
+    return pd.DataFrame(res, index=returns.index[keep], columns=cols)
 
 
 def cut(
