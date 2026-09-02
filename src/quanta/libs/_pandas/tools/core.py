@@ -16,6 +16,37 @@ __all__ = ['fillna', 'shift', 'log', 'halflife', 'array_roll']
 
 
 def fillna(df_obj: pd.DataFrame, fill_list: List[Any]) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Forward fills a DataFrame based on a new index, effectively extending it.
+
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        The source DataFrame to be filled.
+    fill_list : List[Any]
+        A list of new index labels to be included in the result.
+
+    Returns
+    -------
+    pd.DataFrame
+        A new DataFrame with the combined and forward-filled index.
+    ---------------------------------------------------------------------------
+    根据新索引前向填充 DataFrame, 有效地扩展它.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        要填充的源 DataFrame.
+    fill_list : List[Any]
+        要包含在结果中的新索引标签列表.
+
+    返回
+    ----
+    pd.DataFrame
+        具有合并和前向填充索引的新 DataFrame.
+    ---------------------------------------------------------------------------
+    """
     df_obj = df_obj.sort_index()
     index = sorted(fill_list)
     if index and len(df_obj) and index[-1] >= df_obj.index[0]:

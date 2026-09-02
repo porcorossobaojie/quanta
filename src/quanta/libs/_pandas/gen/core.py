@@ -16,7 +16,39 @@ __all__ = ['group', 'weight', 'portfolio', 'cut', 'roll_weight', 'd_cut']
 
 @njit(cache=True, nopython=True)
 def _bin_table(n_cols: int, rule: np.ndarray) -> np.ndarray:
-    """table[c, j] = bin label of the (j+1)-th smallest value in a group of size c."""
+    """
+    ===========================================================================
+    Builds a lookup table mapping group size and sorted position to a bin
+    label for percentile rules.
+
+    Parameters
+    ----------
+    n_cols : int
+        The maximum group size (number of columns).
+    rule : np.ndarray
+        Sorted bin edges (percentile thresholds).
+
+    Returns
+    -------
+    np.ndarray
+        Table where table[c, j] is the bin label of the (j+1)-th smallest
+        value in a group of size c.
+    ---------------------------------------------------------------------------
+    构建将组大小和排序位置映射到百分位规则分箱标签的查找表.
+
+    参数
+    ----
+    n_cols : int
+        最大组大小 (列数).
+    rule : np.ndarray
+        排序后的分箱边界 (百分位阈值).
+
+    返回
+    ----
+    np.ndarray
+        查找表, table[c, j] 为大小为 c 的组中第 (j+1) 小的值所在分箱.
+    ---------------------------------------------------------------------------
+    """
     n_rule = rule.shape[0]
     table = np.empty((n_cols + 1, n_cols), dtype=np.int64)
     for c in range(1, n_cols + 1):
@@ -31,11 +63,36 @@ def _bin_table(n_cols: int, rule: np.ndarray) -> np.ndarray:
 @njit(parallel=True, cache=True, nopython=True)
 def fast_rank(data_2d: np.ndarray, rule: np.ndarray) -> np.ndarray:
     """
-    Rank each row into percentile bins defined by `rule`; NaN preserved.
+    ===========================================================================
+    Numba-compiled vectorized ranking of each row into bins defined by the
+    rule array, ignoring NaN values.
 
-    Same semantics as the original fast_rank, but uses a single argsort per row
-    (rank of a value only depends on its sorted position) plus a lookup table
-    instead of a second argsort and per-element searchsorted.
+    Parameters
+    ----------
+    data_2d : np.ndarray
+        A 2D array of values to rank per row.
+    rule : np.ndarray
+        Sorted bin edges (percentile thresholds).
+
+    Returns
+    -------
+    np.ndarray
+        Array of bin labels (1-based), NaN preserved.
+    ---------------------------------------------------------------------------
+    基于 Numba 编译的逐行向量化排名, 按 rule 数组定义的区间分箱, 忽略 NaN 值.
+
+    参数
+    ----
+    data_2d : np.ndarray
+        待逐行排名的二维数组.
+    rule : np.ndarray
+        排序后的分箱边界 (百分位阈值).
+
+    返回
+    ----
+    np.ndarray
+        分箱标签数组 (从 1 开始), 保留 NaN.
+    ---------------------------------------------------------------------------
     """
     n_rows, n_cols = data_2d.shape
     table = _bin_table(n_cols, rule)
@@ -55,12 +112,54 @@ def fast_rank(data_2d: np.ndarray, rule: np.ndarray) -> np.ndarray:
 def _fast_rank_grouped(values: np.ndarray, codes: np.ndarray, valid: np.ndarray,
                        rule: np.ndarray) -> np.ndarray:
     """
-    For each row, rank `values` across the column axis within groups defined by
-    `codes` (only where `valid` and value is not NaN), then map ranks to bins.
+    ===========================================================================
+    Ranks values within groups per row and maps ranks to percentile bins.
 
-    Excluded cells are set to 0.0 -- replicating the original np.nansum(...,0)
-    behaviour where an all-NaN slice sums to 0 instead of NaN. 0 is never a
-    legal bin; downstream logic treats it as "no rank".
+    For each row, values are ranked across the column axis inside the groups
+    defined by `codes` (only where `valid` and the value is not NaN), then
+    mapped to bins. Excluded cells are set to 0.0, replicating the original
+    np.nansum(..., 0) behaviour where an all-NaN slice sums to 0 instead of
+    NaN. 0 is never a legal bin; downstream logic treats it as "no rank".
+
+    Parameters
+    ----------
+    values : np.ndarray
+        A 2D array of values to rank.
+    codes : np.ndarray
+        A 2D integer array of group codes per cell.
+    valid : np.ndarray
+        A 2D boolean array indicating which cells participate.
+    rule : np.ndarray
+        Sorted bin edges (percentile thresholds).
+
+    Returns
+    -------
+    np.ndarray
+        Array of bin labels (1-based); excluded cells are 0.0.
+    ---------------------------------------------------------------------------
+    按组对每行的值进行排名并映射到百分位分箱.
+
+    每行中, 值仅在 `codes` 定义的组内 (且 `valid` 为 True, 值非 NaN) 跨列排名,
+    然后映射到分箱. 被排除的单元格设为 0.0, 复现原始 np.nansum(..., 0) 的行为,
+    即全 NaN 切片求和为 0 而非 NaN. 0 永远不是合法分箱; 下游逻辑将其视为
+    "无排名".
+
+    参数
+    ----
+    values : np.ndarray
+        待排名的二维数组.
+    codes : np.ndarray
+        每个单元格的组编码二维整数数组.
+    valid : np.ndarray
+        指示哪些单元格参与排名的二维布尔数组.
+    rule : np.ndarray
+        排序后的分箱边界 (百分位阈值).
+
+    返回
+    ----
+    np.ndarray
+        分箱标签数组 (从 1 开始); 被排除的单元格为 0.0.
+    ---------------------------------------------------------------------------
     """
     n_rows, n_cols = values.shape
     table = _bin_table(n_cols, rule)
@@ -98,10 +197,42 @@ def _fast_rank_grouped(values: np.ndarray, codes: np.ndarray, valid: np.ndarray,
 
 def _join_labels(arrays: np.ndarray, bin_counts: np.ndarray) -> np.ndarray:
     """
-    'b0_b1_...' strings per cell; cells with any NaN key become '-1_...'
-    (dropped later). Labels are packed into ints, deduplicated, formatted only
-    for unique combos, then gathered back -- no per-element string work on the
-    full matrix.
+    ===========================================================================
+    Joins per-key bin labels into 'b0_b1_...' strings per cell.
+
+    Cells with any NaN key become '-1_...' and are dropped later. Labels are
+    packed into integers, deduplicated, formatted only for unique combos, then
+    gathered back -- avoiding per-element string work on the full matrix.
+
+    Parameters
+    ----------
+    arrays : np.ndarray
+        A 3D array of bin labels per row, column and key.
+    bin_counts : np.ndarray
+        The number of bins per key, used for packing.
+
+    Returns
+    -------
+    np.ndarray
+        A 2D array of joined label strings per cell.
+    ---------------------------------------------------------------------------
+    将每个键的分箱标签连接为每个单元格的 'b0_b1_...' 字符串.
+
+    含任意 NaN 键的单元格会变成 '-1_...', 之后被丢弃. 标签先打包为整数, 去重后
+    仅对唯一组合进行格式化, 再还原回矩阵 -- 避免对整个矩阵做逐元素字符串操作.
+
+    参数
+    ----
+    arrays : np.ndarray
+        每个键在行, 列上的分箱标签三维数组.
+    bin_counts : np.ndarray
+        每个键的分箱数量, 用于打包.
+
+    返回
+    ----
+    np.ndarray
+        每个单元格连接后的标签字符串二维数组.
+    ---------------------------------------------------------------------------
     """
     n_rows, n_cols, n_keys = arrays.shape
     strides = np.empty(n_keys, dtype=np.int64)
@@ -126,8 +257,43 @@ def _join_labels(arrays: np.ndarray, bin_counts: np.ndarray) -> np.ndarray:
 
 def group(df: pd.DataFrame, rule: Union[Dict, List], order: bool = True) -> pd.DataFrame:
     """
-    Group / rank a DataFrame into percentile bins; see module docstring for
-    details on the exact behavioural compatibility.
+    ===========================================================================
+    Groups and ranks a DataFrame based on specified rules, typically for
+    factor grouping and binning. Supports sequential ordering when multiple
+    keys are provided.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame to be grouped.
+    rule : Union[Dict, List]
+        A dictionary of rules for specific columns or a list for all columns.
+    order : bool
+        If True, grouping is applied sequentially based on previously binned
+        columns. Default is True.
+
+    Returns
+    -------
+    pd.DataFrame
+        The grouped and binned DataFrame.
+    ---------------------------------------------------------------------------
+    根据指定规则对 DataFrame 进行分组和排名, 通常用于因子分组和分箱. 当提供多个
+    键时支持顺序分组.
+
+    参数
+    ----
+    df : pd.DataFrame
+        要分组的 DataFrame.
+    rule : Union[Dict, List]
+        特定列的规则字典或适用于所有列的列表.
+    order : bool
+        如果为 True, 则基于之前已分箱的列顺序应用分组. 默认为 True.
+
+    返回
+    ----
+    pd.DataFrame
+        分组并分箱后的 DataFrame.
+    ---------------------------------------------------------------------------
     """
     is_multi = bool(df.columns.nlevels - 1)
     rule = {k: np.asarray(v) for k, v in rule.items()} if isinstance(rule, dict) else np.asarray(rule)
@@ -183,6 +349,48 @@ def group(df: pd.DataFrame, rule: Union[Dict, List], order: bool = True) -> pd.D
 
 def weight(df: pd.DataFrame, w_df: Optional[pd.DataFrame] = None,
            fillna: bool = True, pct: bool = True) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Applies weights to a DataFrame, supporting forward-filling and
+    normalization.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame to be weighted.
+    w_df : Optional[pd.DataFrame]
+        The DataFrame of weights. Default is None.
+    fillna : bool
+        Whether to forward-fill weights to match the index of df.
+        Default is True.
+    pct : bool
+        If True, normalizes weights to sum to 1 across columns.
+        Default is True.
+
+    Returns
+    -------
+    pd.DataFrame
+        The weighted DataFrame.
+    ---------------------------------------------------------------------------
+    将权重应用于 DataFrame, 支持前向填充和归一化.
+
+    参数
+    ----
+    df : pd.DataFrame
+        要加权的 DataFrame.
+    w_df : Optional[pd.DataFrame]
+        权重 DataFrame. 默认为 None.
+    fillna : bool
+        是否前向填充权重以匹配 df 的索引. 默认为 True.
+    pct : bool
+        如果为 True, 则将权重归一化为行总和为 1. 默认为 True.
+
+    返回
+    ----
+    pd.DataFrame
+        加权后的 DataFrame.
+    ---------------------------------------------------------------------------
+    """
     if w_df is not None:
         if fillna:
             w_df = fillna_func(w_df, df.index)
@@ -202,9 +410,59 @@ def weight(df: pd.DataFrame, w_df: Optional[pd.DataFrame] = None,
 def portfolio(df_obj: pd.DataFrame, returns: pd.DataFrame,
               weight: Optional[pd.DataFrame] = None,
               shift: int = 1, roll: int = 1, fillna: bool = False) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Calculates group returns (portfolio returns) based on group assignments
+    and asset returns.
+
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        The DataFrame containing group labels (e.g., output of group()).
+    returns : pd.DataFrame
+        The DataFrame of asset returns.
+    weight : Optional[pd.DataFrame]
+        The weights of assets. Default is None.
+    shift : int
+        The number of periods to shift group assignments forward.
+        Default is 1.
+    roll : int
+        The rolling window for asset returns. Default is 1.
+    fillna : bool
+        Whether to forward-fill group assignments and weights.
+        Default is False.
+
+    Returns
+    -------
+    pd.DataFrame
+        A DataFrame containing average or weighted returns for each group.
+    ---------------------------------------------------------------------------
+    根据分组分配和资产收益率计算组收益 (组合收益).
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        包含分组标签的 DataFrame (例如 group() 的输出).
+    returns : pd.DataFrame
+        资产收益率的 DataFrame.
+    weight : Optional[pd.DataFrame]
+        资产的权重. 默认为 None.
+    shift : int
+        将分组分配前移的周期数. 默认为 1.
+    roll : int
+        资产收益率的滚动窗口大小. 默认为 1.
+    fillna : bool
+        是否前向填充分组分配和权重. 默认为 False.
+
+    返回
+    ----
+    pd.DataFrame
+        包含每个组的平均或加权收益率的 DataFrame.
+    ---------------------------------------------------------------------------
+    """
     returns = returns.sort_index()
     if roll > 1:
-        returns = returns.rolling(roll).mean().shift(-(roll - 1))
+        returns = returns.rolling(roll).mean().shift(-(roll - 1))        
 
     df_obj = (fillna_func(df_obj.sort_index(), returns.index) if fillna else df_obj).shift(shift)
     df_obj = df_obj.reindex(index=returns.index, columns=returns.columns)   # same alignment as pd.concat
@@ -429,9 +687,8 @@ def roll_weight(
         The input DataFrame.
     weight_array : Union[List, np.ndarray, pd.Series]
         The array of weights to be applied to the rolling window.
-    fix_na : bool
-        Whether to adjust weights to account for missing values in the window.
-        Default is True.
+    fillna : Union[int, float]
+        The value used to fill NaN cells before weighting. Default is 0.
 
     Returns
     -------
@@ -446,8 +703,8 @@ def roll_weight(
         输入 DataFrame.
     weight_array : Union[List, np.ndarray, pd.Series]
         要应用于滚动窗口的权重数组.
-    fix_na : bool
-        是否调整权重以考虑窗口中的缺失值. 默认为 True.
+    fillna : Union[int, float]
+        加权前用于填充 NaN 单元格的值. 默认为 0.
 
     返回
     ----
