@@ -216,6 +216,14 @@ class flow_extra():
     ) -> pd.DataFrame:
         return concept(self._obj, label, label_df, expand, how, w, portfolio_type)
     
+    @doc_inherit(expose)
+    def expose(
+        self,
+        standard=True,
+        **kwargs
+    ) -> pd.DataFrame:
+        return expose(df_obj=self._obj, standard=standard, **kwargs)
+    
     @doc_inherit(at)
     def at(self, start=None, end=None, head=1):
         return at(self._obj, start, end, head)

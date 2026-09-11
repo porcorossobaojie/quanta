@@ -1239,6 +1239,31 @@ def concept(
         x = x.groupby(x.columns.names[1], axis=1).mean()
     return x
 
+def expose(
+    df_obj,
+    standard = True,
+    **kwargs
+):
+    if len(kwargs) == 0:
+        from quanta.faclib import barra
+        kwargs = {
+        "size": barra.us4.size(),
+        "bm": barra.us4.bm(),
+        "non": barra.cn6.non_size(),
+        "beta": barra.us4.beta(),
+        "volatility": barra.us4.resid_volatility(),
+        "momentum": barra.us4.momentum(),
+        "liquidity": barra.us4.liquidity(),
+        "earnings": barra.us4.earnings(),
+        "growth": barra.us4.growth(),
+        "leverage": barra.us4.leverage()
+        }
+    if standard:
+        kwargs = {i:j.stats.standard(axis=1) for i,j in kwargs.items()}
+        df_obj = df_obj.stats.standard(axis=1)
+    x = df_obj.stats.neutral(**kwargs)
+    return x
+
 def at(
     df_obj: pd.DataFrame,
     start: Optional[int] = None,
