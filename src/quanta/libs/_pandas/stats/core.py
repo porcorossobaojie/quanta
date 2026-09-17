@@ -526,6 +526,7 @@ def fast_wls(
         else:
             x = np.array([np.nan] * (m.shape[1] - 1))
         return x
+    
     if weights is not None and data_3d.shape[:2] == weights.shape[:2]:
         partial_func = partial(core_func, l2=l2)
         x = list(map(core_func, data_3d, weights))
