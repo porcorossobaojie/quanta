@@ -53,6 +53,7 @@ class main:
         """Ranks the tradable pool, optionally restricted to a given list | 对可交易股票池排序, 可选限制在给定列表内"""
         x = self.pool(index_members).rank(ascending=False)
         if lst is not None:
+            lst = [i for i in lst if i in x.index]
             x = x.loc[lst]
         return x
     
@@ -65,7 +66,8 @@ class main:
     def ensell(self, high_limit: bool = True) -> pd.Series:
         """Determines sell candidates beyond the portfolio size | 确定超出组合规模的卖出候选"""
         x = self.settle()
-        sells = x[self.ranker(lst = x.index) > (self.account._portfolio_count + self.account._portfolio_range)]
+        lst = x[x.index.isin(self.ranker().index)]
+        sells = lst[self.ranker(lst = lst.index) > (self.account._portfolio_count + self.account._portfolio_range)]
         if high_limit:
             sells = sells[~sells.f.info('tradestatus').astype('bool') & (sells.f.info('close') < sells.f.info('high_limit'))]
         return sells

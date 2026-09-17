@@ -7,12 +7,13 @@ Created on Wed Feb  4 15:58:12 2026
 
 import numpy as np
 import pandas as pd
+
+from scipy.signal import savgol_filter, find_peaks
 from numba import njit, prange
-from itertools import product
 from typing import Optional, Dict, List, Union
 from ..tools.core import fillna as fillna_func
 
-__all__ = ['group', 'weight', 'portfolio', 'cut', 'roll_weight', 'd_cut']
+__all__ = ['group', 'weight', 'portfolio', 'cut', 'roll_weight', 'd_cut', 'peaks']
 
 @njit(cache=True, nopython=True)
 def _bin_table(n_cols: int, rule: np.ndarray) -> np.ndarray:
@@ -723,4 +724,43 @@ def roll_weight(
     x = x.reindex_like(df_obj)
     return x
     
+
+def peaks(
+    df_obj, 
+    periods, 
+    top = None,
+    bottom = None,
+    median = None,
+    standard = True,
+    smooth = True,
+):
+    if standard:
+        df_obj = df_obj.stats.standard(axis=0)
+    if smooth:
+        x = savgol_filter(df_obj, window_length=periods, polyorder=3)
+    else:
+        x = df_obj.values
+        
+    result =np.full(df_obj.shape, np.nan) 
+    for i in range(x.shape[-1]):
+        if top is not None:
+            j, k = find_peaks(x[:, i], distance=periods, prominence = top, width=periods//2)
+            diff = np.cumsum(
+                np.bincount(k['left_ips'].astype(int), minlength=x.shape[0] + 1)
+                - np.bincount(k['right_ips'].astype(int), minlength=x.shape[0] + 1)
+            )[:-1]
+            result[:, i] = np.where(diff, 1, result[:, i])
+        if bottom is not None:
+            j, k = find_peaks(-x[:, i], distance=periods, prominence = bottom, width=periods//3)
+            diff = np.cumsum(
+                np.bincount(k['left_ips'].astype(int), minlength=x.shape[0] + 1)
+                - np.bincount(k['right_ips'].astype(int), minlength=x.shape[0] + 1)
+            )[:-1]
+            result[:, i] = np.where(diff, -1, result[:, i])
+    if median is not None:
+        std = df_obj.abs().lt(median).rolling(periods, center=True).sum().ge(periods //(3/2))
+        std = std.rolling(window=periods, center=True, min_periods=1,).max().astype(bool)
+        result = np.where(np.isnan(result) & std, 0, result)
+    result = pd.DataFrame(result, index=df_obj.index, columns=df_obj.columns)
+    return result
     

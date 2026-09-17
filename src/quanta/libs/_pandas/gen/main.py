@@ -85,6 +85,18 @@ class main():
         fillna: bool = 0
     ) -> pd.DataFrame:
         return roll_weight(self._obj, weight_array, fillna)
+    
+    @doc_inherit(peaks)
+    def peaks(
+        self,
+        periods = 15,
+        top = 0.5,
+        bottom = 0.5,
+        median = 0.3,
+        standard = True,
+        smooth = True
+    ) -> pd.DataFrame:
+        return peaks(self._obj, periods, top, bottom, median, standard, smooth)
 
 @pd.api.extensions.register_series_accessor(MODULE_DIR)
 class main():
