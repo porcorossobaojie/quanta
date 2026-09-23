@@ -17,7 +17,62 @@ except ImportError:
 
 if HAS_NUMBA:
     @njit(cache=True)
-    def _maxdown_numba(vals, start_pos, end_pos, start_val, end_val, pct):
+    def _maxdown_numba(
+        vals: np.ndarray,
+        start_pos: np.ndarray,
+        end_pos: np.ndarray,
+        start_val: np.ndarray,
+        end_val: np.ndarray,
+        pct: np.ndarray
+    ) -> None:
+        """
+        =======================================================================
+        Find each column's maximum drawdown and write its peak, trough, and
+        drawdown into the supplied output arrays using Numba.
+
+        Parameters
+        ----------
+        vals : np.ndarray
+            Two-dimensional value array; NaNs are skipped.
+        start_pos : np.ndarray
+            Output positions of the first matching peaks; -1 for empty columns.
+        end_pos : np.ndarray
+            Output positions of the troughs; -1 for empty columns.
+        start_val : np.ndarray
+            Output peak values; NaN for empty columns.
+        end_val : np.ndarray
+            Output trough values; NaN for empty columns.
+        pct : np.ndarray
+            Output drawdown ratios; NaN for empty columns.
+
+        Returns
+        -------
+        None
+            Results are written in place to the output arrays.
+        -----------------------------------------------------------------------
+        使用 Numba 逐列查找最大回撤, 并将峰值, 谷值和回撤写入输出数组.
+
+        参数
+        ----
+        vals : np.ndarray
+            二维数值数组; 跳过 NaN.
+        start_pos : np.ndarray
+            输出首次匹配的峰值位置; 全 NaN 列为 -1.
+        end_pos : np.ndarray
+            输出谷值位置; 全 NaN 列为 -1.
+        start_val : np.ndarray
+            输出峰值; 全 NaN 列为 NaN.
+        end_val : np.ndarray
+            输出谷值; 全 NaN 列为 NaN.
+        pct : np.ndarray
+            输出回撤比例; 全 NaN 列为 NaN.
+
+        返回
+        ----
+        None
+            结果原位写入输出数组.
+        -----------------------------------------------------------------------
+        """
         n, k = vals.shape
         for j in range(k):
             peak = -np.inf
@@ -44,7 +99,38 @@ if HAS_NUMBA:
             start_val[j], end_val[j] = peak_at_best, vals[best_i, j]
             pct[j] = best_dd
 
-def _maxdown_numpy(vals):
+def _maxdown_numpy(vals: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    ===========================================================================
+    Calculate per-column maximum drawdown with NumPy, returning the first
+    peak position, trough position, their values, and drawdown ratio.
+
+    Parameters
+    ----------
+    vals : np.ndarray
+        Two-dimensional value array; NaNs are ignored.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        Peak positions, trough positions, peak values, trough values, and
+        drawdown ratios. Columns with no valid values receive -1 positions
+        and NaN values.
+    ---------------------------------------------------------------------------
+    使用 NumPy 逐列计算最大回撤, 返回首次峰值位置, 谷值位置及对应数值与回撤比例.
+
+    参数
+    ----
+    vals : np.ndarray
+        二维数值数组; 忽略 NaN.
+
+    返回
+    ----
+    tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        峰值位置, 谷值位置, 峰值, 谷值和回撤比例. 全无有效值的列返回
+        -1 位置及 NaN 数值.
+    ---------------------------------------------------------------------------
+    """
     n, k = vals.shape
     nan = np.isnan(vals)
     fill = vals.copy(); fill[nan] = -np.inf

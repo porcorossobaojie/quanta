@@ -1240,10 +1240,47 @@ def concept(
     return x
 
 def expose(
-    df_obj,
-    standard = True,
-    **kwargs
-):
+    df_obj: pd.DataFrame,
+    standard: bool = True,
+    **kwargs: pd.DataFrame
+) -> Any:
+    """
+    ===========================================================================
+    Estimate a factor's exposure to supplied risk factors using cross-
+    sectional neutralization, or Barra factors when none are supplied.
+
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        Factor values whose exposures are to be estimated.
+    standard : bool
+        Whether to standardize the input and risk factors by row. Default
+        is True.
+    **kwargs : pd.DataFrame
+        Named risk factor matrices; if omitted, use default Barra factors.
+
+    Returns
+    -------
+    Any
+        Neutralization result containing exposure coefficients in params.
+    ---------------------------------------------------------------------------
+    通过截面中性化估计因子对指定风险因子的暴露; 未指定时使用默认 Barra 因子.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        待估计暴露的因子值.
+    standard : bool
+        是否按行标准化输入及风险因子. 默认为 True.
+    **kwargs : pd.DataFrame
+        命名的风险因子矩阵; 未提供时使用默认 Barra 因子.
+
+    返回
+    ----
+    Any
+        中性化结果, 其中 params 包含暴露系数.
+    ---------------------------------------------------------------------------
+    """
     if len(kwargs) == 0:
         from quanta.faclib import barra
         kwargs = {

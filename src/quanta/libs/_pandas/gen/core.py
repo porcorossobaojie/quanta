@@ -726,14 +726,68 @@ def roll_weight(
     
 
 def peaks(
-    df_obj, 
-    periods, 
-    top = None,
-    bottom = None,
-    median = None,
-    standard = True,
-    smooth = True,
-):
+    df_obj: pd.DataFrame,
+    periods: int,
+    top: Optional[float] = None,
+    bottom: Optional[float] = None,
+    median: Optional[float] = None,
+    standard: bool = True,
+    smooth: bool = True,
+) -> pd.DataFrame:
+    """
+    ===========================================================================
+    Mark prominent peaks and troughs in each column, optionally marking
+    near-zero regions as neutral.
+
+    Parameters
+    ----------
+    df_obj : pd.DataFrame
+        Input time series, one series per column.
+    periods : int
+        Minimum peak separation and smoothing window length.
+    top : Optional[float]
+        Peak prominence threshold; None disables peak detection.
+    bottom : Optional[float]
+        Trough prominence threshold; None disables trough detection.
+    median : Optional[float]
+        Absolute-value threshold for neutral regions; None disables them.
+    standard : bool
+        Whether to standardize each column before detection. Default is True.
+    smooth : bool
+        Whether to apply a Savitzky-Golay filter. Default is True.
+
+    Returns
+    -------
+    pd.DataFrame
+        Input-shaped labels: 1 for peak regions, -1 for trough regions,
+        0 for neutral regions, and NaN elsewhere.
+    ---------------------------------------------------------------------------
+    逐列标记显著峰值与谷值, 并可选标记接近零的中性区域.
+
+    参数
+    ----
+    df_obj : pd.DataFrame
+        输入时间序列, 每列为一条序列.
+    periods : int
+        峰值最小间距及平滑窗口长度.
+    top : Optional[float]
+        峰值突出度阈值; None 表示不检测峰值.
+    bottom : Optional[float]
+        谷值突出度阈值; None 表示不检测谷值.
+    median : Optional[float]
+        中性区域的绝对值阈值; None 表示不标记中性区域.
+    standard : bool
+        是否先按列标准化. 默认为 True.
+    smooth : bool
+        是否使用 Savitzky-Golay 滤波. 默认为 True.
+
+    返回
+    ----
+    pd.DataFrame
+        与输入同形状的标记: 峰值区域为 1, 谷值区域为 -1,
+        中性区域为 0, 其余为 NaN.
+    ---------------------------------------------------------------------------
+    """
     if standard:
         df_obj = df_obj.stats.standard(axis=0)
     if smooth:
