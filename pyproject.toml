@@ -4,7 +4,7 @@ name = "python-quanta" # 你的项目名称，建议与你的顶级包名（例�
 version = "0.9.0" # 项目版本号
 description = "A local-first quantitative research framework for financial data analysis." # 项目的简短描述
 readme = "README.md" # 指向你的 README 文件
-requires-python = ">=3.9" # 项目所需的 Python 版本
+requires-python = ">=3.11" # 项目所需的 Python 版本
 license = { text = "MIT" } # 示例许可证，你可以改为你的实际许可证，或指向 "LICENSE" 文件
 
 keywords = ["quantitative", "finance", "data-analysis", "factor", "barra", "duckdb"] # 关键词，方便搜索
@@ -32,7 +32,8 @@ dependencies = [
     "sqlalchemy>=1.4.0",
     "statsmodels>=0.13.0",
     "numba>=0.58.0",
-    "numexpr>=2.8.0",
+    # 2.14.2 replaces the faulty 2.14.1 Windows builds. | 2.14.2 替代有问题的 2.14.1 Windows 构建.
+    "numexpr>=2.14.2",
     "cachetools>=5.0.0",
 ]
 
@@ -63,9 +64,9 @@ packages = {find = {where = ["src"]}}
 # 其他工具的配置，例如 Black
 [tool.black]
 line-length = 88
-target-version = ['py39'] # 根据你的 Python 版本调整
+target-version = ['py311'] # 根据你的 Python 版本调整
 
 # 其他工具的配置，例如 MyPy
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.11"
 ignore_missing_imports = true
