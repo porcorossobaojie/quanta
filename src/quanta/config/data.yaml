@@ -60,6 +60,45 @@ tables:
         day: trade_dt
 
     # =========================================================================
+    # Tonghuashun stock research report tables.
+    # -------------------------------------------------------------------------
+    # 同花顺个股研报表.
+    # -------------------------------------------------------------------------
+    ths_table:
+        astockresearchreport:
+            table: astockresearchreport
+            list_url: https://basic.10jqka.com.cn/{code}/news.html
+            headers:
+                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36
+                Referer: https://basic.10jqka.com.cn/
+            retries: 3
+            timeout: 25
+            retry_delay: 1.5
+            sleep_min: 0.8
+            sleep_max: 1.8
+            extractor_version: 1.0.0
+            columns_information:
+                id: {id_key: [BIGINT, 同花顺研报 ID]}
+                code: {astock_code: [VARCHAR(16), 股票代码]}
+                date: {ann_dt: [DATETIME, 研报发布日期]}
+                broker: {broker: [VARCHAR(64), 券商]}
+                analyst: {analyst: [VARCHAR(128), 分析师]}
+                title: {title: [VARCHAR(512), 研报标题]}
+                rating_raw: {rating_raw: [VARCHAR(32), 原始评级]}
+                rating: {rating: [VARCHAR(16), 标准评级]}
+                rating_score: {rating_score: [TINYINT, 评级分数]}
+                target_price: {target_price: [DOUBLE, 目标价]}
+                previous_target_price: {previous_target_price: [DOUBLE, 前目标价]}
+                revision: {revision: [VARCHAR(16), 盈利预测调整方向]}
+                risk: {risk: [TEXT, 风险提示]}
+                report_text: {report_text: [TEXT, 公开研报摘要]}
+                url: {url: [VARCHAR(1024), 原文链接]}
+                content_hash: {content_hash: [VARCHAR(64), 摘要 SHA256]}
+                data_source: {source: [VARCHAR(16), 数据来源]}
+                crawl_dt: {crawl_dt: [DATETIME, 抓取时间]}
+                extractor_version: {extractor_version: [VARCHAR(16), 抽取器版本]}
+
+    # =========================================================================
     # Configurations for tables indexed by incremental IDs (e.g., statements).
     # -------------------------------------------------------------------------
     # 按增量 ID 索引的表配置 (例如 财务报表).

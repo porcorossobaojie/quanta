@@ -1,27 +1,22 @@
 from typing import Literal, Optional, Sequence
 
-from .joinquant import daily as _jq_daily, minute as _jq_minute
-from .tonghuashun import research_report as _ths_research_report
+from quanta.config import settings as _settings
+
+from .main import main as _class_obj
+
+_config = _settings('data').tables.ths_table
+
+__all__ = ['daily']
 
 
-def daily() -> None:
-    """Builds the local daily database | 构建本地日频数据库"""
-    _jq_daily()
-    _ths_research_report()
-    
-def minute() -> None:
-    """Builds the local minute database | 构建本地分钟频数据库"""
-    _jq_minute()
-
-
-def research_report(
+def daily(
     codes: Optional[Sequence[str]] = None,
     if_exists: Literal['append', 'replace'] = 'append',
     limit: Optional[int] = 50
 ) -> None:
     """
     ===========================================================================
-    Updates Tonghuashun research reports for selected stocks.
+    Runs configured Tonghuashun ID-table update pipelines.
 
     Parameters
     ----------
@@ -32,7 +27,7 @@ def research_report(
     limit : Optional[int]
         Maximum latest reports inspected per stock. None means all.
     ---------------------------------------------------------------------------
-    更新指定股票的同花顺研报.
+    运行配置的同花顺 ID 表更新流水线.
 
     参数
     ----
@@ -44,4 +39,10 @@ def research_report(
         每只股票检查的最新研报上限. None 表示全部.
     ---------------------------------------------------------------------------
     """
-    _ths_research_report(codes=codes, if_exists=if_exists, limit=limit)
+    for table_config in _config.values():
+        instance_obj = _class_obj(**table_config)
+        instance_obj.daily(
+            codes=codes,
+            if_exists=if_exists,
+            limit=limit
+        )

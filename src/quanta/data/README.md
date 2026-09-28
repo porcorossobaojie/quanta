@@ -34,6 +34,15 @@ Key Components
         -- `daily()`: Automated daily update mechanism that performs 
             incremental or full refreshes based on table-specific rules.
 
+    IV  Tonghuashun Research Reports (`tonghuashun/`)
+        -- Fetches public stock research report metadata and summary text.
+        -- Persists normalized rows in `astockresearchreport`.
+        -- Uses report-ID set differences instead of a date watermark, so
+            same-day additions and historical backfills are not missed.
+        -- Runs automatically with `quanta.data.daily()` over the complete
+            `_stock` universe. It can also run independently with
+            `quanta.data.research_report(['000002', '600519'])`.
+
 Engineering Standards
 ---------------------
     - **Schema Awareness**: Data ingestion is strictly driven by the schema 
@@ -75,5 +84,12 @@ Engineering Standards
         -- `pipeline()`: 在单个流中提取, 清洗和增强数据的核心方法.
         -- `daily()`: 自动化的每日更新机制, 根据表特定规则执行增量或
             全量刷新.
+
+    IV  同花顺研报 (`tonghuashun/`)
+        -- 抓取公开个股研报元数据和摘要正文.
+        -- 标准化后写入 `astockresearchreport`.
+        -- 使用研报 ID 集合差分而非日期水位线, 避免遗漏同日新增或历史补录.
+        -- 随 `quanta.data.daily()` 自动更新完整 `_stock` 股票池, 也可独立调用
+            `quanta.data.research_report(['000002', '600519'])`.
 
 --------
