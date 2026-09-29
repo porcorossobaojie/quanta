@@ -5,6 +5,7 @@ import html
 import json
 import random
 import re
+import threading
 import time
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
@@ -203,17 +204,28 @@ class common:
         )
         return match.group(1).strip() if match else ''
 
+    def __session__(self) -> requests.Session:
+        """Returns a reusable per-thread HTTP session | 返回每线程可复用的 HTTP 会话"""
+        session = getattr(self._local, 'session', None)
+        if session is None:
+            session = requests.Session()
+            session.headers.update(dict(self.headers))
+            self._local.session = session
+        return session
+
     def __request__(self, url: str) -> str:
         """Requests and decodes a GBK source page | 请求并解码 GBK 源页面"""
+        session = self.__session__()
         last_error: Optional[Exception] = None
         for attempt in range(self.retries):
-            if self._last_request_at is not None:
-                elapsed = time.monotonic() - self._last_request_at
+            last_request_at = getattr(self._local, 'last_request_at', None)
+            if last_request_at is not None:
+                elapsed = time.monotonic() - last_request_at
                 delay = random.uniform(self.sleep_min, self.sleep_max)
                 time.sleep(max(0, delay - elapsed))
             try:
-                self._last_request_at = time.monotonic()
-                response = self.session.get(url, timeout=self.timeout)
+                self._local.last_request_at = time.monotonic()
+                response = session.get(url, timeout=self.timeout)
                 response.raise_for_status()
                 return response.content.decode('gbk', errors='replace')
             except requests.RequestException as error:
@@ -297,9 +309,11 @@ class common:
                 except ValueError as error:
                     print(f'[quanta] invalid report skipped: {error}')
                     continue
-                if report_id not in id_keys:
-                    candidates.append(row)
+                with self._id_lock:
+                    if report_id in id_keys:
+                        continue
                     id_keys.add(report_id)
+                candidates.append(row)
 
         records: List[Dict[str, Any]] = []
         crawl_dt = pd.Timestamp.now().floor('s')
@@ -323,6 +337,4 @@ class common:
             self.__data_standard__
         )
         df = func(df, **kwargs)
-        if df.empty:
-            print(f'[quanta] warning: pipeline returned empty data for table <{self.table}>')
         return df

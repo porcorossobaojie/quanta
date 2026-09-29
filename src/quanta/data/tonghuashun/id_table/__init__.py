@@ -12,7 +12,8 @@ __all__ = ['daily']
 def daily(
     codes: Optional[Sequence[str]] = None,
     if_exists: Literal['append', 'replace'] = 'append',
-    limit: Optional[int] = 50
+    limit: Optional[int] = 50,
+    workers: Optional[int] = None
 ) -> None:
     """
     ===========================================================================
@@ -26,6 +27,8 @@ def daily(
         Append new report IDs or rebuild the table.
     limit : Optional[int]
         Maximum latest reports inspected per stock. None means all.
+    workers : Optional[int]
+        Concurrent stock fetchers. None uses the configured default.
     ---------------------------------------------------------------------------
     运行配置的同花顺 ID 表更新流水线.
 
@@ -37,6 +40,8 @@ def daily(
         追加新研报 ID 或重建数据表.
     limit : Optional[int]
         每只股票检查的最新研报上限. None 表示全部.
+    workers : Optional[int]
+        并发抓取的股票线程数. None 使用配置默认值.
     ---------------------------------------------------------------------------
     """
     for table_config in _config.values():
@@ -44,5 +49,6 @@ def daily(
         instance_obj.daily(
             codes=codes,
             if_exists=if_exists,
-            limit=limit
+            limit=limit,
+            workers=workers
         )

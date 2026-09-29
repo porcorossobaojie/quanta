@@ -17,7 +17,8 @@ def minute() -> None:
 def research_report(
     codes: Optional[Sequence[str]] = None,
     if_exists: Literal['append', 'replace'] = 'append',
-    limit: Optional[int] = 50
+    limit: Optional[int] = 50,
+    workers: Optional[int] = None
 ) -> None:
     """
     ===========================================================================
@@ -31,6 +32,8 @@ def research_report(
         Append new report IDs or rebuild the table.
     limit : Optional[int]
         Maximum latest reports inspected per stock. None means all.
+    workers : Optional[int]
+        Concurrent stock fetchers. None uses the configured default.
     ---------------------------------------------------------------------------
     更新指定股票的同花顺研报.
 
@@ -42,6 +45,13 @@ def research_report(
         追加新研报 ID 或重建数据表.
     limit : Optional[int]
         每只股票检查的最新研报上限. None 表示全部.
+    workers : Optional[int]
+        并发抓取的股票线程数. None 使用配置默认值.
     ---------------------------------------------------------------------------
     """
-    _ths_research_report(codes=codes, if_exists=if_exists, limit=limit)
+    _ths_research_report(
+        codes=codes,
+        if_exists=if_exists,
+        limit=limit,
+        workers=workers
+    )

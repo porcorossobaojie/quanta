@@ -5,12 +5,12 @@ Created on Mon Sep 28 17:49:47 2026
 @author: Porco Rosso
 """
 
+import threading
 from typing import Any, Sequence, Set
 
 import jqdatasdk as jq
 import numpy as np
 import pandas as pd
-import requests
 
 from ....config import settings
 from ....libs.db.main import main as db
@@ -52,9 +52,8 @@ class main(
         """
         super().__init__(**kwargs)
         self.__env_init__()
-        self.session = requests.Session()
-        self.session.headers.update(dict(self.headers))
-        self._last_request_at = None
+        self._local = threading.local()
+        self._id_lock = threading.Lock()
         self._stock = jq.get_all_securities('stock', date=None).index.tolist()
 
     def __data_standard__(self, df: pd.DataFrame, **kwargs: Any) -> pd.DataFrame:
