@@ -7,7 +7,6 @@ from .tonghuashun import research_report as _ths_research_report
 def daily() -> None:
     """Builds the local daily database | 构建本地日频数据库"""
     _jq_daily()
-    _ths_research_report()
     
 def minute() -> None:
     """Builds the local minute database | 构建本地分钟频数据库"""

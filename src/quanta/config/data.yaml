@@ -428,14 +428,16 @@ tables:
                 pre_close: {'preclose': ['double(12, 2)', '昨收盘价(元)']}
                 returns: {'ret': ['double(10, 8)', '涨跌幅']}
             commands: >
-                jq.get_price(
-                    jq.get_all_securities('stock', date='{end_date}').index.tolist(),
-                    fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close'],
-                    start_date = '{start_date} : 00:00:00', 
-                    end_date = '{end_date} : 23:59:59', 
-                    fq = None,
-                    frequency = '1m',
-                    skip_paused = False)
+                pd.concat(
+                    [jq.get_price(
+                        jq.get_all_securities('stock', date='{end_date}').index.tolist()[i: i+500],
+                        fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close'],
+                        start_date = '{start_date} : 00:00:00', 
+                        end_date = '{end_date} : 23:59:59', 
+                        fq = None,
+                        frequency = '1m',
+                        skip_paused = False) for i in range(0, len(jq.get_all_securities('stock', date='{end_date}').index.tolist()), 500)],
+                    axis = 0)
 
         aindexeodprices:
             table: aindexeodprices

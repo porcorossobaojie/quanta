@@ -63,10 +63,10 @@ def z(
     ---------------------------------------------------------------------------
     """
     if periods is None:
-        return df_obj.mean() / df_obj.std()
+        return (df_obj - df_obj.mean()) / df_obj.std()
     else:
         x = df_obj.rolling(periods, min_periods=(periods // 4) if min_periods is None else periods)
-        return x.mean() / x.std()
+        return (df_obj - x.mean()) / x.std()
 
 def standard(
     df_obj: Union[pd.Series, pd.DataFrame],
