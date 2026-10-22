@@ -438,7 +438,7 @@ tables:
                         frequency = '1m',
                         skip_paused = False) for i in range(0, len(jq.get_all_securities('stock', date='{end_date}').index.tolist()), 500)],
                     axis = 0)
-
+                    
         aindexeodprices:
             table: aindexeodprices
             periods: 1
