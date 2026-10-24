@@ -132,6 +132,7 @@ def _maxdown_numpy(vals: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray
     ---------------------------------------------------------------------------
     """
     n, k = vals.shape
+    vals[vals == 0] = np.nan
     nan = np.isnan(vals)
     fill = vals.copy(); fill[nan] = -np.inf
     np.maximum.accumulate(fill, axis=0, out=fill)          # fill = running peak
@@ -186,10 +187,10 @@ def maxdown(df_obj: pd.DataFrame, iscumprod: bool = True) -> pd.DataFrame:
     ---------------------------------------------------------------------------
     """
     if not iscumprod:
-        x = df_obj.add(1, fill_value=0).cumprod()
+        x = df_obj.add(1, fill_value=0).cumprod().replace(0, np.nan)
         x[df_obj.isnull()] = pd.NA
     else:
-        x = df_obj
+        x = df_obj.replace(0, np.nan)
 
     idx, cols = x.index, x.columns
     vals = x.to_numpy(dtype='float64', na_value=np.nan)     # pd.NA -> NaN; float64 时零拷贝
