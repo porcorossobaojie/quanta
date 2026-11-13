@@ -577,7 +577,9 @@ def parameter_standard(
 def merge(
     *factors: pd.DataFrame,
     standard: bool = True,
+    zero_adj: bool = True,
     portfolio_type: Optional[str] = None,
+    detail = False,
     **kwargs: Any
 ) -> pd.DataFrame:
     """
@@ -630,10 +632,18 @@ def merge(
     ins = __instance__[portfolio_type]
     for i, j in factors_dict.items():
         parameters = ins(config.trade_keys.returns).stats.neutral(fac=j.shift()).params.fac
-        parameters = parameter_standard(parameters).rolling(5).mean()
-        factors_dict[i] = factors_dict[i].mul(parameters, axis=0)
-    factors_merged = pd.concat(factors_dict, axis=1).groupby(factors[0].columns.name, axis=1).mean()
-    return factors_merged
+        parameters = parameter_standard(parameters, **kwargs).rolling(5).mean()
+        if zero_adj:
+            parameters = parameters.clip(0)
+        if detail:
+           factors_dict[i] = parameters
+        else:
+            factors_dict[i] = factors_dict[i].mul(parameters, axis=0)
+    if detail:
+        return factors_dict
+    else:
+        factors_merged = pd.concat(factors_dict, axis=1).groupby(factors[0].columns.name, axis=1).mean()
+        return factors_merged
 
 def port(
     df_obj: pd.DataFrame,
@@ -799,7 +809,7 @@ def ic(
     ret = __instance__[portfolio_type](config.trade_keys.returns)
     x = df_obj.shift(shift).corrwith(ret, axis=1)
     return x
-        
+
 def ic_predict(
     Series: pd.Series,
     windows: Tuple[int, ...] = (5, 10, 15, 21, 42, 63),
@@ -864,7 +874,7 @@ def ic_predict(
     y_pred =  (x[:-1, :] * val[1:, -1, 1:]).sum(axis=1)
     df = pd.DataFrame(np.array([y_pred, r[:-1]]), columns = Series.index[-y_pred.shape[0]:], index=['p', 'r']).T
     return df
-    
+
 def ir(
     df_obj: Union[pd.DataFrame, pd.Series],
     periods: int = 126,
@@ -1354,6 +1364,3 @@ def at(
     else:
         x = df_obj.groupby([df_obj.index.date, np.where(df_obj.index.hour <= 12, 'AM', 'PM')]).nth(slice(start, end))
     return x
-        
-        
-    
