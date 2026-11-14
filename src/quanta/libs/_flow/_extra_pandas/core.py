@@ -1096,8 +1096,8 @@ class test:
     def action_returns(self, df: pd.DataFrame) -> Any:
         """Calculates returns specifically for buy and sell actions | 专门计算买入和卖出行为的收益率"""
         buy_actions = df[(df.shift() == 0) & df > 0].notnull()
-        buy_ret = (buy_actions.f.info(self.trade_price) / buy_actions.f.info(self.settle_price))[buy_actions] - 1
-        sell_actions =  df[(df.shift(-1) == 0) & df > 0].notnull()
+        buy_ret = (buy_actions.f.info(self.settle_price) / buy_actions.f.info(self.trade_price))[buy_actions] - 1
+        sell_actions =  df[(df == 0) & (df.shift() > 0)].notnull()
         sell_ret = ( sell_actions.f.info(self.trade_price) / sell_actions.f.info(self.settle_price).shift())[sell_actions] - 1
         return type('returns', (), {'buy':buy_ret, 'sell':sell_ret})
 
@@ -1143,7 +1143,13 @@ class test:
         entrade = self.entrade
         if rebalance:
             entrade = entrade.div(entrade.sum(axis=1), axis=0)
-        real_returns = (entrade * self.real_returns(entrade)).sum(axis=1)
+        # 清仓日权重为 0, 卖出部分自前收至 VWAP 的收益须按前一日权重重加一项
+        prev = entrade.shift(1).fillna(0.0)
+        exited = (entrade <= 0) & (prev > 0)
+        real_matrix = self.real_returns(entrade)
+        real_detail = (entrade * real_matrix).fillna(0.0)
+        real_detail = real_detail.where(~exited, (prev * real_matrix).fillna(0.0))
+        real_returns = real_detail.sum(axis=1)
         real_turnover = entrade.diff().fillna(entrade).abs().sum(axis=1)
         real_cost = real_turnover * self.cost
 
