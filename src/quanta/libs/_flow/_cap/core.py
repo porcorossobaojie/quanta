@@ -260,7 +260,8 @@ class Unit:
         settle = self.roll()
         self.set_target(new_target)
         signal = self.target - settle
-        x = Unit(signal=signal, settle=settle, target=None)
+        # 继续传递 trade_cost, 否则后续单元回落默认 True, chain(trade_cost=False) 失效
+        x = Unit(signal=signal, settle=settle, target=None, trade_cost=self._trade_cost)
         return x
 
     def turnover(
