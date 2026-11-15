@@ -59,45 +59,6 @@ tables:
         time: trade_dt
         day: trade_dt
 
-    # =========================================================================
-    # Tonghuashun stock research report tables.
-    # -------------------------------------------------------------------------
-    # 同花顺个股研报表.
-    # -------------------------------------------------------------------------
-    ths_table:
-        astockresearchreport:
-            table: astockresearchreport
-            list_url: https://basic.10jqka.com.cn/{code}/news.html
-            headers:
-                User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36
-                Referer: https://basic.10jqka.com.cn/
-            retries: 3
-            timeout: 25
-            retry_delay: 1.5
-            sleep_min: 0.8
-            sleep_max: 1.8
-            extractor_version: 1.0.0
-            workers: 4
-            columns_information:
-                id: {id_key: [BIGINT, 同花顺研报 ID]}
-                code: {astock_code: [VARCHAR(16), 股票代码]}
-                date: {ann_dt: [DATETIME, 研报发布日期]}
-                broker: {broker: [VARCHAR(64), 券商]}
-                analyst: {analyst: [VARCHAR(128), 分析师]}
-                title: {title: [VARCHAR(512), 研报标题]}
-                rating_raw: {rating_raw: [VARCHAR(32), 原始评级]}
-                rating: {rating: [VARCHAR(16), 标准评级]}
-                rating_score: {rating_score: [TINYINT, 评级分数]}
-                target_price: {target_price: [DOUBLE, 目标价]}
-                previous_target_price: {previous_target_price: [DOUBLE, 前目标价]}
-                revision: {revision: [VARCHAR(16), 盈利预测调整方向]}
-                risk: {risk: [TEXT, 风险提示]}
-                report_text: {report_text: [TEXT, 公开研报摘要]}
-                url: {url: [VARCHAR(1024), 原文链接]}
-                content_hash: {content_hash: [VARCHAR(64), 摘要 SHA256]}
-                data_source: {source: [VARCHAR(16), 数据来源]}
-                crawl_dt: {crawl_dt: [DATETIME, 抓取时间]}
-                extractor_version: {extractor_version: [VARCHAR(16), 抽取器版本]}
 
     # =========================================================================
     # Configurations for tables indexed by incremental IDs (e.g., statements).
@@ -185,6 +146,45 @@ tables:
                 .order_by(jq.finance.FUND_SHARE_DAILY.id)
                 .filter((jq.finance.FUND_SHARE_DAILY.id > {id_key})))
 
+        astockhkhold:
+            table: astockhkhold
+            columns_information: jq.finance.STK_HK_HOLD_INFO
+            commands: >
+                jq.finance.run_offset_query(jq.query(jq.finance.STK_HK_HOLD_INFO)
+                .order_by(jq.finance.STK_HK_HOLD_INFO.id)
+                .filter((jq.finance.STK_HK_HOLD_INFO.id > {id_key})))
+
+        astockhktrade:
+            table: astockhktrade
+            columns_information:
+                id: {'id_key': ['bigint', '']}
+                day: {'trade_dt': ['datetime', '交易日']}
+                link_id: {'astock_code': ['VARCHAR(16)', '市场通编码']}
+                link_name: {'link_name': ['VARCHAR(16)', '市场通名称']}
+                currency_id: {'currency_id': ['VARCHAR(16)', '货币编码']}
+                currency: {'currency': ['VARCHAR(16)', '货币名称']}
+                sum_amount: {'hktot_amount': ['double(20, 4)', '买入成交额+卖出成交额']}
+                sum_volume: {'hktot_volume': ['double(20, 4)', '买入成交量+卖出成交量']}
+            commands: >
+                jq.finance.run_offset_query(jq.query(jq.finance.STK_ML_QUOTA)
+                .order_by(jq.finance.STK_ML_QUOTA.id)
+                .filter((jq.finance.STK_ML_QUOTA.id > {id_key})))
+
+        astockpledge:
+            table: astockpledge
+            columns_information: jq.finance.STK_SHARES_PLEDGE
+            commands: >
+                jq.finance.run_offset_query(jq.query(jq.finance.STK_SHARES_PLEDGE)
+                .order_by(jq.finance.STK_SHARES_PLEDGE.id)
+                .filter((jq.finance.STK_SHARES_PLEDGE.id > {id_key})))
+
+        astockemployee:
+            table: astockemployee
+            columns_information: jq.finance.STK_EMPLOYEE_INFO
+            commands: >
+                jq.finance.run_offset_query(jq.query(jq.finance.STK_EMPLOYEE_INFO)
+                .order_by(jq.finance.STK_EMPLOYEE_INFO.id)
+                .filter((jq.finance.STK_EMPLOYEE_INFO.id > {id_key})))
     # =========================================================================
     # Configurations for tables indexed by trade dates (e.g., EOD prices).
     # -------------------------------------------------------------------------
@@ -376,6 +376,33 @@ tables:
             commands: >
                 pd.concat({{i:pd.DataFrame(list(j.values())[0])for i,j in jq.get_concept(self._stock, '{start_date}').items()}}).reset_index()
 
+        astockmtss:
+            table: astockmtss
+            date_start: "2010-01-01"
+            periods: 21
+            columns_information:
+                date: {'trade_dt': ['datetime', '交易日']}
+                sec_code: {'astock_code': ['VARCHAR(16)', '股票代码']}
+                fin_value: {'fin_value': ['double(20,6)', '融资余额(元)']}
+                fin_buy_value: {'fin_buy_value': ['double(20,6)', '融资买入额(元)']}
+                fin_refund_value: {'fin_refund_value': ['double(20,6)', '融资偿还额(元)']}
+                sec_value: {'sec_value': ['double(20,6)', '融券余量(股)']}
+                sec_sell_value: {'sec_sell_value': ['double(20,6)', '融券卖出量(股)']}
+                sec_refund_value: {'sec_refund_value': ['double(20,6)', '融券偿还量(股)']}
+                fin_sec_value: {'fin_sec_value': ['double(20,6)', '融资融券余额(元)']}
+            commands: jq.get_mtss(self._stock, start_date='{start_date}', end_date='{end_date}')
+
+        astockunlockshares:
+            table: astockunlockshares
+            date_start: "2010-01-01"
+            periods: 21
+            columns_information:
+                day: {'trade_dt': ['datetime', '交易日']}
+                code: {'astock_code': ['VARCHAR(16)', '股票代码']}
+                num: {'volume': ['double(20,6)', '解禁股数']}
+                rate1: {'valmv_rate': ['double(10,8)', '解禁股数/总股本']}
+                rate2: {'curmv_rate': ['double(10,8)', '解禁股数/总流通股本']}
+            commands: jq.get_locked_shares(self._stock, start_date='2010-01-01', end_date=(pd.Timestamp.today() + pd.Timedelta(512*2, 'day')).date().__str__())
 
     # =========================================================================
     # Configurations for tables indexed by trade dates (minute freq).
@@ -404,8 +431,8 @@ tables:
                 jq.get_price(
                     jq.get_all_securities('fund', date='{end_date}').query('type == "etf"').index.tolist(),
                     fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close'],
-                    start_date = '{start_date} : 00:00:00', 
-                    end_date = '{end_date} : 23:59:59', 
+                    start_date = '{start_date} : 00:00:00',
+                    end_date = '{end_date} : 23:59:59',
                     fq = None,
                     frequency = '1m',
                     skip_paused = False)
@@ -432,13 +459,13 @@ tables:
                     [jq.get_price(
                         jq.get_all_securities('stock', date='{end_date}').index.tolist()[i: i+500],
                         fields = ['open','close','low','high','volume','money', 'high_limit','low_limit','avg','pre_close'],
-                        start_date = '{start_date} : 00:00:00', 
-                        end_date = '{end_date} : 23:59:59', 
+                        start_date = '{start_date} : 00:00:00',
+                        end_date = '{end_date} : 23:59:59',
                         fq = None,
                         frequency = '1m',
                         skip_paused = False) for i in range(0, len(jq.get_all_securities('stock', date='{end_date}').index.tolist()), 500)],
                     axis = 0)
-                    
+
         aindexeodprices:
             table: aindexeodprices
             periods: 1

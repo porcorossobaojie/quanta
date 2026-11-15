@@ -6,6 +6,7 @@ Created on Fri Feb  6 11:11:28 2026
 """
 
 from typing import Any, Literal
+import numpy as np
 import pandas as pd
 
 from ..meta.main import main as meta
@@ -98,6 +99,34 @@ class main(meta):
         df = self.__data_standard__(df, date=self.report_period)
         df = df.rename({self.report_period: self.trade_dt}, axis=1)
         df[self.trade_dt] = pd.to_datetime(df[self.trade_dt]) + pd.Timedelta(config.tables.recommend_settings.time_bias)
+        return df
+
+    def __data_standard_astockhkhold__(
+        self,
+        df: pd.DataFrame,
+        **kwargs: Any
+    ) -> pd.DataFrame:
+        df = self.__columns_rename__(df)
+        # add time bias on trade_dt or ann_dt
+        for i in [self.ann_dt, self.trade_dt]:
+            if i in df.columns:
+                df[i] = pd.to_datetime(df[i]) + pd.Timedelta(config.tables.recommend_settings.time_bias)
+            if (i not in df.columns) and i in self.columns.keys():
+                try:
+                    df[i] = pd.to_datetime(kwargs['start_date']) + pd.Timedelta(config.tables.recommend_settings.time_bias)
+                except KeyError:
+                    pass
+        # replace nan and standard codes
+        df = df.replace({np.inf: np.nan, -np.inf: np.nan})
+        return df
+
+    def __data_standard_astockhktrade__(
+        self,
+        df: pd.DataFrame,
+        **kwargs: Any
+    ) -> pd.DataFrame:
+        df = self.__data_standard_astockhkhold__(df, **kwargs)
+        df = df.rename({'link_id':config.tables.recommend_settings.key.astock_code}, axis=1)
         return df
 
     def daily(self, if_exists: Literal['append', 'replace'] = 'append') -> None:

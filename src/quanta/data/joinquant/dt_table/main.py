@@ -238,7 +238,7 @@ class main(meta):
         None
         -----------------------------------------------------------------------
         """
-        if self.table == 'astocklisting':  # this table inform the on list time for each stock, which will replace every day
+        if self.table in ('astocklisting', 'astockunlockshares'):  # this table inform the on list time for each stock, which will replace every day
             self.drop_table()
             self.create_table()
             df = self.pipeline()
