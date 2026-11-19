@@ -224,7 +224,9 @@ class DictBundle:
     ``to_dict`` returns a shallow nested dictionary: values of ``pandas_types``
     are kept by reference, nested generated objects are unwrapped recursively.
     Instances cannot be pickled, because the class lives outside any module
-    namespace. Any other type of value stays untouched.
+    namespace. Any other type of value stays untouched. Objects whose type
+    comes from another package can join dispatch by adding that package name
+    to ``DictBundle.dispatch_modules``.
     ---------------------------------------------------------------------------
     把嵌套字典转换为支持字段级 pandas 分发的动态 dataclass 实例的工厂.
 
@@ -257,19 +259,29 @@ class DictBundle:
     键必须是合法的 python 标识符, 否则抛出 ValueError. 嵌套字典转换成的类按点
     分路径命名, 例如 ``Neutral.resid``, 嵌套类名因此可读且无歧义. ``to_dict``
     返回浅层嵌套字典: ``pandas_types`` 的实例按引用保留, 嵌套生成对象递归展开.
-    实例不能被 pickle, 因为类不在任何模块命名空间内. 其他类型的值保持原样.
+    实例不能被 pickle, 因为类不在任何模块命名空间内. 其他类型的值保持原样. 其他
+    包里的对象类型可通过把包名加入 ``DictBundle.dispatch_modules`` 参与分发.
     ---------------------------------------------------------------------------
     """
     flag = '__dict_bundle__'
     """Marker attribute set on generated classes | 生成类上的标记属性"""
 
+    dispatch_modules: Tuple[str, ...] = ('pandas', __name__.split('.')[0])
+    """Top level modules whose objects join dispatch | 参与分发的顶层包名"""
+
     _cache: Dict[Any, type] = {}
     """Generated class per field signature | 按字段签名缓存的生成类"""
 
     @staticmethod
-    def _is_pandas_object(value: Any) -> bool:
-        """True for pandas native objects such as Rolling | 判断是否 pandas 原生对象"""
-        return type(value).__module__.split('.')[0] == 'pandas'
+    def _is_dispatchable(value: Any, pandas_types: Tuple[type, ...]) -> bool:
+        """Field takes part in dispatch | 判断字段是否参与分发"""
+        if getattr(type(value), DictBundle.flag, False):
+            # 生成对象由它自己的钩子负责, 不在本层递归分发
+            return False
+        if isinstance(value, pandas_types):
+            return True
+        module = (type(value).__module__ or '').split('.')[0]
+        return module in DictBundle.dispatch_modules
 
     @classmethod
     def build(
@@ -409,8 +421,11 @@ class DictBundle:
         instance.
 
         A field counts as a pandas field when its value is an instance of the
-        configured ``pandas_types``, or when its type comes from the pandas
-        package, which covers chain intermediates such as Rolling and GroupBy.
+        configured ``pandas_types``, or when its type comes from one of the
+        ``dispatch_modules``, by default pandas and this package. That covers
+        chain intermediates such as Rolling or GroupBy, and registered pandas
+        accessors such as ``obj.f``, so ``obj.rolling(10).mean()`` and
+        ``obj.f.some_accessor_method()`` both keep working.
 
         Attribute lookup on a field name never reaches this hook, so field
         names always win over dispatched names. Names starting with an
@@ -432,8 +447,10 @@ class DictBundle:
         -----------------------------------------------------------------------
         把 pandas 的 API 名分发到生成实例的每个 pandas 字段上.
 
-        字段值属于配置的 ``pandas_types``, 或其类型来自 pandas 包 (如 Rolling,
-        GroupBy 等链式中间态), 都算 pandas 字段.
+        字段值属于配置的 ``pandas_types``, 或其类型来自 ``dispatch_modules`` 里
+        的顶层包 (默认为 pandas 与本包), 都算参与分发的字段. 这样既覆盖 Rolling,
+        GroupBy 等链式中间态, 也覆盖 ``obj.f`` 这类注册访问器, 因此
+        ``obj.rolling(10).mean()`` 与 ``obj.f.some_accessor_method()`` 都可用.
 
         字段名的属性访问不会进入这个钩子, 所以字段名永远优先于分发的名字. 下划线
         开头的名字一律拒绝, 以保证 copy, deepcopy, pickle 与 IPython 的探测不被
@@ -459,8 +476,7 @@ class DictBundle:
             )
         targets = {
             k: v for k, v in self.__dict__.items()
-            if isinstance(v, type(self)._pandas_types)
-            or DictBundle._is_pandas_object(v)
+            if DictBundle._is_dispatchable(v, type(self)._pandas_types)
         }
         if not targets:
             raise AttributeError(
