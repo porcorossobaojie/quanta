@@ -274,7 +274,7 @@ class DictBundle:
             raise TypeError(
                 f"DictBundle.build expects a dict, got {type(dic).__name__}"
             )
-
+        name = "Root" if name is None else name
         field_values: Dict[str, Any] = {}
         for key, value in dic.items():
             cls._check_field_name(key)
