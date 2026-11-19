@@ -193,8 +193,10 @@ class DictBundle:
     accept any pandas API through attribute lookup: ``obj.rank(axis=1)`` or
     ``obj.T`` applies the same call to every such field and returns a new
     instance of the same dynamic class, leaving the receiver untouched.
-    Values of any other type are never operated on and are carried into the
-    returned object unchanged.
+    Intermediate pandas objects produced by such calls, such as Rolling,
+    GroupBy or string accessors, are dispatched the same way, so chains like
+    ``obj.rolling(10).mean()`` keep working. Values of any other type are
+    never operated on and are carried into the returned object unchanged.
 
     Generated classes are cached per field signature, so repeated builds of
     the same structure share one class and ``isinstance`` works across calls.
@@ -229,7 +231,9 @@ class DictBundle:
     ``build`` 把嵌套字典转换为字段即字典键的实例. 值为 ``pandas_types`` 实例的
     字段接受任意 pandas API 的属性访问: ``obj.rank(axis=1)`` 或 ``obj.T`` 会把
     同一个调用作用到每个这类字段上, 并返回同一动态类的新实例, 原对象保持不变.
-    其他类型的值不被操作, 原样带入返回的对象.
+    这类调用产生的 pandas 中间态对象 (Rolling, GroupBy, 字符串访问器等) 同样参与
+    分发, 因此 ``obj.rolling(10).mean()`` 这类链式调用可用. 其他类型的值不被操作,
+    原样带入返回的对象.
 
     生成的类按字段签名缓存, 同一结构的多次构建共享同一个类, 因此跨调用
     ``isinstance`` 判断可用.
@@ -262,6 +266,11 @@ class DictBundle:
     _cache: Dict[Any, type] = {}
     """Generated class per field signature | 按字段签名缓存的生成类"""
 
+    @staticmethod
+    def _is_pandas_object(value: Any) -> bool:
+        """True for pandas native objects such as Rolling | 判断是否 pandas 原生对象"""
+        return type(value).__module__.split('.')[0] == 'pandas'
+
     @classmethod
     def build(
         cls,
@@ -274,6 +283,7 @@ class DictBundle:
             raise TypeError(
                 f"DictBundle.build expects a dict, got {type(dic).__name__}"
             )
+        pandas_types = tuple(pandas_types)
         name = "Root" if name is None else name
         field_values: Dict[str, Any] = {}
         for key, value in dic.items():
@@ -398,6 +408,10 @@ class DictBundle:
         Dispatches a pandas API name onto every pandas field of a generated
         instance.
 
+        A field counts as a pandas field when its value is an instance of the
+        configured ``pandas_types``, or when its type comes from the pandas
+        package, which covers chain intermediates such as Rolling and GroupBy.
+
         Attribute lookup on a field name never reaches this hook, so field
         names always win over dispatched names. Names starting with an
         underscore are rejected to keep copy, deepcopy, pickle and IPython
@@ -417,6 +431,9 @@ class DictBundle:
             at least one pandas field, otherwise the mapped object itself.
         -----------------------------------------------------------------------
         把 pandas 的 API 名分发到生成实例的每个 pandas 字段上.
+
+        字段值属于配置的 ``pandas_types``, 或其类型来自 pandas 包 (如 Rolling,
+        GroupBy 等链式中间态), 都算 pandas 字段.
 
         字段名的属性访问不会进入这个钩子, 所以字段名永远优先于分发的名字. 下划线
         开头的名字一律拒绝, 以保证 copy, deepcopy, pickle 与 IPython 的探测不被
@@ -443,6 +460,7 @@ class DictBundle:
         targets = {
             k: v for k, v in self.__dict__.items()
             if isinstance(v, type(self)._pandas_types)
+            or DictBundle._is_pandas_object(v)
         }
         if not targets:
             raise AttributeError(
